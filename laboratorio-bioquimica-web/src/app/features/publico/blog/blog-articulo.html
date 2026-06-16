@@ -1,0 +1,39 @@
+<header class="page-navbar">
+  <div class="nav-container">
+    <a routerLink="/" class="logo-link">
+      <app-brand-logo size="compact" theme="light" />
+    </a>
+    <nav class="nav-links">
+      <a routerLink="/blog" class="nav-link">← Blog</a>
+      <a routerLink="/" class="nav-link">Inicio</a>
+    </nav>
+  </div>
+</header>
+
+<main class="article-page">
+  @if (articulo) {
+    <article>
+      <span class="article-cat">{{ articulo.categoria }}</span>
+      <h1>{{ articulo.titulo }}</h1>
+      <div class="article-meta">
+        <span>{{ articulo.tiempoLectura }} de lectura</span>
+        <span>·</span>
+        <span>{{ articulo.fecha }}</span>
+      </div>
+      <p class="article-lead">{{ articulo.resumen }}</p>
+      @for (p of articulo.parrafos; track p) {
+        <p class="article-p">{{ p }}</p>
+      }
+      <div class="article-cta">
+        <p>¿Necesitas realizarte este examen?</p>
+        <a routerLink="/" fragment="catalogo" class="btn-cta">Ver catálogo de exámenes</a>
+      </div>
+    </article>
+  } @else {
+    <div class="not-found">
+      <h1>Artículo no encontrado</h1>
+      <p>El artículo que buscas no existe o fue movido.</p>
+      <a routerLink="/blog" class="btn-cta">Volver al blog</a>
+    </div>
+  }
+</main>

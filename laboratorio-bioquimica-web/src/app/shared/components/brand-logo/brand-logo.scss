@@ -1,0 +1,121 @@
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  line-height: 1;
+  flex-shrink: 0;
+
+  /* Pastilla blanca — el logo forma parte de la barra, no flota como PNG */
+  &__badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 0.28rem 0.5rem;
+    line-height: 0;
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    box-shadow:
+      0 1px 0 rgba(0, 0, 0, 0.04),
+      0 4px 14px rgba(0, 0, 0, 0.14);
+  }
+
+  &__mark {
+    display: block;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    object-position: center;
+    border: 0;
+    background: #ffffff;
+    padding: 0;
+    margin: 0;
+    vertical-align: middle;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  &--compact {
+    .brand-logo__mark {
+      width: clamp(12.5rem, 32vw, 16.5rem);
+      max-width: 16.5rem;
+      min-width: 12.5rem;
+      height: auto;
+    }
+  }
+
+  &--full {
+    .brand-logo__mark {
+      width: clamp(15rem, 68vw, 21rem);
+      max-width: 21rem;
+      min-width: 15rem;
+      height: auto;
+    }
+
+    .brand-logo__badge {
+      padding: 0.35rem 0.6rem;
+      border-radius: 14px;
+    }
+  }
+
+  /* En barra blanca: sin pastilla extra, el logo es parte del header */
+  &--light &__badge {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+  }
+
+  &--light &__mark {
+    background: transparent;
+  }
+
+  &__suffix {
+    margin-left: 0.15rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.92);
+    flex-shrink: 0;
+  }
+
+  &--light .brand-logo__suffix {
+    border-color: rgba(30, 58, 138, 0.15);
+    background: rgba(30, 58, 138, 0.06);
+    color: #1e3a8a;
+  }
+}
+
+@media (max-width: 900px) {
+  .brand-logo--compact .brand-logo__mark {
+    width: clamp(11.5rem, 42vw, 14.5rem);
+    min-width: 11.5rem;
+  }
+
+  .brand-logo__suffix {
+    font-size: 0.68rem;
+    padding: 0.28rem 0.55rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .brand-logo--compact {
+    gap: 0.4rem;
+  }
+
+  .brand-logo--compact .brand-logo__mark {
+    width: 10.75rem;
+    min-width: 10.75rem;
+  }
+
+  .brand-logo--compact .brand-logo__badge {
+    padding: 0.22rem 0.4rem;
+    border-radius: 10px;
+  }
+}

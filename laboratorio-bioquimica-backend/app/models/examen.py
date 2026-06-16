@@ -1,0 +1,43 @@
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean
+from sqlalchemy.orm import relationship
+from app.db.session import Base
+
+class Examen(Base):
+    __tablename__ = "examenes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String, unique=True, index=True, nullable=False)
+    descripcion = Column(String, nullable=True)
+    preparacion = Column(String, nullable=True)  # Indicaciones de ayuno, etc.
+    precio_usd = Column(Float, nullable=False)
+    tiempo_entrega_horas = Column(Integer, default=24)
+    visible = Column(Boolean, default=True)
+
+    parametros = relationship(
+        "ParametroExamen",
+        back_populates="examen",
+        cascade="all, delete-orphan",
+        order_by="ParametroExamen.orden",
+    )
+    formulas = relationship("FormulaConsumo", back_populates="examen", cascade="all, delete-orphan")
+    resultados = relationship("Resultado", back_populates="examen")
+
+
+class FormulaConsumo(Base):
+    """
+    Fórmula de consumo de reactivos/insumos por examen (Bill of Materials - BOM)
+    """
+    __tablename__ = "formulas_consumo"
+
+    id = Column(Integer, primary_key=True, index=True)
+    examen_id = Column(Integer, ForeignKey("examenes.id"), nullable=False)
+    reactivo_id = Column(Integer, ForeignKey("reactivos.id"), nullable=False)
+    cantidad_consumo = Column(Float, nullable=False)  # Cantidad consumida por examen
+
+    # Relaciones
+    examen = relationship("Examen", back_populates="formulas")
+    reactivo = relationship("Reactivo", back_populates="formulas_examen")
+
+    @property
+    def reactivo_nombre(self) -> str:
+        return self.reactivo.nombre if self.reactivo else ""

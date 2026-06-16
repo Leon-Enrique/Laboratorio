@@ -1,0 +1,197 @@
+from datetime import date
+from sqlalchemy.orm import Session
+from app.db.session import engine, Base
+from app.db.migrate_lims import migrate_lims_inventory
+from app.models.usuario import Usuario, Paciente
+from app.models.examen import Examen, FormulaConsumo
+from app.models.parametro_examen import ParametroExamen
+from app.models.inventario import Proveedor, Reactivo, MovimientoStock, Lote
+from app.services import inventario_service as inv
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)
+
+def init_db(db: Session):
+    # Crear tablas y migrar esquema LIMS (multi-lote)
+    migrate_lims_inventory()
+
+    # 1. Crear Proveedores
+    prov_abrott = db.query(Proveedor).filter(Proveedor.nombre == "Abbott Diagnostics").first()
+    if not prov_abrott:
+        prov_abrott = Proveedor(
+            nombre="Abbott Diagnostics",
+            telefono="+1-800-222-688",
+            email="support@abbott.com",
+            direccion="Chicago, IL"
+        )
+        db.add(prov_abrott)
+        db.commit()
+        db.refresh(prov_abrott)
+
+    prov_roche = db.query(Proveedor).filter(Proveedor.nombre == "Roche Diagnostics").first()
+    if not prov_roche:
+        prov_roche = Proveedor(
+            nombre="Roche Diagnostics",
+            telefono="+1-800-444-999",
+            email="ventas@roche.com",
+            direccion="Basilea, Suiza"
+        )
+        db.add(prov_roche)
+        db.commit()
+        db.refresh(prov_roche)
+
+    # 2. Crear Usuarios (Admin, Bioquímico, Paciente de prueba)
+    admin = db.query(Usuario).filter(Usuario.email == "admin@laboratorio.com").first()
+    if not admin:
+        admin = Usuario(
+            email="admin@laboratorio.com",
+            password_hash=get_password_hash("admin123"),
+            nombre="Administrador General",
+            rol="admin",
+            activo=True
+        )
+        db.add(admin)
+
+    bioq = db.query(Usuario).filter(Usuario.email == "bioquimico@laboratorio.com").first()
+    if not bioq:
+        bioq = Usuario(
+            email="bioquimico@laboratorio.com",
+            password_hash=get_password_hash("bio123"),
+            nombre="Dr. Carlos Mendoza (Bioquímico)",
+            rol="bioquimico",
+            activo=True
+        )
+        db.add(bioq)
+
+    pac_user = db.query(Usuario).filter(Usuario.email == "juan.perez@email.com").first()
+    if not pac_user:
+        pac_user = Usuario(
+            email="juan.perez@email.com",
+            password_hash=get_password_hash("juan123"),
+            nombre="Juan Pérez",
+            rol="paciente",
+            activo=True
+        )
+        db.add(pac_user)
+        db.commit()
+        db.refresh(pac_user)
+
+        # Crear perfil del paciente
+        paciente = Paciente(
+            usuario_id=pac_user.id,
+            dni="12345678-9",
+            nombre="Juan",
+            apellido="Pérez",
+            fecha_nacimiento=date(1990, 5, 15),
+            genero="M",
+            telefono="+56988887777",
+            direccion="Av. Siempre Viva 742"
+        )
+        db.add(paciente)
+
+    db.commit()
+
+    # 3. Crear Reactivos (Insumos) en Inventario
+    reactivos_data = [
+        {"nombre": "Tubo de extracción de sangre (Tapa Roja)", "stock_actual": 150.0, "stock_minimo": 50.0, "unidad_medida": "unidades", "lote": "L-TR990", "fecha_vencimiento": date(2027, 12, 31), "prov": prov_abrott},
+        {"nombre": "Aguja estéril 21G", "stock_actual": 200.0, "stock_minimo": 60.0, "unidad_medida": "unidades", "lote": "L-AG112", "fecha_vencimiento": date(2028, 6, 30), "prov": prov_abrott},
+        {"nombre": "Reactivo de Glucosa Oxidasa", "stock_actual": 500.0, "stock_minimo": 100.0, "unidad_medida": "ml", "lote": "R-GLU25", "fecha_vencimiento": date(2026, 12, 1), "prov": prov_roche},
+        {"nombre": "Reactivo de Colesterol (Enzimático)", "stock_actual": 300.0, "stock_minimo": 80.0, "unidad_medida": "ml", "lote": "R-COL77", "fecha_vencimiento": date(2026, 10, 15), "prov": prov_roche},
+        {"nombre": "Solución de Lavado / Buffer", "stock_actual": 1000.0, "stock_minimo": 200.0, "unidad_medida": "ml", "lote": "B-BUF44", "fecha_vencimiento": date(2027, 1, 1), "prov": prov_roche}
+    ]
+
+    reactivos_map = {}
+    for r_item in reactivos_data:
+        r = db.query(Reactivo).filter(Reactivo.nombre == r_item["nombre"]).first()
+        if not r:
+            r = Reactivo(
+                nombre=r_item["nombre"],
+                stock_actual=0,
+                stock_minimo=r_item["stock_minimo"],
+                unidad_medida=r_item["unidad_medida"],
+                proveedor_id=r_item["prov"].id if r_item["prov"] else None
+            )
+            db.add(r)
+            db.commit()
+            db.refresh(r)
+
+            if r_item["stock_actual"] > 0 and r_item["lote"] and r_item["fecha_vencimiento"]:
+                inv.registrar_entrada_lote(
+                    db=db,
+                    reactivo_id=r.id,
+                    codigo_lote=r_item["lote"],
+                    cantidad=r_item["stock_actual"],
+                    fecha_vencimiento=r_item["fecha_vencimiento"],
+                    proveedor_id=r_item["prov"].id if r_item["prov"] else None,
+                    descripcion="Carga inicial del inventario",
+                )
+                db.refresh(r)
+        reactivos_map[r.nombre] = r
+
+    # 4. Crear Exámenes del Catálogo
+    examenes_data = [
+        {"nombre": "Glucosa en Ayunas", "descripcion": "Mide el nivel de glucosa (azúcar) en sangre tras 8 horas de ayuno. Util para diagnosticar diabetes.", "preparacion": "Ayuno estricto de 8 a 12 horas.", "precio_usd": 15.0, "tiempo_entrega_horas": 12},
+        {"nombre": "Perfil Lipídico Completo", "descripcion": "Mide colesterol total, triglicéridos, HDL y LDL en sangre para evaluar riesgo cardiovascular.", "preparacion": "Ayuno de 9 a 12 horas antes de la toma de muestra. No ingerir alcohol el día anterior.", "precio_usd": 35.0, "tiempo_entrega_horas": 24}
+    ]
+
+    for e_item in examenes_data:
+        e = db.query(Examen).filter(Examen.nombre == e_item["nombre"]).first()
+        if not e:
+            e = Examen(
+                nombre=e_item["nombre"],
+                descripcion=e_item["descripcion"],
+                preparacion=e_item["preparacion"],
+                precio_usd=e_item["precio_usd"],
+                tiempo_entrega_horas=e_item["tiempo_entrega_horas"]
+            )
+            db.add(e)
+            db.commit()
+            db.refresh(e)
+
+            # 5. Crear Fórmulas de Consumo (BOM) para cada examen
+            if e.nombre == "Glucosa en Ayunas":
+                # Consume: 1 Tubo, 1 Aguja, 5ml Reactivo Glucosa, 10ml Solución Lavado
+                formulas = [
+                    FormulaConsumo(examen_id=e.id, reactivo_id=reactivos_map["Tubo de extracción de sangre (Tapa Roja)"].id, cantidad_consumo=1.0),
+                    FormulaConsumo(examen_id=e.id, reactivo_id=reactivos_map["Aguja estéril 21G"].id, cantidad_consumo=1.0),
+                    FormulaConsumo(examen_id=e.id, reactivo_id=reactivos_map["Reactivo de Glucosa Oxidasa"].id, cantidad_consumo=5.0),
+                    FormulaConsumo(examen_id=e.id, reactivo_id=reactivos_map["Solución de Lavado / Buffer"].id, cantidad_consumo=10.0)
+                ]
+                db.add_all(formulas)
+            elif e.nombre == "Perfil Lipídico Completo":
+                # Consume: 1 Tubo, 1 Aguja, 10ml Reactivo Colesterol, 15ml Solución Lavado
+                formulas = [
+                    FormulaConsumo(examen_id=e.id, reactivo_id=reactivos_map["Tubo de extracción de sangre (Tapa Roja)"].id, cantidad_consumo=1.0),
+                    FormulaConsumo(examen_id=e.id, reactivo_id=reactivos_map["Aguja estéril 21G"].id, cantidad_consumo=1.0),
+                    FormulaConsumo(examen_id=e.id, reactivo_id=reactivos_map["Reactivo de Colesterol (Enzimático)"].id, cantidad_consumo=10.0),
+                    FormulaConsumo(examen_id=e.id, reactivo_id=reactivos_map["Solución de Lavado / Buffer"].id, cantidad_consumo=15.0)
+                ]
+                db.add_all(formulas)
+            db.commit()
+
+    # 6. Parámetros analíticos del catálogo (rangos de referencia)
+    parametros_seed = {
+        "Glucosa en Ayunas": [
+            {"nombre": "Glucosa", "unidad": "mg/dL", "valor_min": 70.0, "valor_max": 100.0, "orden": 0},
+        ],
+        "Perfil Lipídico Completo": [
+            {"nombre": "Colesterol Total", "unidad": "mg/dL", "valor_min": 0.0, "valor_max": 200.0, "orden": 0},
+            {"nombre": "Triglicéridos", "unidad": "mg/dL", "valor_min": 0.0, "valor_max": 150.0, "orden": 1},
+            {"nombre": "HDL", "unidad": "mg/dL", "valor_min": 40.0, "valor_max": 60.0, "orden": 2},
+            {"nombre": "LDL", "unidad": "mg/dL", "valor_min": 0.0, "valor_max": 100.0, "orden": 3},
+        ],
+    }
+    for nombre_examen, params in parametros_seed.items():
+        examen = db.query(Examen).filter(Examen.nombre == nombre_examen).first()
+        if not examen:
+            continue
+        tiene = db.query(ParametroExamen).filter(ParametroExamen.examen_id == examen.id).count()
+        if tiene == 0:
+            for p in params:
+                db.add(ParametroExamen(examen_id=examen.id, **p))
+            db.commit()
+
+    print("Database seeding completed successfully!")

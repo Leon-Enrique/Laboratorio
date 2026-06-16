@@ -1,0 +1,37 @@
+<header class="page-navbar">
+  <div class="nav-container">
+    <a routerLink="/" class="logo-link">
+      <app-brand-logo size="compact" theme="light" />
+    </a>
+    <nav class="nav-links">
+      <a routerLink="/" class="nav-link">Inicio</a>
+      <a routerLink="/resultados" class="btn-secondary">Ver resultados</a>
+    </nav>
+  </div>
+</header>
+
+<main class="blog-page">
+  <div class="blog-header">
+    <span class="section-eyebrow">Blog de salud</span>
+    <h1>Artículos escritos por <em>nuestro equipo</em></h1>
+    <p>Información clara sobre exámenes, preparación y cuidado de tu salud.</p>
+  </div>
+
+  <div class="blog-grid">
+    @for (art of articulos; track art.slug) {
+      <article class="blog-card">
+        <span class="blog-cat">{{ art.categoria }}</span>
+        <h2>
+          <a [routerLink]="['/blog', art.slug]">{{ art.titulo }}</a>
+        </h2>
+        <p class="blog-resumen">{{ art.resumen }}</p>
+        <div class="blog-meta">
+          <span>{{ art.tiempoLectura }}</span>
+          <span>·</span>
+          <span>{{ art.fecha }}</span>
+        </div>
+        <a [routerLink]="['/blog', art.slug]" class="blog-link">Leer artículo →</a>
+      </article>
+    }
+  </div>
+</main>

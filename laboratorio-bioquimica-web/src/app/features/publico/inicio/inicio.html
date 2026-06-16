@@ -1,0 +1,611 @@
+<!-- Header / Navbar -->
+<header class="navbar">
+  <div class="nav-container">
+    <div class="logo">
+      <app-brand-logo size="compact" theme="light" />
+    </div>
+    <nav class="nav-links">
+      <a href="#inicio" class="nav-link">Inicio</a>
+      <a href="#servicios" class="nav-link">Servicios</a>
+      <a href="#catalogo" class="nav-link">Exámenes</a>
+      <a href="#tecnologia" class="nav-link">Tecnología</a>
+      <a href="#nosotros" class="nav-link">Nosotros</a>
+      <a href="#ubicacion" class="nav-link">Ubicación</a>
+      <a [routerLink]="['/blog']" class="nav-link">Blog</a>
+      <a href="#reclamos" class="nav-link">Contacto</a>
+      <a [routerLink]="['/resultados']" class="btn-secondary">Ver resultados</a>
+      <a [href]="whatsappUrl" target="_blank" rel="noopener" class="btn-whatsapp">WhatsApp</a>
+      <a [routerLink]="['/login']" class="btn-primary">Acceso personal</a>
+    </nav>
+  </div>
+</header>
+
+<!-- Hero -->
+<section id="inicio" class="hero">
+  <div class="hero-inner">
+    <div class="hero-content">
+      <span class="hero-location">Genotipia · Laboratorio Clínico</span>
+      <h1>
+        Tecnología de precisión que transforma
+        <em>resultados</em> clínicos.
+      </h1>
+      <p class="hero-lead">
+        Análisis clínicos y bioquímicos de alta precisión. Resultados confiables,
+        portal online seguro y atención orientada al paciente y al médico tratante.
+      </p>
+      <div class="hero-actions">
+        <a href="#catalogo" class="btn-hero-primary">Ver todos los exámenes</a>
+        <a [routerLink]="['/resultados']" class="btn-hero-secondary">Ver mis resultados</a>
+      </div>
+    </div>
+
+    <div class="hero-panel">
+      <div class="hero-panel-card">
+        <span class="panel-label">Calidad certificada</span>
+        <h3>Excelencia en cada análisis</h3>
+        <p>Procesos bajo rigurosos estándares de control de calidad y trazabilidad de muestras.</p>
+        <ul class="panel-list">
+          <li>ISO 15189 · en proceso</li>
+          <li>Control de calidad externo</li>
+          <li>Resultados firmados digitalmente</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Estadísticas -->
+  <div class="stats-bar">
+    <div class="stat-item">
+      <span class="stat-value">{{ totalExamenes() || '—' }}</span>
+      <span class="stat-label">Exámenes disponibles</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value">24<span class="stat-unit">h</span></span>
+      <span class="stat-label">Entrega en exámenes urgentes</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value">100<span class="stat-unit">%</span></span>
+      <span class="stat-label">Resultados consultables online</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value">1</span>
+      <span class="stat-label">Laboratorio de confianza</span>
+    </div>
+  </div>
+</section>
+
+<!-- Ticker de servicios -->
+<div class="ticker-strip" aria-hidden="true">
+  <div class="ticker-track">
+    @for (item of tickerItems; track item) {
+      <span class="ticker-item">{{ item }}</span>
+    }
+    @for (item of tickerItems; track item + '-dup') {
+      <span class="ticker-item">{{ item }}</span>
+    }
+  </div>
+</div>
+
+<!-- Catálogo -->
+<section id="catalogo" class="catalogo-section">
+  <div class="section-eyebrow">Catálogo · {{ totalExamenes() }} exámenes</div>
+  <div class="section-header">
+    <h2>Busca tu <em>examen</em></h2>
+    <p>Consulta nuestro catálogo de pruebas disponibles, precios y requisitos de preparación.</p>
+
+    <div class="search-box">
+      <span class="search-icon" aria-hidden="true">⌕</span>
+      <input
+        #buscador
+        type="text"
+        placeholder="Buscar examen por nombre (ej: Glucosa, Colesterol)..."
+        (input)="filtrarExamenes($event)"
+      />
+    </div>
+
+    <div class="category-chips">
+      @for (cat of categorias; track cat.id) {
+        <button
+          type="button"
+          class="chip"
+          [class.active]="categoriaActiva() === cat.id"
+          (click)="seleccionarCategoria(cat.id)"
+        >
+          {{ cat.label }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <div class="catalogo-grid">
+    @if (cargando()) {
+      <div class="spinner-container col-span-full">
+        <div class="spinner"></div>
+        <p>Cargando catálogo de análisis clínicos...</p>
+      </div>
+    } @else {
+      @for (ex of examenesFiltrados(); track ex.id) {
+        <div class="exam-card">
+          <div class="exam-header">
+            <h3>{{ ex.nombre }}</h3>
+            <span class="price">${{ ex.precio_usd | number:'1.2-2' }} USD</span>
+          </div>
+          <p class="description">{{ ex.descripcion }}</p>
+          <div class="prep-instructions">
+            <strong>Preparación</strong>
+            <span class="prep-badge">{{ ex.preparacion }}</span>
+          </div>
+          <div class="exam-footer">
+            <span class="time-badge">Entrega estimada: {{ ex.tiempo_entrega_horas }} h</span>
+          </div>
+        </div>
+      } @empty {
+        <div class="empty-state col-span-full">
+          <p class="empty-text">No se encontraron exámenes con los filtros seleccionados.</p>
+          <button type="button" class="btn-reset" (click)="limpiarFiltros(buscador)">
+            Ver todos los exámenes
+          </button>
+        </div>
+      }
+    }
+  </div>
+</section>
+
+<!-- Servicios -->
+<section id="servicios" class="servicios-section">
+  <div class="section-eyebrow section-eyebrow--dark">Servicios de laboratorio</div>
+  <div class="section-header section-header--left">
+    <h2>Soluciones para <em>pacientes, médicos y empresas</em></h2>
+    <p>Tecnología de vanguardia para garantizar resultados precisos y confiables en cada análisis.</p>
+  </div>
+
+  <div class="servicios-grid">
+    <article class="servicio-card">
+      <div class="servicio-visual servicio-visual--pacientes">
+        <span class="servicio-tag">Pacientes</span>
+      </div>
+      <div class="servicio-body">
+        <h3>Servicios para Pacientes</h3>
+        <p>
+          Amplia variedad de análisis clínicos y bioquímicos con indicaciones claras de preparación
+          y acceso a resultados online de forma segura.
+        </p>
+        <a href="#catalogo" class="servicio-link">Ver exámenes →</a>
+      </div>
+    </article>
+
+    <article class="servicio-card">
+      <div class="servicio-visual servicio-visual--medicos">
+        <span class="servicio-tag">Médicos</span>
+      </div>
+      <div class="servicio-body">
+        <h3>Servicios para Médicos</h3>
+        <p>
+          Gestión de órdenes, resultados validados y firmados por bioquímico regente.
+          Informes listos para apoyar decisiones clínicas.
+        </p>
+        <a [routerLink]="['/login']" class="servicio-link">Acceso profesional →</a>
+      </div>
+    </article>
+
+    <article class="servicio-card">
+      <div class="servicio-visual servicio-visual--empresas">
+        <span class="servicio-tag">Empresas</span>
+      </div>
+      <div class="servicio-body">
+        <h3>Servicios Corporativos</h3>
+        <p>
+          Programas de salud ocupacional, exámenes de ingreso y periódicos con facturación
+          adaptada a las necesidades de tu organización.
+        </p>
+        <a [href]="whatsappUrl" target="_blank" rel="noopener" class="servicio-link">Consultar convenio →</a>
+      </div>
+    </article>
+  </div>
+</section>
+
+<!-- Tecnología -->
+<section id="tecnologia" class="tecnologia-section">
+  <div class="tecnologia-inner">
+    <div class="section-eyebrow">Tecnología molecular</div>
+    <div class="section-header section-header--left">
+      <h2>Precisión científica en <em>cada análisis</em></h2>
+      <p>
+        Infraestructura de laboratorio con equipamiento automatizado para análisis clínicos,
+        bioquímicos y moleculares bajo estrictos protocolos de calidad.
+      </p>
+    </div>
+
+    <div class="tecnologia-grid">
+      @for (tech of tecnologias; track tech.num) {
+        <article class="tech-card">
+          <span class="tech-num">{{ tech.num }}</span>
+          <h3>{{ tech.titulo }}</h3>
+          <p>{{ tech.descripcion }}</p>
+          <div class="tech-tags">
+            @for (tag of tech.tags; track tag) {
+              <span class="tech-tag">{{ tag }}</span>
+            }
+          </div>
+        </article>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- Galería / Instalaciones -->
+<section id="instalaciones" class="galeria-section">
+  <div class="galeria-inner">
+    <div class="section-eyebrow section-eyebrow--dark">Nuestras instalaciones</div>
+    <div class="section-header section-header--left">
+      <h2>Tecnología de punta al servicio de tu <em>diagnóstico</em></h2>
+      <p>Espacios diseñados para garantizar precisión, seguridad y confort en cada etapa del análisis.</p>
+    </div>
+
+    <div class="galeria-grid">
+      @for (item of galeria; track item.titulo) {
+        <figure class="galeria-card galeria-card--{{ item.tema }}">
+          <div class="galeria-visual">
+            @if (item.imagen) {
+              <img
+                [src]="'/' + item.imagen"
+                [alt]="item.titulo + ' — Genotipia Laboratorio Clínico'"
+                class="galeria-photo"
+                loading="lazy"
+              />
+            } @else {
+              <div class="galeria-slot" aria-hidden="true">
+                <svg class="galeria-slot-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="8" y="14" width="48" height="36" rx="4" stroke="currentColor" stroke-width="2.5"/>
+                  <circle cx="22" cy="28" r="5" stroke="currentColor" stroke-width="2"/>
+                  <path d="M8 42 L24 30 L38 38 L56 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            }
+          </div>
+          <figcaption>
+            <h3>{{ item.titulo }}</h3>
+            <p>{{ item.subtitulo }}</p>
+          </figcaption>
+        </figure>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- Médicos y Empresas (detalle) -->
+<section id="medicos-empresas" class="audiencias-section">
+  <div class="audiencias-inner">
+    <div class="audiencia-block audiencia-block--medicos">
+      <div class="audiencia-header">
+        <span class="audiencia-badge">Para médicos</span>
+        <h2>Aliados en el <em>diagnóstico clínico</em></h2>
+        <p>
+          Genotipia apoya al médico tratante con resultados confiables, tiempos de respuesta competitivos
+          y un sistema digital de gestión de órdenes y reportes.
+        </p>
+      </div>
+      <ul class="audiencia-list">
+        @for (b of beneficiosMedicos; track b) {
+          <li>{{ b }}</li>
+        }
+      </ul>
+      <div class="audiencia-actions">
+        <a [routerLink]="['/login']" class="btn-audiencia-primary">Acceso profesional</a>
+        <a [href]="whatsappUrl" target="_blank" rel="noopener" class="btn-audiencia-outline">Consultar convenio</a>
+      </div>
+    </div>
+
+    <div class="audiencia-block audiencia-block--empresas">
+      <div class="audiencia-header">
+        <span class="audiencia-badge">Para empresas</span>
+        <h2>Salud ocupacional <em>corporativa</em></h2>
+        <p>
+          Diseñamos programas preventivos para empresas de todos los tamaños, con atención prioritaria
+          y facturación adaptada a tus necesidades.
+        </p>
+      </div>
+      <ul class="audiencia-list">
+        @for (b of beneficiosEmpresas; track b) {
+          <li>{{ b }}</li>
+        }
+      </ul>
+      <div class="audiencia-actions">
+        <a [href]="whatsappUrl" target="_blank" rel="noopener" class="btn-audiencia-primary">Solicitar información</a>
+        <a href="#ubicacion" class="btn-audiencia-outline">Ver ubicación</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Nosotros -->
+<section id="nosotros" class="about-section">
+  <div class="about-content">
+    <div class="section-eyebrow">Por qué Genotipia</div>
+    <h2>Más que un laboratorio: un compromiso con tu <em>salud</em></h2>
+    <p>
+      En Genotipia contamos con tecnología analítica de última generación y personal especializado.
+      Todos nuestros análisis se procesan bajo rigurosas guías de control de calidad.
+    </p>
+    <div class="features-list">
+      <div class="feat-card">
+        <span class="feat-icon">🔬</span>
+        <h4>Tecnología avanzada</h4>
+        <p>Analizadores automatizados con trazabilidad completa de muestras.</p>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">⚡</span>
+        <h4>Resultados rápidos</h4>
+        <p>Flujo optimizado que reduce tiempos de entrega sin sacrificar precisión.</p>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">🔒</span>
+        <h4>Confidencialidad</h4>
+        <p>Acceso seguro y privado a los reportes clínicos de cada paciente.</p>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">📋</span>
+        <h4>Informes certificados</h4>
+        <p>Resultados validados y firmados electrónicamente por bioquímico regente.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Ubicación y horarios -->
+<section id="ubicacion" class="ubicacion-section">
+  <div class="ubicacion-inner">
+    <div class="ubicacion-info">
+      <div class="section-eyebrow">Dónde encontrarnos</div>
+      <h2>Visítanos en el <em>Sector Médico</em></h2>
+      <p>Estamos ubicados en una zona de fácil acceso, con estacionamiento cercano y atención personalizada.</p>
+
+      <div class="contacto-cards">
+        <div class="contacto-card">
+          <span class="contacto-icon">📍</span>
+          <div>
+            <strong>Dirección</strong>
+            <p>{{ direccion }}</p>
+            <a [href]="mapsUrl" target="_blank" rel="noopener" class="maps-link">Ver en Google Maps →</a>
+          </div>
+        </div>
+        <div class="contacto-card">
+          <span class="contacto-icon">📞</span>
+          <div>
+            <strong>Teléfono</strong>
+            <p><a [href]="'tel:' + telefonoTel">{{ telefono }}</a></p>
+          </div>
+        </div>
+        <div class="contacto-card">
+          <span class="contacto-icon">✉️</span>
+          <div>
+            <strong>Correo</strong>
+            <p><a [href]="'mailto:' + email">{{ email }}</a></p>
+          </div>
+        </div>
+        <div class="contacto-card contacto-card--whatsapp">
+          <span class="contacto-icon">💬</span>
+          <div>
+            <strong>WhatsApp</strong>
+            <p>Consultas y coordinación de exámenes</p>
+            <a [href]="whatsappUrl" target="_blank" rel="noopener" class="maps-link">Escribir por WhatsApp →</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="horarios-block">
+        <h3>Horarios de atención</h3>
+        <ul class="horarios-list">
+          @for (h of horarios; track h.dias) {
+            <li [class.destacado]="h.destacado">
+              <span class="horario-dias">{{ h.dias }}</span>
+              <span class="horario-horas">{{ h.horas }}</span>
+            </li>
+          }
+        </ul>
+      </div>
+    </div>
+
+    <div class="ubicacion-mapa">
+      <iframe
+        [src]="mapsEmbedSafe"
+        title="Ubicación de Genotipia en Google Maps"
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+        allowfullscreen
+      ></iframe>
+    </div>
+  </div>
+</section>
+
+<!-- Blog destacado -->
+<section id="blog" class="blog-preview-section">
+  <div class="blog-preview-inner">
+    <div class="blog-preview-header">
+      <div>
+        <span class="section-eyebrow">Blog de salud</span>
+        <h2>Artículos escritos por <em>nuestro equipo</em></h2>
+        <p>Guías prácticas sobre exámenes, preparación y prevención.</p>
+      </div>
+      <a [routerLink]="['/blog']" class="btn-ver-todos">Ver todos los artículos →</a>
+    </div>
+
+    <div class="blog-preview-grid">
+      @for (art of blogDestacados; track art.slug) {
+        <article class="blog-preview-card">
+          <span class="blog-preview-cat">{{ art.categoria }}</span>
+          <h3>
+            <a [routerLink]="['/blog', art.slug]">{{ art.titulo }}</a>
+          </h3>
+          <p>{{ art.resumen }}</p>
+          <div class="blog-preview-meta">{{ art.tiempoLectura }} · {{ art.fecha }}</div>
+        </article>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- Instagram -->
+<section id="redes" class="instagram-section">
+  <div class="instagram-inner">
+    <div class="instagram-header">
+      <div>
+        <span class="section-eyebrow section-eyebrow--dark">Redes sociales</span>
+        <h2>Genotipia en <em>Instagram</em></h2>
+        <p>Síguenos para consejos de salud, novedades del laboratorio y más.</p>
+      </div>
+      <a [href]="instagramUrl" target="_blank" rel="noopener" class="btn-instagram">
+        Seguir {{ instagramHandle }}
+      </a>
+    </div>
+
+    <div class="instagram-grid">
+      @for (post of instagramPosts; track post.titulo) {
+        <a [href]="instagramUrl" target="_blank" rel="noopener" class="instagram-card instagram-card--{{ post.tema }}">
+          <span class="instagram-play" aria-hidden="true">▶</span>
+          <div class="instagram-card-body">
+            <span class="instagram-tag">{{ post.etiqueta }}</span>
+            <h3>{{ post.titulo }}</h3>
+            <span class="instagram-handle">{{ instagramHandle }}</span>
+          </div>
+        </a>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- Reclamos y contacto -->
+<section id="reclamos" class="reclamos-section">
+  <div class="reclamos-inner">
+    <div class="reclamos-info">
+      <span class="section-eyebrow">Reclamos y sugerencias</span>
+      <h2>Tu opinión nos ayuda a <em>mejorar</em></h2>
+      <p>
+        Si tuviste alguna experiencia que quieras reportar o tienes una consulta,
+        estamos escuchando. Todos los mensajes son revisados por nuestra dirección.
+      </p>
+      <ul class="reclamos-list">
+        <li>Respuesta en un plazo de 24–48 horas hábiles</li>
+        <li>Datos tratados con confidencialidad</li>
+        <li>También puedes escribirnos por WhatsApp</li>
+      </ul>
+    </div>
+
+    <form class="reclamos-form" (ngSubmit)="enviarReclamo()">
+      @if (reclamoError()) {
+        <div class="form-alert form-alert--error">{{ reclamoError() }}</div>
+      }
+      @if (reclamoEnviado()) {
+        <div class="form-alert form-alert--ok">
+          Gracias. Se abrió tu cliente de correo para enviar el mensaje. Si no se abrió, escríbenos a {{ email }}.
+        </div>
+      }
+
+      <div class="form-group">
+        <label for="reclamo-nombre">Nombre completo</label>
+        <input
+          id="reclamo-nombre"
+          type="text"
+          [ngModel]="reclamoNombre()"
+          (ngModelChange)="reclamoNombre.set($event)"
+          name="nombre"
+          placeholder="Tu nombre"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="reclamo-email">Correo electrónico</label>
+        <input
+          id="reclamo-email"
+          type="email"
+          [ngModel]="reclamoEmail()"
+          (ngModelChange)="reclamoEmail.set($event)"
+          name="email"
+          placeholder="tu@email.com"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="reclamo-mensaje">Tu mensaje</label>
+        <textarea
+          id="reclamo-mensaje"
+          [ngModel]="reclamoMensaje()"
+          (ngModelChange)="reclamoMensaje.set($event)"
+          name="mensaje"
+          rows="5"
+          placeholder="Cuéntanos tu consulta, reclamo o sugerencia..."
+          required
+        ></textarea>
+      </div>
+
+      <p class="form-privacy">Tus datos son confidenciales y usados únicamente para responder tu consulta.</p>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-form-submit" [disabled]="enviandoReclamo()">
+          Enviar por correo
+        </button>
+        <button type="button" class="btn-form-whatsapp" (click)="enviarReclamoWhatsApp()">
+          Enviar por WhatsApp
+        </button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<!-- CTA final -->
+<section class="cta-section">
+  <div class="cta-inner">
+    <h2>¿Listo para resultados <em>confiables</em>?</h2>
+    <p>Consulta nuestro catálogo, verifica tus resultados online o escríbenos por WhatsApp.</p>
+    <div class="cta-actions">
+      <a [href]="whatsappUrl" target="_blank" rel="noopener" class="btn-cta-whatsapp">Consultar por WhatsApp</a>
+      <a href="#catalogo" class="btn-cta-secondary">Ver todos los exámenes</a>
+      <a [routerLink]="['/resultados']" class="btn-cta-outline">Ver mis resultados</a>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer id="contacto">
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <app-brand-logo size="full" theme="dark" />
+      <p class="footer-desc">
+        Laboratorio de análisis clínico y bioquímico. Resultados precisos con tecnología de punta.
+      </p>
+      <a [href]="whatsappUrl" target="_blank" rel="noopener" class="footer-whatsapp">WhatsApp directo</a>
+    </div>
+
+    <div class="footer-col">
+      <h4>Servicios</h4>
+      <a href="#catalogo">Catálogo de exámenes</a>
+      <a [routerLink]="['/resultados']">Verificar resultados</a>
+      <a href="#medicos-empresas">Para médicos</a>
+      <a [routerLink]="['/login']">Acceso personal</a>
+    </div>
+
+    <div class="footer-col">
+      <h4>Información</h4>
+      <a href="#nosotros">Nosotros</a>
+      <a href="#medicos-empresas">Para empresas</a>
+      <a href="#tecnologia">Tecnología</a>
+      <a href="#instalaciones">Instalaciones</a>
+      <a [routerLink]="['/blog']">Blog de salud</a>
+      <a href="#reclamos">Reclamos y contacto</a>
+      <a [href]="instagramUrl" target="_blank" rel="noopener">Instagram</a>
+    </div>
+
+    <div class="footer-col footer-contact">
+      <h4>Contacto</h4>
+      <p>{{ direccion }}</p>
+      <p><a [href]="'tel:' + telefonoTel">{{ telefono }}</a></p>
+      <p><a [href]="'mailto:' + email">{{ email }}</a></p>
+    </div>
+  </div>
+
+  <div class="footer-copy">
+    &copy; 2026 Genotipia · Laboratorio Clínico. Todos los derechos reservados.
+  </div>
+</footer>

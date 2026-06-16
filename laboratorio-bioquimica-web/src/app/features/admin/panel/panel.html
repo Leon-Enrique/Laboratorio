@@ -1,0 +1,1481 @@
+<header class="admin-header">
+  <div class="header-content">
+    <div class="logo">
+      <app-brand-logo size="compact" theme="light" suffix="Admin Panel" />
+    </div>
+    <div class="user-menu">
+      <span class="user-greeting">👤 {{ nombreUsuario() }} ({{ rolUsuario() | uppercase }})</span>
+      <button class="btn-logout" (click)="logout()">Cerrar Sesión</button>
+    </div>
+  </div>
+</header>
+
+<div class="admin-container">
+  <div class="tab-bar">
+    <button 
+      class="tab-btn" 
+      [class.active]="tabActiva() === 'ordenes'"
+      (click)="cambiarTab('ordenes')"
+    >
+      📋 Registro y Control de Órdenes
+    </button>
+    <button 
+      class="tab-btn" 
+      [class.active]="tabActiva() === 'inventario'"
+      (click)="cambiarTab('inventario')"
+    >
+      📦 Inventario y Planificación MRP
+    </button>
+    <button 
+      class="tab-btn" 
+      [class.active]="tabActiva() === 'reportes'"
+      (click)="cambiarTab('reportes')"
+    >
+      📊 Reportes y Estadísticas
+    </button>
+    <button 
+      class="tab-btn" 
+      [class.active]="tabActiva() === 'historial'"
+      (click)="cambiarTab('historial')"
+    >
+      🗂 Historial de Pacientes
+    </button>
+    @if (rolUsuario() === 'admin') {
+      <button 
+        class="tab-btn" 
+        [class.active]="tabActiva() === 'config-catalogo'"
+        (click)="cambiarTab('config-catalogo')"
+      >
+        ⚙ Configuración del Catálogo
+      </button>
+    }
+  </div>
+
+  @if (tabActiva() === 'ordenes') {
+    <div class="split-layout">
+      <div class="form-card glass">
+        <h3>Recepción Rápida de Muestras</h3>
+        <p class="subtitle">Registra los datos del paciente y selecciona sus exámenes solicitados.</p>
+        
+        <form (ngSubmit)="crearNuevaOrden()" class="admin-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Identificación (DNI/RUT)</label>
+              <input type="text" [(ngModel)]="nuevoDni" name="dni" placeholder="Ej: 12345678-9" required />
+            </div>
+            <div class="form-group">
+              <label>Género</label>
+              <select [(ngModel)]="nuevoGenero" name="genero">
+                <option value="M">Masculino</option>
+                <option value="F">Femenino</option>
+                <option value="Otro">Otro</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nombre</label>
+              <input type="text" [(ngModel)]="nuevoNombre" name="nombre" placeholder="Ej: Juan" required />
+            </div>
+            <div class="form-group">
+              <label>Apellido</label>
+              <input type="text" [(ngModel)]="nuevoApellido" name="apellido" placeholder="Ej: Pérez" required />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Fecha de Nacimiento</label>
+              <input type="date" [(ngModel)]="nuevaFechaNac" name="fecha_nac" required />
+            </div>
+            <div class="form-group">
+              <label>Teléfono</label>
+              <input type="text" [(ngModel)]="nuevoTelefono" name="telefono" placeholder="+56..." />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Dirección</label>
+            <input type="text" [(ngModel)]="nuevaDireccion" name="direccion" placeholder="Calle..." />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Médico solicitante</label>
+              <input type="text" [(ngModel)]="nuevoMedicoSolicitante" name="medico" placeholder="Dr. ... (opcional)" />
+            </div>
+            <div class="form-group checkbox-urgente-wrap">
+              <label class="checkbox-cobro checkbox-urgente">
+                <input type="checkbox" [(ngModel)]="nuevaOrdenUrgente" name="urgente" />
+                Orden urgente
+              </label>
+            </div>
+          </div>
+
+          <div class="exam-selector-autocomplete">
+            <label class="section-label">Seleccione Análisis Clínicos:</label>
+            
+            @if (examenesSeleccionadosObjetos().length > 0) {
+              <div class="selected-chips-container">
+                @for (ex of examenesSeleccionadosObjetos(); track ex.id) {
+                  <div class="exam-chip">
+                    <span class="chip-name">{{ ex.nombre }} (${{ ex.precio_usd }} USD)</span>
+                    <button type="button" class="chip-remove-btn" (click)="deseleccionarExamenChip(ex.id)">×</button>
+                  </div>
+                }
+              </div>
+            }
+
+            <div class="autocomplete-wrapper">
+              <input 
+                type="text" 
+                class="autocomplete-input"
+                placeholder="Buscar y agregar análisis clínicos (ej: Glucosa, Colesterol)..."
+                [(ngModel)]="busquedaExamen"
+                name="busquedaExamenInput"
+                (focus)="mostrarDropdownExamenes.set(true)"
+                (blur)="ocultarDropdownConRetraso()"
+                autocomplete="off"
+              />
+              
+              @if (mostrarDropdownExamenes() && examenesFiltradosBusqueda().length > 0) {
+                <div class="autocomplete-dropdown glass">
+                  @for (ex of examenesFiltradosBusqueda(); track ex.id) {
+                    <div 
+                      class="dropdown-item" 
+                      (click)="seleccionarExamenAutocomplete(ex.id)"
+                    >
+                      <span class="dropdown-item-name">{{ ex.nombre }}</span>
+                      <span class="dropdown-item-price">${{ ex.precio_usd | number:'1.2-2' }} USD</span>
+                    </div>
+                  }
+                </div>
+              } @else if (mostrarDropdownExamenes() && busquedaExamen() && examenesFiltradosBusqueda().length === 0) {
+                <div class="autocomplete-dropdown glass empty-dropdown">
+                  No se encontraron análisis disponibles.
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="payment-summary-box">
+            <span>Total a pagar:</span>
+            <span class="price-value">${{ precioTotalAcumulado() | number:'1.2-2' }} USD</span>
+          </div>
+
+          <div class="payment-cobro-row">
+            <label class="checkbox-cobro">
+              <input type="checkbox" [(ngModel)]="ordenCobradaEnRecepcion" name="ordenCobrada" />
+              Cobrado en recepción
+            </label>
+            @if (ordenCobradaEnRecepcion()) {
+              <select [(ngModel)]="metodoPagoRecepcion" name="metodoPagoRecepcion" class="metodo-pago-select">
+                <option value="EFECTIVO">Efectivo</option>
+                <option value="TRANSFERENCIA">Transferencia</option>
+                <option value="TARJETA">Tarjeta</option>
+                <option value="QR">QR</option>
+              </select>
+            }
+          </div>
+
+          <button type="submit" class="btn-submit">Emitir Orden de Muestra</button>
+        </form>
+      </div>
+
+      <div class="list-card glass orders-panel">
+        <div class="orders-panel-header">
+          <div>
+            <h3>Cola de trabajo</h3>
+            <p class="subtitle">Órdenes activas del laboratorio — análisis, cobro y entrega de informes.</p>
+          </div>
+          <button type="button" class="btn-action btn-refresh-orders" (click)="cargarDatosOrdenes()">
+            ↻ Actualizar
+          </button>
+        </div>
+
+        <div class="orders-kpi-strip">
+          <div class="orders-kpi">
+            <span class="orders-kpi-num">{{ resumenOrdenes().total }}</span>
+            <span class="orders-kpi-label">Total</span>
+          </div>
+          <div class="orders-kpi orders-kpi-warn">
+            <span class="orders-kpi-num">{{ resumenOrdenes().proceso }}</span>
+            <span class="orders-kpi-label">En proceso</span>
+          </div>
+          <div class="orders-kpi orders-kpi-ok">
+            <span class="orders-kpi-num">{{ resumenOrdenes().firmadas }}</span>
+            <span class="orders-kpi-label">Firmadas</span>
+          </div>
+          <div class="orders-kpi orders-kpi-danger">
+            <span class="orders-kpi-num">{{ resumenOrdenes().cobroPendiente }}</span>
+            <span class="orders-kpi-label">Cobro pend.</span>
+          </div>
+        </div>
+
+        <div class="orders-toolbar">
+          <div class="orders-search-wrap">
+            <span class="search-icon-inline">🔍</span>
+            <input
+              type="text"
+              class="orders-search-input"
+              placeholder="Buscar por código, paciente, CI o examen…"
+              [ngModel]="busquedaOrdenes()"
+              (ngModelChange)="onBusquedaOrdenesChange($event)"
+              name="busquedaOrdenes"
+            />
+          </div>
+          <div class="orders-date-tabs">
+            <button type="button" class="orders-filter-tab orders-date-tab" [class.active]="filtroFechaOrdenes() === 'todas'" (click)="cambiarFiltroFechaOrdenes('todas')">Todas fechas</button>
+            <button type="button" class="orders-filter-tab orders-date-tab" [class.active]="filtroFechaOrdenes() === 'hoy'" (click)="cambiarFiltroFechaOrdenes('hoy')">Hoy</button>
+            <button type="button" class="orders-filter-tab orders-date-tab" [class.active]="filtroFechaOrdenes() === 'semana'" (click)="cambiarFiltroFechaOrdenes('semana')">Semana</button>
+            <button type="button" class="orders-filter-tab orders-date-tab" [class.active]="filtroFechaOrdenes() === 'mes'" (click)="cambiarFiltroFechaOrdenes('mes')">Mes</button>
+          </div>
+          <div class="orders-filter-tabs">
+            <button type="button" class="orders-filter-tab" [class.active]="filtroOrdenesTab() === 'todas'" (click)="cambiarFiltroOrdenesTab('todas')">Todas</button>
+            <button type="button" class="orders-filter-tab" [class.active]="filtroOrdenesTab() === 'proceso'" (click)="cambiarFiltroOrdenesTab('proceso')">En proceso</button>
+            <button type="button" class="orders-filter-tab" [class.active]="filtroOrdenesTab() === 'firmadas'" (click)="cambiarFiltroOrdenesTab('firmadas')">Firmadas</button>
+            <button type="button" class="orders-filter-tab" [class.active]="filtroOrdenesTab() === 'cobro_pendiente'" (click)="cambiarFiltroOrdenesTab('cobro_pendiente')">Sin cobrar</button>
+          </div>
+          <div class="orders-cobro-rapido">
+            <label>Cobro rápido</label>
+            <select [(ngModel)]="metodoPagoRapido" name="metodoPagoRapido" class="metodo-pago-select">
+              <option value="EFECTIVO">Efectivo</option>
+              <option value="TRANSFERENCIA">Transferencia</option>
+              <option value="TARJETA">Tarjeta</option>
+              <option value="QR">QR</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-wrapper orders-table-wrap">
+          <table class="admin-table orders-table-pro">
+            <thead>
+              <tr>
+                <th class="th-sortable" (click)="ordenarPor('codigo')">Orden <span class="sort-icon">{{ sortIcon('codigo') }}</span></th>
+                <th class="th-sortable" (click)="ordenarPor('paciente')">Paciente <span class="sort-icon">{{ sortIcon('paciente') }}</span></th>
+                <th>Análisis solicitados</th>
+                <th class="th-sortable" (click)="ordenarPor('total')">Total <span class="sort-icon">{{ sortIcon('total') }}</span></th>
+                <th>Pago</th>
+                <th class="th-sortable" (click)="ordenarPor('estado')">Estado lab. <span class="sort-icon">{{ sortIcon('estado') }}</span></th>
+                <th class="th-acciones">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (ord of ordenesPaginadas(); track ord.id) {
+                <tr
+                  class="orders-row-clickable"
+                  [class.row-orden-firmada]="ord.estado === 'COMPLETADO'"
+                  [class.row-orden-proceso]="ord.estado !== 'COMPLETADO'"
+                  [class.row-orden-urgente]="(ord.prioridad || 'NORMAL') === 'URGENTE'"
+                  (click)="abrirDetalleOrden(ord)"
+                >
+                  <td class="td-orden">
+                    <span class="orden-codigo">{{ ord.codigo_orden }}</span>
+                    <span class="orden-fecha">{{ ord.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</span>
+                    @if ((ord.prioridad || 'NORMAL') === 'URGENTE') {
+                      <span class="pill pill-danger pill-urgente">URGENTE</span>
+                    }
+                    @if (ord.medico_solicitante) {
+                      <span class="orden-medico" [title]="ord.medico_solicitante">Dr. {{ ord.medico_solicitante }}</span>
+                    }
+                  </td>
+                  <td class="td-paciente">
+                    <span class="paciente-nombre">{{ nombrePacienteDisplay(ord) }}</span>
+                    <span class="paciente-dni">CI {{ ord.paciente.dni }}</span>
+                  </td>
+                  <td class="td-examenes">
+                    <div class="orden-exam-chips">
+                      @for (ex of examenesOrdenLista(ord); track ex) {
+                        <span class="orden-exam-chip" [title]="ex">{{ ex }}</span>
+                      } @empty {
+                        <span class="orden-exam-empty">—</span>
+                      }
+                    </div>
+                  </td>
+                  <td class="td-total">
+                    <span class="orden-monto">${{ ord.precio_total | number:'1.2-2' }}</span>
+                    <span class="orden-moneda">USD</span>
+                  </td>
+                  <td class="pago-cell" (click)="$event.stopPropagation()">
+                    <div class="pago-cell-inner">
+                      @if (ord.estado_pago === 'PAGADO') {
+                        <span class="pill pill-success">Pagado</span>
+                        @if (ord.metodo_pago) {
+                          <span class="metodo-pago-label">{{ labelMetodoPago(ord.metodo_pago) }}</span>
+                        }
+                        <button type="button" class="btn-pago-icon" title="Anular cobro" (click)="actualizarEstadoPago(ord, 'PENDIENTE')">↩</button>
+                      } @else {
+                        <span class="pill pill-danger">Pendiente</span>
+                        <button type="button" class="btn-cobrar-mini" (click)="actualizarEstadoPago(ord, 'PAGADO')">Cobrar</button>
+                      }
+                    </div>
+                  </td>
+                  <td>
+                    <span class="pill pill-estado" [ngClass]="claseEstadoLab(ord.estado)">{{ labelEstadoLab(ord.estado) }}</span>
+                  </td>
+                  <td class="td-acciones" (click)="$event.stopPropagation()">
+                    @if (ord.estado !== 'COMPLETADO') {
+                      <button type="button" class="btn-orden-action btn-orden-primary" (click)="abrirDialogoCargarResultados(ord)">
+                        Resultados
+                      </button>
+                    } @else {
+                      <button type="button" class="btn-orden-action btn-orden-pdf" (click)="generarInformePDF(ord)">
+                        PDF
+                      </button>
+                    }
+                    <button type="button" class="btn-orden-action btn-orden-ticket" title="Reimprimir ticket" (click)="reimprimirTicket(ord, $event)">
+                      🎫
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="7" class="empty-row">
+                    @if (busquedaOrdenes() || filtroOrdenesTab() !== 'todas' || filtroFechaOrdenes() !== 'todas') {
+                      No hay órdenes con ese filtro. Prueba otra búsqueda.
+                    } @else {
+                      No hay órdenes registradas. Crea una desde recepción rápida.
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        @if (ordenesOrdenadas().length > 0) {
+          <div class="orders-pagination">
+            <p class="orders-footnote">
+              Mostrando {{ ordenesPaginadas().length }} de {{ ordenesOrdenadas().length }} órdenes
+              ({{ ordenes().length }} en total)
+            </p>
+            @if (totalPaginasOrdenes() > 1) {
+              <div class="orders-pager">
+                <button type="button" class="pager-btn" [disabled]="paginaOrdenes() <= 1" (click)="cambiarPaginaOrdenes(-1)">← Anterior</button>
+                <span class="pager-info">Página {{ paginaOrdenes() }} / {{ totalPaginasOrdenes() }}</span>
+                <button type="button" class="pager-btn" [disabled]="paginaOrdenes() >= totalPaginasOrdenes()" (click)="cambiarPaginaOrdenes(1)">Siguiente →</button>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  @if (tabActiva() === 'inventario') {
+    <div class="inventory-dashboard fade-in">
+      <div class="alerts-section">
+        <div class="section-title-bar">
+          <h3>Alertas de Inventario (MRP)</h3>
+          <div class="inventory-toolbar">
+            <button type="button" class="btn-action" (click)="toggleAuditoriaInventario()">
+              {{ mostrarAuditoriaInventario() ? 'Ocultar auditoría' : 'Auditoría LIMS' }}
+            </button>
+            <button type="button" class="btn-action" (click)="abrirHistorialInventario()">
+              Historial de movimientos
+            </button>
+            @if (rolUsuario() === 'admin') {
+              <button class="btn-primary" (click)="mostrarNuevoReactivoModal.set(true)">
+                ➕ Registrar Nuevo Reactivo
+              </button>
+            }
+          </div>
+        </div>
+        <p class="subtitle">Control por lotes (FEFO), vencimientos y stock mínimo. El consumo al firmar órdenes descuenta del lote que vence primero.</p>
+
+        @if (mostrarAuditoriaInventario() && auditoriaInventario(); as aud) {
+          <div class="audit-summary-card glass">
+            <h4>Resumen de auditoría</h4>
+            <div class="audit-stats-grid">
+              <div class="audit-stat"><span>{{ aud.total_reactivos }}</span><small>Reactivos</small></div>
+              <div class="audit-stat"><span>{{ aud.total_lotes }}</span><small>Lotes registrados</small></div>
+              <div class="audit-stat warn"><span>{{ aud.lotes_vencidos_con_stock }}</span><small>Lotes vencidos con stock</small></div>
+              <div class="audit-stat warn"><span>{{ aud.lotes_proximos_vencer }}</span><small>Próximos a vencer (90 d)</small></div>
+              <div class="audit-stat danger"><span>{{ aud.reactivos_bajo_minimo }}</span><small>Bajo mínimo</small></div>
+              <div class="audit-stat"><span>{{ aud.movimientos_ultimos_30_dias }}</span><small>Movimientos (30 d)</small></div>
+            </div>
+          </div>
+        }
+        
+        <div class="alerts-grid">
+          @for (al of alertasInventario(); track al.id) {
+            <div class="alert-box" [class.alert-danger]="al.alertas.includes('Lote Vencido') || al.alertas.includes('Bajo stock')">
+              <div class="alert-icon">⚠️</div>
+              <div class="alert-details">
+                <h4>{{ al.nombre }}</h4>
+                <p>Stock actual: <strong>{{ al.stock_actual }} {{ al.unidad_medida }}</strong> (Mínimo: {{ al.stock_minimo }})</p>
+                @if (al.lotes_afectados) {
+                  <p class="alert-meta">{{ al.lotes_afectados }} lote(s) requieren atención</p>
+                }
+                <div class="alert-reasons">
+                  @for (reason of al.alertas; track reason) {
+                    <span class="reason-pill">{{ reason }}</span>
+                  }
+                </div>
+              </div>
+            </div>
+          } @empty {
+            <div class="no-alerts-card glass col-span-full">
+              <span>✓</span> Todos los reactivos cumplen con stock mínimo y sin lotes vencidos.
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="inventory-table-card glass">
+        <h3>Control de Insumos Químicos</h3>
+        <p class="subtitle">Vista maestro-detalle: expande cada reactivo para ver sus lotes, estados y trazabilidad.</p>
+
+        <div class="table-wrapper">
+          <table class="admin-table inventory-master-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Nombre del Reactivo</th>
+                <th>Lote en uso (FEFO)</th>
+                <th>Próximo vencimiento</th>
+                <th>Stock Total</th>
+                <th>Lotes</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (re of reactivos(); track re.id) {
+                <tr class="master-row" [class.expanded]="reactivoExpandido() === re.id">
+                  <td>
+                    <button type="button" class="btn-expand" (click)="toggleExpandirReactivo(re)" [attr.aria-expanded]="reactivoExpandido() === re.id">
+                      {{ reactivoExpandido() === re.id ? '▼' : '▶' }}
+                    </button>
+                  </td>
+                  <td class="font-bold">{{ re.nombre }}</td>
+                  <td class="text-primary font-bold">{{ re.lote || 'Sin lote activo' }}</td>
+                  <td>{{ (re.fecha_vencimiento | date:'dd/MM/yyyy') || '—' }}</td>
+                  <td>{{ re.stock_actual }} {{ re.unidad_medida }}</td>
+                  <td>{{ re.lotes_activos ?? 0 }} / {{ re.total_lotes ?? 0 }}</td>
+                  <td>
+                    @if (re.stock_actual <= re.stock_minimo) {
+                      <span class="pill pill-danger">Crítico</span>
+                    } @else {
+                      <span class="pill pill-success">Óptimo</span>
+                    }
+                  </td>
+                  <td class="actions-cell">
+                    <button class="btn-action btn-add-stock" (click)="abrirCargaInventario(re)">
+                      📥 Registrar Lote
+                    </button>
+                    <button class="btn-action" (click)="abrirHistorialInventario(re.id)">Historial</button>
+                  </td>
+                </tr>
+                @if (reactivoExpandido() === re.id) {
+                  <tr class="detail-row">
+                    <td colspan="8">
+                      <div class="lotes-detail-panel">
+                        <h4>Lotes de {{ re.nombre }}</h4>
+                        @if (lotesCargando() === re.id) {
+                          <p class="loading-lotes">Cargando lotes…</p>
+                        } @else {
+                          <table class="admin-table lotes-subtable">
+                            <thead>
+                              <tr>
+                                <th>Código lote</th>
+                                <th>Cantidad</th>
+                                <th>Ingreso</th>
+                                <th>Vencimiento</th>
+                                <th>Días</th>
+                                <th>Estado</th>
+                                <th>Acción</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @for (lote of lotesPorReactivo()[re.id] || []; track lote.id) {
+                                <tr [class.row-vencido]="lote.estado === 'VENCIDO'">
+                                  <td class="font-bold">{{ lote.codigo_lote }}</td>
+                                  <td>{{ lote.cantidad_disponible }} {{ re.unidad_medida }}</td>
+                                  <td>{{ lote.fecha_ingreso | date:'dd/MM/yyyy' }}</td>
+                                  <td>{{ lote.fecha_vencimiento | date:'dd/MM/yyyy' }}</td>
+                                  <td>{{ lote.dias_para_vencer }}</td>
+                                  <td>
+                                    <span class="pill" [ngClass]="estadoLotePill(lote.estado, lote.dias_para_vencer)">
+                                      {{ etiquetaEstadoLote(lote) }}
+                                    </span>
+                                  </td>
+                                  <td>
+                                    @if (lote.cantidad_disponible > 0 && (lote.estado === 'VENCIDO' || lote.estado === 'ACTIVO')) {
+                                      <button type="button" class="btn-action btn-baja-lote" (click)="darBajaLote(lote, re.id)">
+                                        Dar de baja
+                                      </button>
+                                    }
+                                  </td>
+                                </tr>
+                              } @empty {
+                                <tr>
+                                  <td colspan="7" class="empty-row">Sin lotes registrados. Usa «Registrar Lote» para el primer ingreso.</td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (tabActiva() === 'reportes') {
+    <div class="reportes-section fade-in">
+      <div class="reportes-header">
+        <div>
+          <h3>Panel de gestión — Reportes</h3>
+          <p class="subtitle">Consulta por día con hora exacta y resumen mensual comparativo.</p>
+        </div>
+        <button type="button" class="btn-action" (click)="cargarReportes()">Actualizar</button>
+      </div>
+
+      <div class="reporte-dia-card glass">
+          <div class="reporte-dia-toolbar">
+            <div>
+              <h4>Consulta por día</h4>
+              <p class="subtitle">Elige cualquier fecha para ver entradas y salidas con hora exacta (hora local Bolivia).</p>
+            </div>
+            <div class="reporte-dia-controls">
+              <button type="button" class="btn-dia-nav" (click)="irADiaRelativo(-1)">← Anterior</button>
+              <button type="button" class="btn-dia-nav" (click)="irAHoyReporte()">Hoy</button>
+              <input
+                type="date"
+                class="input-fecha-dia"
+                [ngModel]="fechaConsultaReporte()"
+                (ngModelChange)="fechaConsultaReporte.set($event); cargarReporteDia()"
+                name="fechaConsultaReporte"
+              />
+              <button type="button" class="btn-dia-nav" (click)="irADiaRelativo(1)">Siguiente →</button>
+            </div>
+          </div>
+
+          <div class="filtro-tipo-dia">
+            <button
+              type="button"
+              class="btn-filtro-dia"
+              [class.active]="filtroTipoDia() === 'todos'"
+              (click)="cambiarFiltroDia('todos')"
+            >Todo</button>
+            <button
+              type="button"
+              class="btn-filtro-dia"
+              [class.active]="filtroTipoDia() === 'entradas'"
+              (click)="cambiarFiltroDia('entradas')"
+            >Solo entradas</button>
+            <button
+              type="button"
+              class="btn-filtro-dia"
+              [class.active]="filtroTipoDia() === 'salidas'"
+              (click)="cambiarFiltroDia('salidas')"
+            >Solo salidas</button>
+          </div>
+
+          @if (reporteDiaCargando()) {
+            <div class="reportes-loading">Cargando movimientos del día…</div>
+          } @else if (reporteDiaError()) {
+            <div class="reportes-error">{{ reporteDiaError() }}</div>
+          } @else if (reporteDia(); as dia) {
+            <div class="reporte-dia-resumen">
+              <div class="kpi-card glass kpi-dia">
+                <span class="kpi-label">{{ dia.resumen.etiqueta_fecha }}</span>
+                <strong class="kpi-value-sm">{{ dia.resumen.entradas }} entradas</strong>
+                <small>{{ dia.resumen.ingresos_entradas | currency:'USD':'symbol':'1.2-2' }}</small>
+              </div>
+              <div class="kpi-card glass kpi-dia">
+                <span class="kpi-label">Salidas (firmadas)</span>
+                <strong class="kpi-value-sm">{{ dia.resumen.salidas }} completadas</strong>
+                <small>{{ dia.resumen.ingresos_salidas | currency:'USD':'symbol':'1.2-2' }}</small>
+              </div>
+              <div class="kpi-card glass kpi-dia">
+                <span class="kpi-label">Cobrado ese día</span>
+                <strong class="kpi-value-sm">{{ dia.resumen.cobrado_dia | currency:'USD':'symbol':'1.2-2' }}</strong>
+                <small>Pendiente: {{ dia.resumen.pendiente_dia | currency:'USD':'symbol':'1.2-2' }}</small>
+              </div>
+            </div>
+
+            <div class="table-wrapper">
+              <table class="admin-table reporte-dia-table">
+                <thead>
+                  <tr>
+                    <th>Hora</th>
+                    <th>Tipo</th>
+                    <th>Código</th>
+                    <th>Paciente</th>
+                    <th>Exámenes</th>
+                    <th>Monto</th>
+                    <th>Pago</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (mov of dia.movimientos; track mov.tipo + mov.orden_id + mov.hora) {
+                    <tr [class.row-entrada]="mov.tipo === 'ENTRADA'" [class.row-salida]="mov.tipo === 'SALIDA'">
+                      <td class="font-bold hora-cell">{{ mov.hora_texto }}</td>
+                      <td>
+                        @if (mov.tipo === 'ENTRADA') {
+                          <span class="pill pill-info">↓ Entrada</span>
+                        } @else {
+                          <span class="pill pill-success">↑ Salida</span>
+                        }
+                      </td>
+                      <td class="font-bold text-primary">{{ mov.codigo_orden }}</td>
+                      <td>{{ mov.paciente }}</td>
+                      <td class="examenes-cell">{{ mov.examenes.join(', ') }}</td>
+                      <td class="font-bold">${{ mov.monto | number:'1.2-2' }}</td>
+                      <td>
+                        @if (mov.estado_pago === 'PAGADO') {
+                          <span class="pill pill-success">Pagado</span>
+                          @if (mov.metodo_pago) {
+                            <small class="metodo-pago-label">{{ labelMetodoPago(mov.metodo_pago) }}</small>
+                          }
+                        } @else {
+                          <span class="pill pill-danger">Pendiente</span>
+                        }
+                      </td>
+                      <td>
+                        @if (mov.estado_orden === 'COMPLETADO') {
+                          <span class="pill pill-success">Firmado</span>
+                        } @else {
+                          <span class="pill pill-warning">En proceso</span>
+                        }
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="8" class="empty-row">No hay movimientos registrados para esta fecha con el filtro seleccionado.</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+      </div>
+
+      @if (reportesCargando()) {
+        <div class="reportes-loading glass">Cargando resumen mensual…</div>
+      } @else if (reportesError()) {
+        <div class="reportes-error glass">{{ reportesError() }}</div>
+      } @else if (reportes(); as rep) {
+        <div class="reportes-mensual-divider">
+          <h4>Resumen mensual — {{ rep.resumen_mes_actual.etiqueta }}</h4>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-card glass">
+            <span class="kpi-label">Entraron hoy</span>
+            <strong class="kpi-value">{{ rep.resumen_hoy.ordenes_entradas }}</strong>
+            <small>{{ rep.resumen_hoy.ingresos_entradas | currency:'USD':'symbol':'1.0-0' }}</small>
+          </div>
+          <div class="kpi-card glass">
+            <span class="kpi-label">Completadas hoy</span>
+            <strong class="kpi-value">{{ rep.resumen_hoy.ordenes_completadas }}</strong>
+            <small>{{ rep.resumen_hoy.ingresos_completadas | currency:'USD':'symbol':'1.0-0' }}</small>
+          </div>
+          <div class="kpi-card glass kpi-highlight">
+            <span class="kpi-label">Entraron este mes</span>
+            <strong class="kpi-value">{{ rep.resumen_mes_actual.ordenes_entradas }}</strong>
+            @if (rep.resumen_mes_actual.variacion_ordenes_pct !== null && rep.resumen_mes_actual.variacion_ordenes_pct !== undefined) {
+              <small [class.trend-up]="rep.resumen_mes_actual.variacion_ordenes_pct >= 0" [class.trend-down]="rep.resumen_mes_actual.variacion_ordenes_pct < 0">
+                {{ formatearVariacion(rep.resumen_mes_actual.variacion_ordenes_pct) }} vs mes anterior
+              </small>
+            }
+          </div>
+          <div class="kpi-card glass kpi-highlight">
+            <span class="kpi-label">Ingresos del mes</span>
+            <strong class="kpi-value">{{ rep.resumen_mes_actual.ingresos_entradas | currency:'USD':'symbol':'1.0-0' }}</strong>
+            @if (rep.resumen_mes_actual.variacion_ingresos_pct !== null && rep.resumen_mes_actual.variacion_ingresos_pct !== undefined) {
+              <small [class.trend-up]="rep.resumen_mes_actual.variacion_ingresos_pct >= 0" [class.trend-down]="rep.resumen_mes_actual.variacion_ingresos_pct < 0">
+                {{ formatearVariacion(rep.resumen_mes_actual.variacion_ingresos_pct) }} vs mes anterior
+              </small>
+            }
+          </div>
+          <div class="kpi-card glass">
+            <span class="kpi-label">Completadas este mes</span>
+            <strong class="kpi-value">{{ rep.resumen_mes_actual.ordenes_completadas }}</strong>
+            <small>{{ rep.resumen_mes_actual.ingresos_completadas | currency:'USD':'symbol':'1.0-0' }} facturados</small>
+          </div>
+          <div class="kpi-card glass">
+            <span class="kpi-label">Pendientes (total)</span>
+            <strong class="kpi-value kpi-warn">{{ rep.pendientes_total }}</strong>
+            <small>{{ rep.resumen_mes_actual.pendientes_del_mes }} creadas este mes</small>
+          </div>
+          <div class="kpi-card glass">
+            <span class="kpi-label">Ticket promedio</span>
+            <strong class="kpi-value">{{ rep.resumen_mes_actual.ticket_promedio | currency:'USD':'symbol':'1.2-2' }}</strong>
+            <small>por orden ingresada</small>
+          </div>
+          @if (rep.mejor_mes && rep.peor_mes) {
+            <div class="kpi-card glass kpi-best">
+              <span class="kpi-label">Mejor mes (órdenes)</span>
+              <strong class="kpi-value-sm">{{ rep.mejor_mes.etiqueta }}</strong>
+              <small>{{ rep.mejor_mes.ordenes }} órdenes · {{ rep.mejor_mes.ingresos | currency:'USD':'symbol':'1.0-0' }}</small>
+            </div>
+            <div class="kpi-card glass kpi-worst">
+              <span class="kpi-label">Mes más bajo</span>
+              <strong class="kpi-value-sm">{{ rep.peor_mes.etiqueta }}</strong>
+              <small>{{ rep.peor_mes.ordenes }} órdenes · {{ rep.peor_mes.ingresos | currency:'USD':'symbol':'1.0-0' }}</small>
+            </div>
+          }
+        </div>
+
+        <div class="charts-row">
+          <div class="chart-card glass">
+            <h4>Órdenes que entraron por mes</h4>
+            <div class="bar-chart">
+              @for (m of rep.meses; track m.etiqueta) {
+                <div class="bar-group" [title]="m.etiqueta + ': ' + m.ordenes_entradas + ' órdenes'">
+                  <div class="bar-stack">
+                    <div class="bar bar-entradas" [style.height.%]="alturaBarra(m.ordenes_entradas, maxOrdenesGrafico())"></div>
+                  </div>
+                  <span class="bar-label">{{ m.etiqueta_corta }}</span>
+                  <span class="bar-num">{{ m.ordenes_entradas }}</span>
+                </div>
+              }
+            </div>
+          </div>
+          <div class="chart-card glass">
+            <h4>Ingresos por mes (USD)</h4>
+            <div class="bar-chart">
+              @for (m of rep.meses; track m.etiqueta) {
+                <div class="bar-group" [title]="m.etiqueta + ': $' + m.ingresos_entradas">
+                  <div class="bar-stack">
+                    <div class="bar bar-ingresos" [style.height.%]="alturaBarra(m.ingresos_entradas, maxIngresosGrafico())"></div>
+                  </div>
+                  <span class="bar-label">{{ m.etiqueta_corta }}</span>
+                  <span class="bar-num">${{ m.ingresos_entradas | number:'1.0-0' }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="reportes-lower">
+          <div class="reportes-table-card glass">
+            <h4>Historial mensual detallado</h4>
+            <div class="table-wrapper">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Mes</th>
+                    <th>Entraron</th>
+                    <th>Completadas</th>
+                    <th>Ingresos (entraron)</th>
+                    <th>Ingresos (completadas)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (m of mesesTablaDesc(); track m.etiqueta) {
+                    <tr [class.row-current-month]="m.anio === rep.resumen_mes_actual.anio && m.mes === rep.resumen_mes_actual.mes">
+                      <td class="font-bold">{{ m.etiqueta }}</td>
+                      <td>{{ m.ordenes_entradas }}</td>
+                      <td>{{ m.ordenes_completadas }}</td>
+                      <td>{{ m.ingresos_entradas | currency:'USD':'symbol':'1.2-2' }}</td>
+                      <td>{{ m.ingresos_completadas | currency:'USD':'symbol':'1.2-2' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="top-examenes-card glass">
+            <h4>Top exámenes — {{ rep.resumen_mes_actual.etiqueta }}</h4>
+            @if (rep.top_examenes_mes.length) {
+              <ul class="top-examenes-list">
+                @for (ex of rep.top_examenes_mes; track ex.examen_id) {
+                  <li>
+                    <span class="top-name">{{ ex.nombre }}</span>
+                    <span class="top-meta">{{ ex.cantidad }}× · {{ ex.ingresos | currency:'USD':'symbol':'1.0-0' }}</span>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="empty-hint">Sin exámenes completados este mes todavía.</p>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  @if (tabActiva() === 'historial') {
+    <div class="history-section fade-in">
+      <div class="search-card glass">
+        <h3>Historial Clínico de Pacientes</h3>
+        <p class="subtitle">Busca un paciente por nombre o DNI para recuperar su línea de tiempo de análisis clínicos.</p>
+        
+        <div class="patient-autocomplete-wrapper">
+          <div class="exam-search-container">
+            <div class="search-input-row">
+              <span class="search-icon">🔍</span>
+              <input
+                type="text"
+                class="exam-search-input"
+                [value]="busquedaPacienteHistorial()"
+                (input)="onBusquedaPacienteInput($any($event.target).value)"
+                (focus)="mostrarDropdownPacientes.set(pacientesEncontrados().length > 0)"
+                (blur)="ocultarDropdownPacientesConRetraso()"
+                placeholder="Buscar por nombre o DNI del paciente..."
+                autocomplete="off"
+              />
+              @if (busquedaPacienteHistorial()) {
+                <button class="clear-search-btn" (click)="limpiarBusquedaHistorial()">✕</button>
+              }
+            </div>
+
+            @if (mostrarDropdownPacientes() && pacientesEncontrados().length > 0) {
+              <div class="exam-dropdown">
+                @for (p of pacientesEncontrados(); track p.dni) {
+                  <div class="exam-dropdown-item" (mousedown)="seleccionarPacienteHistorial(p)">
+                    <div class="exam-option-name">👤 {{ p.nombre }} {{ p.apellido }}</div>
+                    <div class="exam-option-desc">DNI: {{ p.dni }}</div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          @if (historialCargando()) {
+            <div class="loading-hint">⏳ Cargando historial...</div>
+          }
+        </div>
+
+        @if (historialError()) {
+          <div class="alert alert-danger mt-4">{{ historialError() }}</div>
+        }
+      </div>
+
+      @if (pacienteHistorialCargado()) {
+        <div class="patient-history-timeline mt-6">
+          <div class="patient-profile-card glass mb-6">
+            <h4>Ficha de Paciente: {{ pacienteHistorialCargado().nombre }} {{ pacienteHistorialCargado().apellido }}</h4>
+            <p><strong>Rut/DNI:</strong> {{ pacienteHistorialCargado().dni }}</p>
+          </div>
+
+          <div class="timeline-container">
+            <h3>Línea de Tiempo de Órdenes y Resultados</h3>
+            
+            <div class="timeline-flow">
+              @for (ord of historialOrdenes(); track ord.id) {
+                <div class="timeline-item">
+                  <div class="timeline-badge" [class.success]="ord.estado === 'COMPLETADO'"></div>
+                  <div class="timeline-card glass">
+                    <div class="timeline-header">
+                      <span class="order-code">{{ ord.codigo_orden }}</span>
+                      <span class="order-date">{{ ord.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</span>
+                    </div>
+                    
+                    <div class="timeline-body">
+                      <p><strong>Costo de Análisis:</strong> ${{ ord.precio_total | number:'1.2-2' }} USD</p>
+                      
+                      <div class="timeline-exams-list">
+                        <strong>Exámenes Realizados:</strong>
+                        <ul>
+                          @for (res of ord.resultados; track res.id) {
+                            <li>
+                              🔬 {{ res.examen_id === 1 ? 'Glucosa en Ayunas' : (res.examen_id === 2 ? 'Perfil Lipídico Completo' : 'Análisis Bioquímico') }}
+                              @if (res.valor_resultado) {
+                                <div class="values-preview">
+                                  @for (k of objectKeys(res.valor_resultado); track k) {
+                                    <span>{{ k }}: <strong>{{ res.valor_resultado[k] }}</strong></span>
+                                  }
+                                </div>
+                              }
+                            </li>
+                          }
+                        </ul>
+                      </div>
+                    </div>
+
+                    <div class="timeline-footer">
+                      @if (ord.estado === 'COMPLETADO') {
+                        <button class="btn-action" (click)="generarInformePDF(ord)">
+                          🖨 Ver Informe Clínico (PDF)
+                        </button>
+                      } @else {
+                        <span class="text-warning">⏳ Muestra pendiente de validación</span>
+                      }
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  @if (tabActiva() === 'config-catalogo' && rolUsuario() === 'admin') {
+    <div class="catalog-config-section fade-in glass">
+      <div class="section-title-bar">
+        <h3>Catálogo General de Análisis</h3>
+        <button class="btn-primary" (click)="mostrarNuevoExamenModal.set(true)">
+          ➕ Agregar Nuevo Análisis
+        </button>
+      </div>
+      <p class="subtitle">Configura los exámenes clínicos disponibles y define cuáles se muestran en la página pública para los pacientes.</p>
+
+      <div class="table-wrapper">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Nombre de Examen</th>
+              <th>Descripción</th>
+              <th>Precio</th>
+              <th>Entrega</th>
+              <th>Catálogo Público</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (ex of examenesCatalogo(); track ex.id) {
+              <tr>
+                <td>
+                  <span class="font-bold">{{ ex.nombre }}</span>
+                  @if (ex.formulas && ex.formulas.length > 0) {
+                    <div class="bom-preview">
+                      @for (f of ex.formulas; track f.id) {
+                        <span class="bom-tag">{{ f.reactivo_nombre }} ×{{ f.cantidad_consumo }}</span>
+                      }
+                    </div>
+                  }
+                </td>
+                <td class="text-muted">{{ ex.descripcion || 'Sin descripción' }}</td>
+                <td class="font-bold text-primary">${{ ex.precio_usd | number:'1.2-2' }} USD</td>
+                <td>⏱ {{ ex.tiempo_entrega_horas }} hrs</td>
+                <td>
+                  <button
+                    type="button"
+                    class="toggle-switch"
+                    [class.is-on]="ex.visible"
+                    (click)="toggleVisibilidadExamen(ex)"
+                    [attr.aria-checked]="ex.visible"
+                    role="switch"
+                    [attr.aria-label]="'Visibilidad de ' + ex.nombre"
+                  ></button>
+                </td>
+                <td>
+                  <button class="btn-action btn-edit-exam" (click)="abrirEdicionExamen(ex)">
+                    ✏️ Editar
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</div>
+
+@if (examenEditando()) {
+  <div class="modal-overlay">
+    <div class="modal-card exam-creation-card glass">
+      <h3>✏️ Editar Análisis Clínico</h3>
+      <p class="subtitle">Modificando: <strong>{{ examenEditando()?.nombre }}</strong></p>
+
+      <form (ngSubmit)="guardarEdicionExamen()" class="modal-form">
+        <div class="form-group">
+          <label>Nombre del Análisis Clínico</label>
+          <input type="text" [(ngModel)]="editExamenNombre" name="edit_nombre" placeholder="Ej: Glucosa en Ayunas" required />
+        </div>
+
+        <div class="form-group">
+          <label>Descripción Científica</label>
+          <input type="text" [(ngModel)]="editExamenDesc" name="edit_desc" placeholder="Objetivo e interpretación del examen..." />
+        </div>
+
+        <div class="form-group">
+          <label>Preparación del Paciente</label>
+          <input type="text" [(ngModel)]="editExamenPrep" name="edit_prep" placeholder="Indicaciones de ayuno..." />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Precio de Venta (USD)</label>
+            <input type="number" [(ngModel)]="editExamenPrecio" name="edit_precio" required min="1" step="0.01" />
+          </div>
+          <div class="form-group">
+            <label>Tiempo de Entrega (Horas)</label>
+            <input type="number" [(ngModel)]="editExamenEntrega" name="edit_entrega" required min="1" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Visibilidad en Catálogo Público</label>
+          <div class="toggle-inline">
+            <label class="switch">
+              <input type="checkbox" [(ngModel)]="editExamenVisible" name="edit_visible" />
+              <span class="slider round"></span>
+            </label>
+            <span class="toggle-label">{{ editExamenVisible() ? 'Visible al público' : 'Oculto del catálogo público' }}</span>
+          </div>
+        </div>
+
+        <div class="recipe-section">
+          <div class="recipe-header">
+            <strong>Fórmula de Consumo de Insumos (BOM / MRP):</strong>
+            <button type="button" class="btn-action" (click)="agregarFilaEditReceta()">➕ Agregar Insumo</button>
+          </div>
+          <div class="recipe-rows-container">
+            @for (fila of editRecetaInsumos(); track $index) {
+              <div class="recipe-row">
+                <div class="form-group flex-1">
+                  <label>Insumo Requerido</label>
+                  <select [(ngModel)]="fila.reactivo_id" name="edit-receta-ins-{{$index}}">
+                    @for (r of reactivos(); track r.id) {
+                      <option [value]="r.id">{{ r.nombre }} ({{ r.unidad_medida }}, stock: {{ r.stock_actual }})</option>
+                    }
+                  </select>
+                </div>
+                <div class="form-group" style="width: 120px;">
+                  <label>Cant. Consumo</label>
+                  <input type="number" [(ngModel)]="fila.cantidad_consumo" name="edit-receta-cant-{{$index}}" min="0.1" step="0.1" required />
+                </div>
+                <button type="button" class="btn-delete-row" (click)="eliminarFilaEditReceta($index)">🗑</button>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-modal-cancel" (click)="cancelarEdicionExamen()">Cancelar</button>
+          <button type="submit" class="btn-modal-submit">💾 Guardar Cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@if (mostrarDetalleOrden() && ordenDetalle(); as ord) {
+  <div class="modal-overlay" (click)="cerrarDetalleOrden()">
+    <div class="modal-card orden-detalle-card glass" (click)="$event.stopPropagation()">
+      <div class="orden-detalle-header">
+        <div>
+          <h3>{{ ord.codigo_orden }}</h3>
+          <p class="orden-detalle-fecha">{{ ord.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</p>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="cerrarDetalleOrden()">×</button>
+      </div>
+
+      <div class="orden-detalle-body">
+        <div class="orden-detalle-grid">
+          <div class="detalle-block">
+            <h4>Paciente</h4>
+            <p><strong>{{ nombrePacienteDisplay(ord) }}</strong></p>
+            <p>CI {{ ord.paciente.dni }}</p>
+            @if (ord.paciente.telefono) {
+              <p>Tel. {{ ord.paciente.telefono }}</p>
+            }
+            @if (ord.paciente.direccion) {
+              <p>{{ ord.paciente.direccion }}</p>
+            }
+            @if (ord.paciente.fecha_nacimiento) {
+              <p>Nac. {{ ord.paciente.fecha_nacimiento | date:'dd/MM/yyyy' }}</p>
+            }
+          </div>
+          <div class="detalle-block">
+            <h4>Estado</h4>
+            <p>
+              <span class="pill pill-estado" [ngClass]="claseEstadoLab(ord.estado)">{{ labelEstadoLab(ord.estado) }}</span>
+              @if ((ord.prioridad || 'NORMAL') === 'URGENTE') {
+                <span class="pill pill-danger pill-urgente">URGENTE</span>
+              }
+            </p>
+            <p>Pago: {{ ord.estado_pago === 'PAGADO' ? 'Pagado' : 'Pendiente' }}
+              @if (ord.metodo_pago) { ({{ labelMetodoPago(ord.metodo_pago) }}) }
+            </p>
+            <p>Total: <strong>${{ ord.precio_total | number:'1.2-2' }} USD</strong></p>
+            @if (ord.medico_solicitante) {
+              <p>Médico: Dr. {{ ord.medico_solicitante }}</p>
+            }
+          </div>
+        </div>
+
+        <div class="detalle-block">
+          <h4>Análisis solicitados</h4>
+          <div class="orden-exam-chips">
+            @for (ex of examenesOrdenLista(ord); track ex) {
+              <span class="orden-exam-chip">{{ ex }}</span>
+            }
+          </div>
+        </div>
+
+        @if (ord.notas) {
+          <div class="detalle-block">
+            <h4>Notas</h4>
+            <p>{{ ord.notas }}</p>
+          </div>
+        }
+      </div>
+
+      <div class="modal-actions orden-detalle-actions">
+        <button type="button" class="btn-modal-cancel" (click)="togglePrioridadUrgente(ord)">
+          {{ (ord.prioridad || 'NORMAL') === 'URGENTE' ? 'Quitar urgente' : 'Marcar urgente' }}
+        </button>
+        <button type="button" class="btn-modal-cancel" (click)="reimprimirTicket(ord)">Reimprimir ticket</button>
+        @if (ord.estado !== 'COMPLETADO') {
+          <button type="button" class="btn-modal-submit" (click)="cerrarDetalleOrden(); abrirDialogoCargarResultados(ord)">Cargar resultados</button>
+        } @else {
+          <button type="button" class="btn-modal-submit" (click)="cerrarDetalleOrden(); generarInformePDF(ord)">Descargar PDF</button>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+@if (mostrarTicketModal()) {
+  <div class="modal-overlay">
+    <div class="modal-card ticket-card glass">
+      <div class="ticket-header">
+        <app-brand-logo size="full" theme="light" />
+        <p>Comprobante de Caja y Etiquetado</p>
+      </div>
+
+      <div class="ticket-body">
+        <div class="ticket-row">
+          <span>Código de Orden:</span>
+          <strong class="highlight-code">{{ ticketOrden()?.codigo_orden }}</strong>
+        </div>
+        <div class="ticket-row">
+          <span>Paciente:</span>
+          <span>{{ ticketOrden()?.paciente?.nombre }} {{ ticketOrden()?.paciente?.apellido }}</span>
+        </div>
+        <div class="ticket-row">
+          <span>Rut/DNI:</span>
+          <span>{{ ticketOrden()?.paciente?.dni }}</span>
+        </div>
+        <div class="ticket-row">
+          <span>Fecha:</span>
+          <span>{{ ticketOrden()?.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</span>
+        </div>
+        
+        <div class="ticket-exams-box">
+          <strong>Análisis clínicos a realizar:</strong>
+          <ul>
+            @for (res of ticketOrden()?.resultados; track res.id) {
+              <li>✓ {{ res.examen_nombre }}</li>
+            }
+          </ul>
+        </div>
+
+        <div class="ticket-price-box" [class.ticket-pendiente]="ticketOrden()?.estado_pago !== 'PAGADO'">
+          @if (ticketOrden()?.estado_pago === 'PAGADO') {
+            <span>Total Cobrado ({{ labelMetodoPago(ticketOrden()?.metodo_pago) }}):</span>
+          } @else {
+            <span>Total Pendiente de Cobro:</span>
+          }
+          <strong>${{ ticketOrden()?.precio_total | number:'1.2-2' }} USD</strong>
+        </div>
+
+        <div class="qr-code-section">
+          <p class="qr-title">Rotulado de Tubos de Ensayo</p>
+          <div class="qr-code-box">
+            <div class="qr-inner">
+              @if (ticketOrden()?.codigo_orden) {
+                <img [src]="qrOrdenUrl(ticketOrden()?.codigo_orden)" alt="QR orden" class="qr-image" width="140" height="140" />
+              }
+              <span class="qr-code-text">{{ ticketOrden()?.codigo_orden }}</span>
+            </div>
+          </div>
+          <p class="qr-instructions">Escanea el QR para consultar resultados en el portal del paciente. Recorta y pega en los tubos antes del análisis.</p>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-modal-submit" (click)="mostrarTicketModal.set(false)">Imprimir y Cerrar</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (ordenSeleccionadaResultados()) {
+  <div class="modal-overlay">
+    <div class="modal-card glass">
+      <h3>Completar y Validar Análisis</h3>
+      <p class="subtitle">Orden: <strong>{{ ordenSeleccionadaResultados()?.codigo_orden }}</strong> - Paciente: {{ ordenSeleccionadaResultados()?.paciente?.nombre }} {{ ordenSeleccionadaResultados()?.paciente?.apellido }}</p>
+
+      <form class="modal-form">
+        @for (key of objectKeys(valoresResultados()); track key) {
+          <div class="form-group">
+            <label>
+              {{ key }}
+              @if (referenciasResultados()[key]) {
+                <small class="ref-range">Ref: {{ referenciasResultados()[key] }}</small>
+              }
+            </label>
+            <input 
+              type="text" 
+              [(ngModel)]="valoresResultados()[key]" 
+              name="val-{{key}}" 
+              placeholder="Opcional si aún no hay resultado"
+            />
+          </div>
+        }
+
+        <div class="modal-actions justify-between">
+          <button type="button" class="btn-modal-cancel" (click)="ordenSeleccionadaResultados.set(null)">Cancelar</button>
+          
+          <div class="flex gap-2">
+            <button type="button" class="btn-action" (click)="guardarBorradorResultados()">
+              💾 Guardar Borrador
+            </button>
+            <button type="button" class="btn-modal-submit btn-firmar" (click)="firmarYAprobarResultados()">
+              🔏 Firmar y Emitir PDF
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@if (mostrarNuevoReactivoModal()) {
+  <div class="modal-overlay">
+    <div class="modal-card glass">
+      <h3>Registrar Insumo en Bodega</h3>
+      <p class="subtitle">Ingresa un nuevo reactivo o consumible químico en el inventario MRP.</p>
+
+      <form (ngSubmit)="crearNuevoReactivo()" class="modal-form">
+        <div class="form-group">
+          <label>Nombre del Reactivo</label>
+          <input type="text" [(ngModel)]="nuevoReactivoNombre" name="r_nombre" placeholder="Ej: Reactivo de Hematocrito" required />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Stock Inicial</label>
+            <input type="number" [(ngModel)]="nuevoReactivoStockInicial" name="r_stock_ini" required min="0" />
+          </div>
+          <div class="form-group">
+            <label>Stock Mínimo (Alerta)</label>
+            <input type="number" [(ngModel)]="nuevoReactivoMin" name="r_stock_min" required min="1" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Unidad de Medida</label>
+            <select [(ngModel)]="nuevoReactivoUnidad" name="r_unidad">
+              <option value="unidades">unidades</option>
+              <option value="ml">ml</option>
+              <option value="g">gramos</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Proveedor</label>
+            <select [(ngModel)]="nuevoReactivoProveedorId" name="r_prov">
+              <option [value]="null">Sin proveedor</option>
+              @for (prov of proveedores(); track prov.id) {
+                <option [value]="prov.id">{{ prov.nombre }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Código de Lote</label>
+            <input type="text" [(ngModel)]="nuevoReactivoLote" name="r_lote" placeholder="Ej: L-X88" required />
+          </div>
+          <div class="form-group">
+            <label>Fecha de Vencimiento</label>
+            <input type="date" [(ngModel)]="nuevoReactivoVencimiento" name="r_venc" required />
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-modal-cancel" (click)="mostrarNuevoReactivoModal.set(false)">Cancelar</button>
+          <button type="submit" class="btn-modal-submit">Registrar Reactivo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@if (mostrarNuevoExamenModal()) {
+  <div class="modal-overlay">
+    <div class="modal-card exam-creation-card glass">
+      <h3>Crear Nuevo Análisis en Catálogo</h3>
+      <p class="subtitle">Registra la prueba clínica y define su receta de consumos MRP (Bill of Materials - BOM).</p>
+
+      <form (ngSubmit)="crearNuevoExamen()" class="modal-form">
+        <div class="form-group">
+          <label>Nombre del Análisis Clínico</label>
+          <input type="text" [(ngModel)]="nuevoExamenNombre" name="e_nombre" placeholder="Ej: Ácido Úrico en Sangre" required />
+        </div>
+
+        <div class="form-group">
+          <label>Descripción Científica</label>
+          <input type="text" [(ngModel)]="nuevoExamenDesc" name="e_desc" placeholder="Objetivo e interpretación del examen..." />
+        </div>
+
+        <div class="form-group">
+          <label>Preparación del Paciente</label>
+          <input type="text" [(ngModel)]="nuevoExamenPrep" name="e_prep" placeholder="Indicaciones de ayuno..." />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Precio de Venta (USD)</label>
+            <input type="number" [(ngModel)]="nuevoExamenPrecio" name="e_precio" required min="1" step="0.01" />
+          </div>
+          <div class="form-group">
+            <label>Tiempo de Entrega (Horas)</label>
+            <input type="number" [(ngModel)]="nuevoExamenEntrega" name="e_entrega" required min="1" />
+          </div>
+        </div>
+
+        <div class="recipe-section">
+          <div class="recipe-header">
+            <strong>Fórmula de Consumo (Insumos consumidos por examen):</strong>
+            <button type="button" class="btn-action" (click)="agregarFilaReceta()">➕ Agregar Insumo</button>
+          </div>
+          
+          <div class="recipe-rows-container">
+            @for (fila of recetaInsumos(); track $index) {
+              <div class="recipe-row">
+                <div class="form-group flex-1">
+                  <label>Insumo Requerido</label>
+                  <select [(ngModel)]="fila.reactivo_id" name="receta-ins-{{$index}}">
+                    @for (r of reactivos(); track r.id) {
+                      <option [value]="r.id">{{ r.nombre }} ({{ r.unidad_medida }}, stock: {{ r.stock_actual }})</option>
+                    }
+                  </select>
+                </div>
+                <div class="form-group" style="width: 120px;">
+                  <label>Cant. Consumo</label>
+                  <input type="number" [(ngModel)]="fila.cantidad_consumo" name="receta-cant-{{$index}}" min="0.1" step="0.1" required />
+                </div>
+                <button type="button" class="btn-delete-row" (click)="eliminarFilaReceta($index)">🗑</button>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-modal-cancel" (click)="mostrarNuevoExamenModal.set(false)">Cancelar</button>
+          <button type="submit" class="btn-modal-submit">Crear Análisis Clínico</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@if (reactivoSeleccionadoReorden()) {
+  <div class="modal-overlay" (click)="reactivoSeleccionadoReorden.set(null)">
+    <div class="modal-card glass" (click)="$event.stopPropagation()">
+      <h3>Registrar Lote / Reabastecer</h3>
+      <p class="subtitle">
+        Ingreso de stock para
+        <strong>{{ reactivoSeleccionadoReorden()?.nombre }}</strong>
+        (stock actual: {{ reactivoSeleccionadoReorden()?.stock_actual }}
+        {{ reactivoSeleccionadoReorden()?.unidad_medida }})
+      </p>
+
+      <form (ngSubmit)="registrarEntradaStock()" class="modal-form">
+        <div class="form-group">
+          <label>Cantidad a ingresar</label>
+          <input
+            type="number"
+            [(ngModel)]="cantidadIngreso"
+            name="cantidad_ingreso"
+            required
+            min="1"
+            [placeholder]="'Ej: 100 ' + (reactivoSeleccionadoReorden()?.unidad_medida || '')"
+          />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Código de Lote</label>
+            <input
+              type="text"
+              [(ngModel)]="loteIngreso"
+              name="lote_ingreso"
+              placeholder="Ej: L-COL-2026"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label>Fecha de Vencimiento</label>
+            <input
+              type="date"
+              [(ngModel)]="vencimientoIngreso"
+              name="venc_ingreso"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-modal-cancel" (click)="reactivoSeleccionadoReorden.set(null)">
+            Cancelar
+          </button>
+          <button type="submit" class="btn-modal-submit">Confirmar ingreso</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@if (mostrarHistorialInventario()) {
+  <div class="modal-overlay" (click)="mostrarHistorialInventario.set(false)">
+    <div class="modal-card glass modal-wide" (click)="$event.stopPropagation()">
+      <h3>Historial de movimientos</h3>
+      <p class="subtitle">
+        Trazabilidad LIMS: entradas, consumos automáticos (FEFO) y bajas por vencimiento.
+        @if (filtroMovimientoReactivo(); as rid) {
+          — Reactivo #{{ rid }}
+        }
+      </p>
+
+      <div class="table-wrapper movimientos-modal-table">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Reactivo</th>
+              <th>Lote</th>
+              <th>Tipo</th>
+              <th>Cantidad</th>
+              <th>Stock</th>
+              <th>Usuario</th>
+              <th>Detalle</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (mov of movimientosInventario(); track mov.id) {
+              <tr>
+                <td>{{ mov.fecha | date:'dd/MM/yyyy HH:mm' }}</td>
+                <td>{{ mov.reactivo_nombre }}</td>
+                <td>{{ mov.codigo_lote || '—' }}</td>
+                <td><span class="pill pill-info">{{ mov.tipo }}</span></td>
+                <td [class.text-danger]="mov.cantidad < 0">{{ mov.cantidad }}</td>
+                <td>{{ mov.stock_antes }} → {{ mov.stock_despues }}</td>
+                <td>{{ mov.usuario_nombre || 'Sistema' }}</td>
+                <td class="mov-desc">{{ mov.descripcion }}</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="8" class="empty-row">Sin movimientos registrados.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-modal-cancel" (click)="mostrarHistorialInventario.set(false)">Cerrar</button>
+      </div>
+    </div>
+  </div>
+}

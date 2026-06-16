@@ -1,0 +1,22 @@
+<div
+  class="brand-logo"
+  [class.brand-logo--compact]="size() === 'compact'"
+  [class.brand-logo--full]="size() === 'full'"
+  [class.brand-logo--dark]="theme() === 'dark'"
+  [class.brand-logo--light]="theme() === 'light'"
+>
+  <div class="brand-logo__badge">
+    <img
+      class="brand-logo__mark"
+      src="branding/logo-genotipia-full.png"
+      alt="GENOTIPIA — Laboratorio Clínico"
+      width="484"
+      height="248"
+      decoding="async"
+    />
+  </div>
+
+  @if (suffix()) {
+    <span class="brand-logo__suffix">{{ suffix() }}</span>
+  }
+</div>

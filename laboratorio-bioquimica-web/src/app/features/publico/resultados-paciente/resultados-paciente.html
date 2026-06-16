@@ -1,0 +1,127 @@
+<header class="navbar">
+  <div class="nav-container">
+    <div class="logo">
+      <app-brand-logo size="compact" theme="light" />
+    </div>
+    <nav class="nav-links">
+      <a [routerLink]="['/']" class="nav-link">Inicio</a>
+      <a [routerLink]="['/login']" class="btn-primary">Acceso Personal</a>
+    </nav>
+  </div>
+</header>
+
+<main class="portal-container">
+  <div class="search-card glass">
+    <h2>Portal de Resultados para Pacientes</h2>
+    <p>Ingresa el código de tu comprobante y verifica tu identidad para consultar resultados de forma segura.</p>
+
+    @if (paso() === 1) {
+      <form (submit)="$event.preventDefault(); continuarVerificacion()" class="search-form">
+        <label>Código de orden</label>
+        <input
+          type="text"
+          [(ngModel)]="codigoBusqueda"
+          name="codigo"
+          placeholder="Ej: ORD-A3F9B2"
+          required
+        />
+        <button type="submit" class="btn-search" [disabled]="cargando()">
+          @if (cargando()) { Verificando... } @else { Continuar }
+        </button>
+      </form>
+    } @else {
+      <form (submit)="$event.preventDefault(); buscarResultados()" class="search-form verify-form">
+        <p class="codigo-confirmado">Código: <strong>{{ codigoBusqueda() }}</strong>
+          <button type="button" class="btn-link" (click)="volverPaso1()">Cambiar</button>
+        </p>
+        <label>CI / Identificación</label>
+        <input type="text" [(ngModel)]="dniVerificacion" name="dni" placeholder="Ej: 12345678" required />
+        <label>Fecha de nacimiento</label>
+        <input type="date" [(ngModel)]="fechaNacVerificacion" name="fecha_nac" required />
+        <button type="submit" class="btn-search" [disabled]="cargando()">
+          @if (cargando()) { Consultando... } @else { Ver Resultados }
+        </button>
+      </form>
+    }
+
+    @if (error()) {
+      <div class="alert alert-danger">⚠️ {{ error() }}</div>
+    }
+  </div>
+
+  @if (orden()) {
+    <div class="results-report fade-in">
+      <div class="report-header glass">
+        <div class="patient-details">
+          <h3>Paciente: {{ orden()?.paciente?.nombre }} {{ orden()?.paciente?.apellido }}</h3>
+          <p><strong>Fecha de Orden:</strong> {{ orden()?.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</p>
+          <p><strong>Código:</strong> <span class="highlight-code">{{ orden()?.codigo_orden }}</span></p>
+        </div>
+        <div class="order-status-badge">
+          @if (orden()?.estado === 'COMPLETADO') {
+            <span class="status-pill status-success">✓ Resultados Listos</span>
+          } @else {
+            <span class="status-pill status-warning">⏳ En Procesamiento</span>
+          }
+        </div>
+      </div>
+
+      <div class="exams-container">
+        @if (orden()?.estado === 'COMPLETADO') {
+          <div class="download-action top-download glass">
+            <button type="button" class="btn-download" (click)="descargarInformePdf()">
+              📥 Descargar Informe Clínico PDF
+            </button>
+          </div>
+
+          @for (res of orden()?.resultados; track res.id) {
+            <div class="exam-result-card glass">
+              <div class="exam-title-bar">
+                <h3>{{ nombreExamen(res) }}</h3>
+                <span class="date-badge">Fecha: {{ res.fecha_registro | date:'dd/MM/yyyy' }}</span>
+              </div>
+
+              <div class="values-table-wrapper">
+                <table class="values-table">
+                  <thead>
+                    <tr>
+                      <th>Parámetro</th>
+                      <th>Resultado</th>
+                      <th>Referencia</th>
+                      <th>Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @if (res.valor_resultado) {
+                      @for (key of objectKeys(res.valor_resultado); track key) {
+                        <tr>
+                          <td class="param-name">{{ key }}</td>
+                          <td class="param-val">{{ res.valor_resultado![key] }}</td>
+                          <td class="param-ref">{{ referenciaTexto(res, key) }}</td>
+                          <td>
+                            @let est = evaluarEstado(res, key);
+                            <span class="status-pill" [class]="est.clase">{{ est.label }}</span>
+                          </td>
+                        </tr>
+                      }
+                    } @else {
+                      <tr>
+                        <td colspan="4" class="no-values">Valores pendientes de firma.</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          }
+        } @else {
+          <div class="waiting-card glass">
+            <span class="clock-icon">⏳</span>
+            <h3>Muestras en análisis</h3>
+            <p>Tu orden está siendo procesada. Vuelve a consultar más tarde (12–24 h estimadas).</p>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</main>
