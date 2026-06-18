@@ -9,9 +9,19 @@ class Examen(Base):
     nombre = Column(String, unique=True, index=True, nullable=False)
     descripcion = Column(String, nullable=True)
     preparacion = Column(String, nullable=True)  # Indicaciones de ayuno, etc.
-    precio_usd = Column(Float, nullable=False)
+    precio_bob = Column(Float, nullable=False)
     tiempo_entrega_horas = Column(Integer, default=24)
     visible = Column(Boolean, default=True)
+    destacado = Column(Boolean, default=False)
+    tipo = Column(String, default="Laboratorio")
+    grupo = Column(String, nullable=True)
+    grupo_impresion = Column(String, nullable=True)
+    derivacion = Column(String, nullable=True)
+    material_muestra = Column(String, nullable=True)
+    estado = Column(String, default="Activo")
+    codigo_abrev = Column(String, nullable=True)
+    precio_derivacion = Column(Float, default=0)
+    etiqueta = Column(String, nullable=True)
 
     parametros = relationship(
         "ParametroExamen",

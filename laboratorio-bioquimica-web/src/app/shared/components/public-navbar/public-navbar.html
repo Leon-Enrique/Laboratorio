@@ -1,0 +1,58 @@
+<header class="public-navbar" [class.menu-open]="menuAbierto()">
+  <div class="nav-container">
+    <a routerLink="/" class="logo-link" (click)="cerrarMenu()">
+      <app-brand-logo size="compact" theme="light" />
+    </a>
+
+    <button
+      type="button"
+      class="nav-toggle"
+      (click)="toggleMenu()"
+      [attr.aria-expanded]="menuAbierto()"
+      aria-controls="public-nav-panel"
+      [attr.aria-label]="menuAbierto() ? 'Cerrar menú' : 'Abrir menú'"
+    >
+      <span class="nav-toggle-bar"></span>
+      <span class="nav-toggle-bar"></span>
+      <span class="nav-toggle-bar"></span>
+    </button>
+
+    <nav id="public-nav-panel" class="nav-panel" [class.is-open]="menuAbierto()">
+      <div class="nav-links">
+        @if (anchorMode()) {
+          <a href="#inicio" class="nav-link" (click)="cerrarMenu()">Inicio</a>
+          <a href="#servicios" class="nav-link" (click)="cerrarMenu()">Servicios</a>
+          <a routerLink="/examenes" class="nav-link" (click)="cerrarMenu()">Exámenes</a>
+          <a routerLink="/adn" class="nav-link nav-link--adn" (click)="cerrarMenu()">ADN</a>
+          <a href="#tecnologia" class="nav-link" (click)="cerrarMenu()">Tecnología</a>
+          <a href="#nosotros" class="nav-link" (click)="cerrarMenu()">Nosotros</a>
+          <a href="#ubicacion" class="nav-link" (click)="cerrarMenu()">Ubicación</a>
+          <a routerLink="/blog" class="nav-link" (click)="cerrarMenu()">Blog</a>
+          <a href="#reclamos" class="nav-link" (click)="cerrarMenu()">Contacto</a>
+        } @else {
+          <a routerLink="/" fragment="inicio" class="nav-link" (click)="cerrarMenu()">Inicio</a>
+          <a routerLink="/" fragment="servicios" class="nav-link" (click)="cerrarMenu()">Servicios</a>
+          <a routerLink="/examenes" class="nav-link" (click)="cerrarMenu()">Exámenes</a>
+          <a routerLink="/adn" class="nav-link nav-link--adn" (click)="cerrarMenu()">ADN</a>
+          <a routerLink="/" fragment="tecnologia" class="nav-link" (click)="cerrarMenu()">Tecnología</a>
+          <a routerLink="/" fragment="nosotros" class="nav-link" (click)="cerrarMenu()">Nosotros</a>
+          <a routerLink="/" fragment="ubicacion" class="nav-link" (click)="cerrarMenu()">Ubicación</a>
+          <a routerLink="/blog" class="nav-link" (click)="cerrarMenu()">Blog</a>
+          <a routerLink="/" fragment="reclamos" class="nav-link" (click)="cerrarMenu()">Contacto</a>
+        }
+      </div>
+
+      <div class="nav-actions">
+        <a routerLink="/resultados" class="btn-secondary" (click)="cerrarMenu()">Ver resultados</a>
+        <a [href]="whatsappUrl" target="_blank" rel="noopener" class="btn-whatsapp" (click)="cerrarMenu()">
+          WhatsApp
+        </a>
+        <a routerLink="/login" class="btn-primary" (click)="cerrarMenu()">Acceso personal</a>
+      </div>
+    </nav>
+  </div>
+
+  @if (menuAbierto()) {
+    <button type="button" class="nav-backdrop" (click)="cerrarMenu()" aria-label="Cerrar menú"></button>
+  }
+</header>

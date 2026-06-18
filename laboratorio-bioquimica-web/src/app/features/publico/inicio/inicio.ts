@@ -5,21 +5,29 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
 import { BrandLogoComponent } from '../../../shared/components/brand-logo/brand-logo';
+import { PublicNavbarComponent } from '../../../shared/components/public-navbar/public-navbar';
+import { MONEDA_CODIGO } from '../../../core/constants/moneda';
 import { obtenerArticulosDestacados, BlogArticulo } from '../blog/blog-articles.data';
+import {
+  MAX_DESTACADOS_INICIO,
+  ExamenPublico
+} from '../exam-catalog.utils';
 
-interface Examen {
-  id: number;
-  nombre: string;
+interface Examen extends ExamenPublico {}
+
+interface PasoVisita {
+  num: string;
+  icono: string;
+  titulo: string;
   descripcion: string;
-  preparacion: string;
-  precio_usd: number;
-  tiempo_entrega_horas: number;
 }
 
-interface CategoriaFiltro {
-  id: string;
-  label: string;
-  keywords: string[];
+interface PilarGenotipia {
+  num: string;
+  icono: string;
+  titulo: string;
+  descripcion: string;
+  accent: 'green' | 'blue' | 'teal' | 'amber';
 }
 
 interface TecnologiaItem {
@@ -27,6 +35,9 @@ interface TecnologiaItem {
   titulo: string;
   descripcion: string;
   tags: string[];
+  icono: string;
+  accent: 'green' | 'blue' | 'teal' | 'violet';
+  destacado?: boolean;
 }
 
 interface GaleriaItem {
@@ -52,13 +63,14 @@ interface InstagramPost {
 @Component({
   selector: 'app-inicio',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule, BrandLogoComponent],
+  imports: [CommonModule, RouterLink, FormsModule, BrandLogoComponent, PublicNavbarComponent],
   templateUrl: './inicio.html',
   styleUrl: './inicio.scss'
 })
 export class InicioComponent implements OnInit {
   private api = inject(ApiService);
 
+  readonly moneda = MONEDA_CODIGO;
   readonly whatsappUrl = 'https://wa.me/59175548529';
   readonly telefono = '755 48529';
   readonly telefonoTel = '+59175548529';
@@ -79,31 +91,84 @@ export class InicioComponent implements OnInit {
     'https://maps.google.com/maps?q=-17.7731508,-63.1541142&hl=es&z=17&output=embed'
   );
 
+  readonly pilares: PilarGenotipia[] = [
+    {
+      num: '01',
+      icono: '🔬',
+      titulo: 'Tecnología avanzada',
+      descripcion: 'Analizadores automatizados con trazabilidad completa de muestras en cada etapa del proceso.',
+      accent: 'green',
+    },
+    {
+      num: '02',
+      icono: '⚡',
+      titulo: 'Resultados rápidos',
+      descripcion: 'Flujo optimizado que reduce tiempos de entrega sin sacrificar precisión ni rigor analítico.',
+      accent: 'amber',
+    },
+    {
+      num: '03',
+      icono: '🔒',
+      titulo: 'Confidencialidad',
+      descripcion: 'Acceso seguro y privado a los reportes clínicos. Tu información protegida en todo momento.',
+      accent: 'blue',
+    },
+    {
+      num: '04',
+      icono: '📋',
+      titulo: 'Informes certificados',
+      descripcion: 'Resultados validados y firmados electrónicamente por nuestro bioquímico regente.',
+      accent: 'teal',
+    },
+  ];
+
+  readonly aboutDestacados = [
+    'Bioquímico regente en cada validación',
+    'Protocolos de bioseguridad y control de calidad',
+    'Atención cercana en Santa Cruz de la Sierra',
+  ];
+
   readonly tecnologias: TecnologiaItem[] = [
     {
       num: '01',
       titulo: 'Bioquímica automatizada',
       descripcion: 'Analizadores de alta precisión para química clínica, electrolitos y perfiles metabólicos con control de calidad continuo.',
       tags: ['Química clínica', 'Perfiles', 'Electrolitos'],
+      icono: '⚗️',
+      accent: 'green',
     },
     {
       num: '02',
       titulo: 'Hematología e inmunología',
       descripcion: 'Hemogramas completos, coagulación y marcadores inmunológicos procesados con tecnología automatizada y validación experta.',
       tags: ['Hemograma', 'Coagulación', 'Inmunología'],
+      icono: '🔬',
+      accent: 'blue',
     },
     {
       num: '03',
       titulo: 'Biología molecular',
       descripcion: 'Detección de patógenos y estudios genéticos con técnicas moleculares de alta sensibilidad y especificidad.',
       tags: ['PCR', 'Genética', 'Molecular'],
+      icono: '🧬',
+      accent: 'teal',
+      destacado: true,
     },
     {
       num: '04',
       titulo: 'Resultados digitales',
       descripcion: 'Portal seguro para pacientes y acceso profesional para médicos. Informes firmados electrónicamente por bioquímico regente.',
       tags: ['Online', 'Seguro', 'Trazabilidad'],
+      icono: '📲',
+      accent: 'violet',
     },
+  ];
+
+  readonly techMetricas = [
+    { valor: 'LIS', etiqueta: 'Trazabilidad integral' },
+    { valor: '24/7', etiqueta: 'Control de calidad' },
+    { valor: '100%', etiqueta: 'Resultados firmados' },
+    { valor: 'ISO', etiqueta: '15189 en proceso' },
   ];
 
   /**
@@ -144,27 +209,31 @@ export class InicioComponent implements OnInit {
     { dias: 'Domingos y feriados', horas: 'Cerrado · consultar urgencias' },
   ];
 
-  readonly beneficiosMedicos = [
-    'Órdenes médicas registradas en el sistema LIS',
-    'Resultados validados y firmados digitalmente',
-    'Trazabilidad completa de muestras y reactivos',
-    'Panel de acceso para personal autorizado',
-  ];
-
-  readonly beneficiosEmpresas = [
-    'Programas de salud ocupacional a medida',
-    'Exámenes de ingreso, periódicos y pre-retiro',
-    'Facturación corporativa y reportes periódicos',
-    'Coordinación de tomas de muestra para equipos',
-  ];
-
-  readonly categorias: CategoriaFiltro[] = [
-    { id: 'todos', label: 'Todos', keywords: [] },
-    { id: 'hematologia', label: 'Hematología', keywords: ['hemograma', 'hemat', 'sangre', 'coagul', 'plaqueta'] },
-    { id: 'quimica', label: 'Química sanguínea', keywords: ['glucosa', 'colesterol', 'lipíd', 'lipid', 'renal', 'hepát', 'hepat', 'creatinina', 'urea', 'química', 'quimica'] },
-    { id: 'hormonas', label: 'Hormonas', keywords: ['hormon', 'tsh', 'tiro', 'cortisol', 'insulin'] },
-    { id: 'molecular', label: 'Biología molecular', keywords: ['pcr', 'molecular', 'genét', 'genet', 'adn', 'dna'] },
-    { id: 'micro', label: 'Microbiología', keywords: ['orina', 'uro', 'cultivo', 'bacter', 'parasit'] },
+  readonly pasosVisita: PasoVisita[] = [
+    {
+      num: '01',
+      icono: '💬',
+      titulo: 'Coordinación',
+      descripcion: 'Escríbenos por WhatsApp o acércate al laboratorio. Te orientamos sobre el examen y su preparación.',
+    },
+    {
+      num: '02',
+      icono: '🩸',
+      titulo: 'Toma de muestra',
+      descripcion: 'Registro en recepción y extracción con protocolos de bioseguridad. Rápido y con atención personalizada.',
+    },
+    {
+      num: '03',
+      icono: '🔬',
+      titulo: 'Análisis en laboratorio',
+      descripcion: 'Procesamos tu muestra con equipamiento automatizado y control de calidad en cada etapa.',
+    },
+    {
+      num: '04',
+      icono: '📱',
+      titulo: 'Resultados',
+      descripcion: 'Consulta tu informe online con código de orden y documento, o retíralo en el laboratorio.',
+    },
   ];
 
   readonly tickerItems = [
@@ -184,70 +253,39 @@ export class InicioComponent implements OnInit {
   enviandoReclamo = signal(false);
 
   examenes = signal<Examen[]>([]);
-  filtroTexto = signal<string>('');
-  categoriaActiva = signal<string>('todos');
-  examenesFiltrados = signal<Examen[]>([]);
-  cargando = signal<boolean>(true);
+  examenesDestacados = signal<Examen[]>([]);
+  cargandoDestacados = signal<boolean>(true);
+  errorDestacados = signal<string | null>(null);
 
   totalExamenes = computed(() => this.examenes().length);
 
   ngOnInit() {
-    this.cargarExamenes();
+    this.cargarCatalogo();
   }
 
-  cargarExamenes() {
+  cargarCatalogo() {
     this.api.get<Examen[]>('/examenes').subscribe({
-      next: (data) => {
+      next: data => {
         this.examenes.set(data);
-        this.aplicarFiltros();
-        this.cargando.set(false);
+        const marcados = data.filter(ex => ex.destacado);
+        const lista =
+          marcados.length > 0
+            ? marcados.slice(0, MAX_DESTACADOS_INICIO)
+            : data.slice(0, MAX_DESTACADOS_INICIO);
+        this.examenesDestacados.set(lista);
+        this.cargandoDestacados.set(false);
       },
-      error: (err) => {
-        console.error('Error al cargar catálogo de exámenes:', err);
-        this.cargando.set(false);
+      error: () => {
+        this.errorDestacados.set('No se pudieron cargar los exámenes destacados.');
+        this.cargandoDestacados.set(false);
       }
     });
   }
 
-  filtrarExamenes(event: Event) {
-    this.filtroTexto.set((event.target as HTMLInputElement).value.toLowerCase());
-    this.aplicarFiltros();
-  }
-
-  seleccionarCategoria(id: string) {
-    this.categoriaActiva.set(id);
-    this.aplicarFiltros();
-  }
-
-  limpiarFiltros(input?: HTMLInputElement) {
-    if (input) input.value = '';
-    this.filtroTexto.set('');
-    this.categoriaActiva.set('todos');
-    this.aplicarFiltros();
-  }
-
-  private aplicarFiltros() {
-    const query = this.filtroTexto().trim();
-    const catId = this.categoriaActiva();
-    const cat = this.categorias.find(c => c.id === catId);
-
-    let lista = this.examenes();
-
-    if (cat && cat.keywords.length > 0) {
-      lista = lista.filter(ex => {
-        const texto = `${ex.nombre} ${ex.descripcion}`.toLowerCase();
-        return cat.keywords.some(kw => texto.includes(kw));
-      });
-    }
-
-    if (query) {
-      lista = lista.filter(ex =>
-        ex.nombre.toLowerCase().includes(query) ||
-        ex.descripcion.toLowerCase().includes(query)
-      );
-    }
-
-    this.examenesFiltrados.set(lista);
+  reintentarDestacados() {
+    this.errorDestacados.set(null);
+    this.cargandoDestacados.set(true);
+    this.cargarCatalogo();
   }
 
   enviarReclamo() {

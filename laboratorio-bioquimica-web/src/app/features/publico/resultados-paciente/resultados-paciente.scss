@@ -1,84 +1,30 @@
 // Estilos para el Portal de Resultados de Pacientes
 
-$primary-gradient: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
-$primary-color: #0d6efd;
-$accent-color: #00f2fe;
+$brand-green: #10b981;
+$primary-color: #2563eb;
 $text-dark: #212529;
 
 :host {
   display: block;
-  font-family: 'Outfit', 'Inter', sans-serif;
-  color: $text-dark;
-  background-color: #f4f7f6;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  color: #0f172a;
+  background-color: #f8fafc;
   min-height: 100vh;
-}
-
-// Navbar
-.navbar {
-  background: #ffffff;
-  padding: 0.75rem 2rem;
-  border-bottom: 1px solid #e2e8f0;
-  box-shadow: 0 1px 8px rgba(15, 32, 39, 0.06);
-
-  .nav-container {
-    max-width: 1000px;
-    margin: 0 auto;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .logo {
-    display: flex;
-    align-items: center;
-    padding: 0.15rem 0;
-  }
-
-  .nav-links {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-
-    .nav-link {
-      color: #475569;
-      text-decoration: none;
-      font-weight: 500;
-      transition: color 0.3s;
-
-      &:hover {
-        color: $primary-color;
-      }
-    }
-  }
-}
-
-.btn-primary {
-  background: $primary-color;
-  color: white;
-  padding: 0.5rem 1.2rem;
-  border-radius: 8px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: background 0.3s;
-
-  &:hover {
-    background: darken($primary-color, 10%);
-  }
 }
 
 // Portal Container
 .portal-container {
   max-width: 800px;
-  margin: 4rem auto;
-  padding: 0 1.5rem;
+  margin: 2rem auto 3rem;
+  padding: 0 1rem;
 }
 
 .glass {
   background: white;
-  border: 1px solid #dee2e6;
-  border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-  padding: 2.5rem;
+  border: 1px solid #e8edf2;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.06);
+  padding: 2rem 1.5rem;
 }
 
 // Search Card
@@ -132,19 +78,21 @@ $text-dark: #212529;
     }
 
     .btn-search {
-      background: $primary-color;
+      background: linear-gradient(135deg, $primary-color 0%, #1d4ed8 100%);
       color: white;
       border: none;
-      border-radius: 10px;
-      padding: 0.85rem 1rem;
+      border-radius: 12px;
+      padding: 0.9rem 1rem;
       font-weight: 700;
       font-size: 1rem;
       cursor: pointer;
-      transition: background 0.3s;
+      transition: transform 0.22s, box-shadow 0.22s;
       width: 100%;
+      box-shadow: 0 4px 16px rgba(37, 99, 235, 0.25);
 
-      &:hover {
-        background: darken($primary-color, 8%);
+      &:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35);
       }
 
       &:disabled {
@@ -310,7 +258,7 @@ $text-dark: #212529;
 
     .param-val {
       font-weight: 700;
-      color: #0d6efd;
+      color: $primary-color;
     }
 
     .param-ref {
@@ -383,4 +331,53 @@ $text-dark: #212529;
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 768px) {
+  .portal-container {
+    margin: 1.25rem auto 2rem;
+  }
+
+  .glass {
+    padding: 1.5rem 1.15rem;
+  }
+
+  .search-card h2 {
+    font-size: 1.45rem;
+  }
+
+  .report-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+
+    .patient-details h3 {
+      font-size: 1.15rem;
+    }
+  }
+
+  .exam-result-card .exam-title-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+  }
+
+  .values-table {
+    min-width: 520px;
+
+    th,
+    td {
+      padding: 0.65rem 0.75rem;
+      font-size: 0.85rem;
+    }
+  }
+
+  .waiting-card {
+    padding: 2.5rem 1.25rem;
+  }
+
+  .btn-download {
+    width: 100%;
+    text-align: center;
+  }
 }

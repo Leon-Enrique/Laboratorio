@@ -43,7 +43,7 @@ class MesDestacado(BaseModel):
 
 
 class DashboardReporte(BaseModel):
-    moneda: str = "USD"
+    moneda: str = "BOB"
     resumen_hoy: ResumenPeriodo
     resumen_mes_actual: ResumenMesActual
     pendientes_total: int
@@ -79,6 +79,6 @@ class ResumenDia(BaseModel):
 
 
 class ReporteDiario(BaseModel):
-    moneda: str = "USD"
+    moneda: str = "BOB"
     resumen: ResumenDia
     movimientos: List[MovimientoDia]

@@ -188,7 +188,9 @@ def generar_informe_orden(orden: Orden, firmante_nombre: str) -> str:
                 claves_usadas.add(clave)
                 claves_usadas.add(p.nombre)
                 ref = ""
-                if p.valor_min is not None and p.valor_max is not None:
+                if p.valor_referencia and str(p.valor_referencia).strip():
+                    ref = str(p.valor_referencia).strip()
+                elif p.valor_min is not None and p.valor_max is not None:
                     ref = f"{p.valor_min:g} – {p.valor_max:g}"
                 elif p.valor_max is not None:
                     ref = f"≤ {p.valor_max:g}"

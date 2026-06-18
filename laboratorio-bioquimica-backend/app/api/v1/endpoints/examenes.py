@@ -1,5 +1,5 @@
-from typing import List, Any
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import List, Any, Optional
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, joinedload
 from app.db.session import get_db
 from app.models.examen import Examen, FormulaConsumo
@@ -15,10 +15,16 @@ def _examenes_query(db: Session):
         joinedload(Examen.parametros),
     )
 
-# Catálogo público: cualquiera puede listar los exámenes visibles
+# Catálogo público: exámenes visibles (opcionalmente solo destacados para la landing)
 @router.get("/", response_model=List[ExamenResponse])
-def listar_examenes(db: Session = Depends(get_db)) -> Any:
-    return _examenes_query(db).filter(Examen.visible == True).order_by(Examen.id).all()
+def listar_examenes(
+    destacados: bool = Query(False, description="Si es true, solo exámenes marcados como destacados en inicio"),
+    db: Session = Depends(get_db),
+) -> Any:
+    q = _examenes_query(db).filter(Examen.visible == True)
+    if destacados:
+        q = q.filter(Examen.destacado == True)
+    return q.order_by(Examen.nombre).all()
 
 # Catálogo administrativo: muestra todos los exámenes, visibles o no (solo admin/bioquímico)
 @router.get("/admin-lista", response_model=List[ExamenResponse])
@@ -47,6 +53,24 @@ def toggle_visibilidad_examen(
     db.commit()
     return _examenes_query(db).filter(Examen.id == examen_id).first()
 
+# Marcar/desmarcar examen como destacado en la página de inicio (solo admin)
+@router.put("/{examen_id}/destacado", response_model=ExamenResponse)
+def toggle_destacado_examen(
+    examen_id: int,
+    db: Session = Depends(get_db),
+    current_user: Any = Depends(RoleChecker(["admin"]))
+) -> Any:
+    examen = db.query(Examen).filter(Examen.id == examen_id).first()
+    if not examen:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Examen no encontrado"
+        )
+    examen.destacado = not examen.destacado
+    db.add(examen)
+    db.commit()
+    return _examenes_query(db).filter(Examen.id == examen_id).first()
+
 # Crear examen con su fórmula BOM (solo admin/bioquímico)
 @router.post("/", response_model=ExamenResponse)
 def crear_examen(
@@ -65,9 +89,19 @@ def crear_examen(
         nombre=examen_in.nombre,
         descripcion=examen_in.descripcion,
         preparacion=examen_in.preparacion,
-        precio_usd=examen_in.precio_usd,
+        precio_bob=examen_in.precio_bob,
         tiempo_entrega_horas=examen_in.tiempo_entrega_horas,
-        visible=examen_in.visible if examen_in.visible is not None else True
+        visible=examen_in.visible if examen_in.visible is not None else True,
+        destacado=examen_in.destacado if examen_in.destacado is not None else False,
+        tipo=examen_in.tipo or "Laboratorio",
+        grupo=examen_in.grupo,
+        grupo_impresion=examen_in.grupo_impresion,
+        derivacion=examen_in.derivacion,
+        material_muestra=examen_in.material_muestra,
+        estado=examen_in.estado or "Activo",
+        codigo_abrev=examen_in.codigo_abrev,
+        precio_derivacion=examen_in.precio_derivacion if examen_in.precio_derivacion is not None else 0,
+        etiqueta=examen_in.etiqueta,
     )
     db.add(nuevo_examen)
     db.commit()
@@ -119,10 +153,21 @@ def actualizar_examen(
     examen.nombre = examen_in.nombre
     examen.descripcion = examen_in.descripcion
     examen.preparacion = examen_in.preparacion
-    examen.precio_usd = examen_in.precio_usd
+    examen.precio_bob = examen_in.precio_bob
     examen.tiempo_entrega_horas = examen_in.tiempo_entrega_horas
     if examen_in.visible is not None:
         examen.visible = examen_in.visible
+    if examen_in.destacado is not None:
+        examen.destacado = examen_in.destacado
+    examen.tipo = examen_in.tipo or "Laboratorio"
+    examen.grupo = examen_in.grupo
+    examen.grupo_impresion = examen_in.grupo_impresion
+    examen.derivacion = examen_in.derivacion
+    examen.material_muestra = examen_in.material_muestra
+    examen.estado = examen_in.estado or "Activo"
+    examen.codigo_abrev = examen_in.codigo_abrev
+    examen.precio_derivacion = examen_in.precio_derivacion if examen_in.precio_derivacion is not None else 0
+    examen.etiqueta = examen_in.etiqueta
         
     # Eliminar fórmulas viejas e insertar nuevas
     db.query(FormulaConsumo).filter(FormulaConsumo.examen_id == examen_id).delete()

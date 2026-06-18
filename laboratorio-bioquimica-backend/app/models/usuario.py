@@ -31,6 +31,8 @@ class Paciente(Base):
     genero = Column(String, nullable=False)  # M, F, Otro
     telefono = Column(String, nullable=True)
     direccion = Column(String, nullable=True)
+    nit = Column(String, nullable=True)
+    razon_social = Column(String, nullable=True)
 
     # Relaciones
     usuario = relationship("Usuario", back_populates="paciente_rel")

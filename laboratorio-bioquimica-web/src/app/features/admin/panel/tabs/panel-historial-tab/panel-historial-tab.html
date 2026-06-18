@@ -1,0 +1,105 @@
+<div class="history-section fade-in">
+  <div class="search-card glass">
+    <h3>Historial Clínico de Pacientes</h3>
+    <p class="subtitle">Busca un paciente por nombre o CI para recuperar su línea de tiempo de análisis clínicos.</p>
+
+    <div class="patient-autocomplete-wrapper">
+      <div class="exam-search-container">
+        <div class="search-input-row">
+          <span class="search-icon">🔍</span>
+          <input
+            type="text"
+            class="exam-search-input"
+            [value]="busquedaPacienteHistorial()"
+            (input)="onBusquedaPacienteInput($any($event.target).value)"
+            (focus)="mostrarDropdownPacientes.set(pacientesEncontrados().length > 0)"
+            (blur)="ocultarDropdownPacientesConRetraso()"
+            placeholder="Buscar por nombre o CI del paciente..."
+            autocomplete="off"
+          />
+          @if (busquedaPacienteHistorial()) {
+            <button type="button" class="clear-search-btn" (click)="limpiarBusquedaHistorial()">✕</button>
+          }
+        </div>
+
+        @if (mostrarDropdownPacientes() && pacientesEncontrados().length > 0) {
+          <div class="exam-dropdown">
+            @for (p of pacientesEncontrados(); track p.dni) {
+              <div class="exam-dropdown-item" (mousedown)="seleccionarPacienteHistorial(p)">
+                <div class="exam-option-name">👤 {{ p.nombre }} {{ p.apellido }}</div>
+                <div class="exam-option-desc">CI: {{ p.dni }}</div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      @if (historialCargando()) {
+        <div class="loading-hint">⏳ Cargando historial...</div>
+      }
+    </div>
+
+    @if (historialError()) {
+      <div class="alert alert-danger mt-4">{{ historialError() }}</div>
+    }
+  </div>
+
+  @if (pacienteHistorialCargado(); as paciente) {
+    <div class="patient-history-timeline mt-6">
+      <div class="patient-profile-card glass mb-6">
+        <h4>Ficha de Paciente: {{ paciente.nombre }} {{ paciente.apellido }}</h4>
+        <p><strong>CI:</strong> {{ paciente.dni }}</p>
+      </div>
+
+      <div class="timeline-container">
+        <h3>Línea de Tiempo de Órdenes y Resultados</h3>
+
+        <div class="timeline-flow">
+          @for (ord of historialOrdenes(); track ord.id) {
+            <div class="timeline-item">
+              <div class="timeline-badge" [class.success]="ord.estado === 'COMPLETADO'"></div>
+              <div class="timeline-card glass">
+                <div class="timeline-header">
+                  <span class="order-code">{{ ord.codigo_orden }}</span>
+                  <span class="order-date">{{ ord.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</span>
+                </div>
+
+                <div class="timeline-body">
+                  <p><strong>Costo de Análisis:</strong> {{ ord.precio_total | currency:moneda:'symbol-narrow':'1.2-2' }}</p>
+
+                  <div class="timeline-exams-list">
+                    <strong>Exámenes Realizados:</strong>
+                    <ul>
+                      @for (res of ord.resultados; track res.id) {
+                        <li>
+                          🔬 {{ nombreExamen(res) }}
+                          @if (res.valor_resultado) {
+                            <div class="values-preview">
+                              @for (k of objectKeys(res.valor_resultado); track k) {
+                                <span>{{ k }}: <strong>{{ res.valor_resultado[k] }}</strong></span>
+                              }
+                            </div>
+                          }
+                        </li>
+                      }
+                    </ul>
+                  </div>
+                </div>
+
+                <div class="timeline-footer">
+                  @if (ord.estado === 'COMPLETADO') {
+                    <button type="button" class="btn-action" (click)="generarInformePDF(ord)">
+                      🖨 Ver Informe Clínico (PDF)
+                    </button>
+                  } @else {
+                    <span class="text-warning">⏳ Muestra pendiente de validación</span>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

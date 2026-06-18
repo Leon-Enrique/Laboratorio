@@ -60,7 +60,7 @@ def _etiqueta_corta(anio: int, mes: int) -> str:
 
 
 def precio_orden(orden: Orden) -> float:
-    return sum(r.examen.precio_usd for r in orden.resultados if r.examen)
+    return sum(r.examen.precio_bob for r in orden.resultados if r.examen)
 
 
 def _empty_bucket() -> Dict[str, float]:
@@ -186,7 +186,7 @@ def generar_reporte_dia(
     resumen.cobrado_dia = round(resumen.cobrado_dia, 2)
     resumen.pendiente_dia = round(resumen.pendiente_dia, 2)
 
-    return ReporteDiario(resumen=resumen, movimientos=movimientos)
+    return ReporteDiario(moneda="BOB", resumen=resumen, movimientos=movimientos)
 
 
 def generar_dashboard(db: Session, meses_historial: int = 12) -> DashboardReporte:
@@ -240,7 +240,7 @@ def generar_dashboard(db: Session, meses_historial: int = 12) -> DashboardReport
                     continue
                 eid = res.examen_id
                 examenes_mes[eid]["cantidad"] += 1
-                examenes_mes[eid]["ingresos"] += res.examen.precio_usd
+                examenes_mes[eid]["ingresos"] += res.examen.precio_bob
                 examenes_mes[eid]["nombre"] = res.examen.nombre
 
     # Últimos N meses (incluye mes actual)
@@ -332,6 +332,7 @@ def generar_dashboard(db: Session, meses_historial: int = 12) -> DashboardReport
         )
 
     return DashboardReporte(
+        moneda="BOB",
         resumen_hoy=ResumenPeriodo(
             ordenes_entradas=resumen_hoy.ordenes_entradas,
             ordenes_completadas=resumen_hoy.ordenes_completadas,

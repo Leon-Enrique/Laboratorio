@@ -1,0 +1,23 @@
+@if (notify.toast().visible) {
+  <div
+    class="admin-toast"
+    [class.admin-toast-success]="notify.toast().type === 'success'"
+    [class.admin-toast-error]="notify.toast().type === 'error'"
+    [class.admin-toast-info]="notify.toast().type === 'info'"
+  >
+    {{ notify.toast().message }}
+  </div>
+}
+
+@if (notify.confirmVisible()) {
+  <div class="modal-overlay" (click)="notify.cancelarConfirmacion()">
+    <div class="modal-card glass modal-confirm" (click)="$event.stopPropagation()">
+      <h3>{{ notify.confirmTitle() }}</h3>
+      <p class="subtitle">{{ notify.confirmMessage() }}</p>
+      <div class="modal-actions">
+        <button type="button" class="btn-modal-cancel" (click)="notify.cancelarConfirmacion()">Cancelar</button>
+        <button type="button" class="btn-modal-submit" (click)="notify.ejecutarConfirmacion()">Confirmar</button>
+      </div>
+    </div>
+  </div>
+}

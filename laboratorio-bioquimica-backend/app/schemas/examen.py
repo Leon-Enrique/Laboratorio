@@ -21,9 +21,19 @@ class ExamenBase(BaseModel):
     nombre: str
     descripcion: Optional[str] = None
     preparacion: Optional[str] = None
-    precio_usd: float
+    precio_bob: float
     tiempo_entrega_horas: int = 24
     visible: Optional[bool] = True
+    destacado: Optional[bool] = False
+    tipo: Optional[str] = "Laboratorio"
+    grupo: Optional[str] = None
+    grupo_impresion: Optional[str] = None
+    derivacion: Optional[str] = None
+    material_muestra: Optional[str] = None
+    estado: Optional[str] = "Activo"
+    codigo_abrev: Optional[str] = None
+    precio_derivacion: Optional[float] = 0
+    etiqueta: Optional[str] = None
 
 class ExamenCreate(ExamenBase):
     formulas: Optional[List[FormulaConsumoBase]] = []

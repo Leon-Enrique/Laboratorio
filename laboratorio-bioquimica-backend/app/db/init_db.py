@@ -87,7 +87,7 @@ def init_db(db: Session):
             apellido="Pérez",
             fecha_nacimiento=date(1990, 5, 15),
             genero="M",
-            telefono="+56988887777",
+            telefono="+59170000000",
             direccion="Av. Siempre Viva 742"
         )
         db.add(paciente)
@@ -133,8 +133,8 @@ def init_db(db: Session):
 
     # 4. Crear Exámenes del Catálogo
     examenes_data = [
-        {"nombre": "Glucosa en Ayunas", "descripcion": "Mide el nivel de glucosa (azúcar) en sangre tras 8 horas de ayuno. Util para diagnosticar diabetes.", "preparacion": "Ayuno estricto de 8 a 12 horas.", "precio_usd": 15.0, "tiempo_entrega_horas": 12},
-        {"nombre": "Perfil Lipídico Completo", "descripcion": "Mide colesterol total, triglicéridos, HDL y LDL en sangre para evaluar riesgo cardiovascular.", "preparacion": "Ayuno de 9 a 12 horas antes de la toma de muestra. No ingerir alcohol el día anterior.", "precio_usd": 35.0, "tiempo_entrega_horas": 24}
+        {"nombre": "Glucosa en Ayunas", "descripcion": "Mide el nivel de glucosa (azúcar) en sangre tras 8 horas de ayuno. Util para diagnosticar diabetes.", "preparacion": "Ayuno estricto de 8 a 12 horas.", "precio_bob": 80.0, "tiempo_entrega_horas": 12},
+        {"nombre": "Perfil Lipídico Completo", "descripcion": "Mide colesterol total, triglicéridos, HDL y LDL en sangre para evaluar riesgo cardiovascular.", "preparacion": "Ayuno de 9 a 12 horas antes de la toma de muestra. No ingerir alcohol el día anterior.", "precio_bob": 220.0, "tiempo_entrega_horas": 24}
     ]
 
     for e_item in examenes_data:
@@ -144,7 +144,7 @@ def init_db(db: Session):
                 nombre=e_item["nombre"],
                 descripcion=e_item["descripcion"],
                 preparacion=e_item["preparacion"],
-                precio_usd=e_item["precio_usd"],
+                precio_bob=e_item["precio_bob"],
                 tiempo_entrega_horas=e_item["tiempo_entrega_horas"]
             )
             db.add(e)
@@ -194,4 +194,33 @@ def init_db(db: Session):
                 db.add(ParametroExamen(examen_id=examen.id, **p))
             db.commit()
 
+    # 7. Parámetros por defecto para exámenes sin catálogo analítico
+    _backfill_parametros_faltantes(db)
+
+    # 8. Catálogo ampliado de exámenes comunes (idempotente)
+    from app.db.seed_catalogo import seed_examenes_comunes
+    seed_examenes_comunes(db)
+
     print("Database seeding completed successfully!")
+
+
+def _backfill_parametros_faltantes(db: Session) -> None:
+    """Agrega un parámetro genérico a exámenes que aún no tienen ninguno."""
+    defaults_por_nombre = {
+        "vih": {"nombre": "Resultado VIH", "unidad": None, "valor_min": None, "valor_max": None},
+        "embarazo": {"nombre": "Resultado", "unidad": None, "valor_min": None, "valor_max": None},
+    }
+    for examen in db.query(Examen).all():
+        tiene = db.query(ParametroExamen).filter(ParametroExamen.examen_id == examen.id).count()
+        if tiene > 0:
+            continue
+        nombre_lower = examen.nombre.lower()
+        cfg = None
+        if "vih" in nombre_lower:
+            cfg = defaults_por_nombre["vih"]
+        elif "embarazo" in nombre_lower:
+            cfg = defaults_por_nombre["embarazo"]
+        else:
+            cfg = {"nombre": "Resultado", "unidad": None, "valor_min": None, "valor_max": None}
+        db.add(ParametroExamen(examen_id=examen.id, orden=0, **cfg))
+    db.commit()

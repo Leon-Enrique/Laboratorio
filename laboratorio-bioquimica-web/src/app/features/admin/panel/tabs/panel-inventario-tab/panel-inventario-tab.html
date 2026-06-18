@@ -1,0 +1,357 @@
+<div class="inventory-dashboard fade-in">
+  <div class="alerts-section">
+    <div class="section-title-bar">
+      <h3>Alertas de Inventario (MRP)</h3>
+      <div class="inventory-toolbar">
+        <button type="button" class="btn-action" (click)="toggleAuditoriaInventario()">
+          {{ mostrarAuditoriaInventario() ? 'Ocultar auditoría' : 'Auditoría LIMS' }}
+        </button>
+        <button type="button" class="btn-action" (click)="abrirHistorialInventario()">
+          Historial de movimientos
+        </button>
+        @if (rolUsuario === 'admin') {
+          <button class="btn-primary" (click)="mostrarNuevoReactivoModal.set(true)">
+            ➕ Registrar Nuevo Reactivo
+          </button>
+        }
+      </div>
+    </div>
+    <p class="subtitle">Control por lotes (FEFO), vencimientos y stock mínimo. El consumo al firmar órdenes descuenta del lote que vence primero.</p>
+
+    @if (mostrarAuditoriaInventario() && auditoriaInventario(); as aud) {
+      <div class="audit-summary-card glass">
+        <h4>Resumen de auditoría</h4>
+        <div class="audit-stats-grid">
+          <div class="audit-stat"><span>{{ aud.total_reactivos }}</span><small>Reactivos</small></div>
+          <div class="audit-stat"><span>{{ aud.total_lotes }}</span><small>Lotes registrados</small></div>
+          <div class="audit-stat warn"><span>{{ aud.lotes_vencidos_con_stock }}</span><small>Lotes vencidos con stock</small></div>
+          <div class="audit-stat warn"><span>{{ aud.lotes_proximos_vencer }}</span><small>Próximos a vencer (90 d)</small></div>
+          <div class="audit-stat danger"><span>{{ aud.reactivos_bajo_minimo }}</span><small>Bajo mínimo</small></div>
+          <div class="audit-stat"><span>{{ aud.movimientos_ultimos_30_dias }}</span><small>Movimientos (30 d)</small></div>
+        </div>
+      </div>
+    }
+
+    <div class="alerts-grid">
+      @for (al of alertasInventario(); track al.id) {
+        <div class="alert-box" [class.alert-danger]="al.alertas.includes('Lote Vencido') || al.alertas.includes('Bajo stock')">
+          <div class="alert-icon">⚠️</div>
+          <div class="alert-details">
+            <h4>{{ al.nombre }}</h4>
+            <p>Stock actual: <strong>{{ al.stock_actual }} {{ al.unidad_medida }}</strong> (Mínimo: {{ al.stock_minimo }})</p>
+            @if (al.lotes_afectados) {
+              <p class="alert-meta">{{ al.lotes_afectados }} lote(s) requieren atención</p>
+            }
+            <div class="alert-reasons">
+              @for (reason of al.alertas; track reason) {
+                <span class="reason-pill">{{ reason }}</span>
+              }
+            </div>
+          </div>
+        </div>
+      } @empty {
+        <div class="no-alerts-card glass col-span-full">
+          <span>✓</span> Todos los reactivos cumplen con stock mínimo y sin lotes vencidos.
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="inventory-table-card glass">
+    <h3>Control de Insumos Químicos</h3>
+    <p class="subtitle">Vista maestro-detalle: expande cada reactivo para ver sus lotes, estados y trazabilidad.</p>
+
+    <div class="table-wrapper">
+      <table class="admin-table inventory-master-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Nombre del Reactivo</th>
+            <th>Lote en uso (FEFO)</th>
+            <th>Próximo vencimiento</th>
+            <th>Stock Total</th>
+            <th>Lotes</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (re of reactivos(); track re.id) {
+            <tr class="master-row" [class.expanded]="reactivoExpandido() === re.id">
+              <td>
+                <button type="button" class="btn-expand" (click)="toggleExpandirReactivo(re)" [attr.aria-expanded]="reactivoExpandido() === re.id">
+                  {{ reactivoExpandido() === re.id ? '▼' : '▶' }}
+                </button>
+              </td>
+              <td class="font-bold">{{ re.nombre }}</td>
+              <td class="text-primary font-bold">{{ re.lote || 'Sin lote activo' }}</td>
+              <td>{{ (re.fecha_vencimiento | date:'dd/MM/yyyy') || '—' }}</td>
+              <td>{{ re.stock_actual }} {{ re.unidad_medida }}</td>
+              <td>{{ re.lotes_activos ?? 0 }} / {{ re.total_lotes ?? 0 }}</td>
+              <td>
+                @if (re.stock_actual <= re.stock_minimo) {
+                  <span class="pill pill-danger">Crítico</span>
+                } @else {
+                  <span class="pill pill-success">Óptimo</span>
+                }
+              </td>
+              <td class="actions-cell">
+                <button class="btn-action btn-add-stock" (click)="abrirCargaInventario(re)">
+                  📥 Registrar Lote
+                </button>
+                <button class="btn-action" (click)="abrirHistorialInventario(re.id)">Historial</button>
+              </td>
+            </tr>
+            @if (reactivoExpandido() === re.id) {
+              <tr class="detail-row">
+                <td colspan="8">
+                  <div class="lotes-detail-panel">
+                    <h4>Lotes de {{ re.nombre }}</h4>
+                    @if (lotesCargando() === re.id) {
+                      <p class="loading-lotes">Cargando lotes…</p>
+                    } @else {
+                      <table class="admin-table lotes-subtable">
+                        <thead>
+                          <tr>
+                            <th>Código lote</th>
+                            <th>Cantidad</th>
+                            <th>Ingreso</th>
+                            <th>Vencimiento</th>
+                            <th>Días</th>
+                            <th>Estado</th>
+                            <th>Acción</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (lote of lotesPorReactivo()[re.id] || []; track lote.id) {
+                            <tr [class.row-vencido]="lote.estado === 'VENCIDO'">
+                              <td class="font-bold">{{ lote.codigo_lote }}</td>
+                              <td>{{ lote.cantidad_disponible }} {{ re.unidad_medida }}</td>
+                              <td>{{ lote.fecha_ingreso | date:'dd/MM/yyyy' }}</td>
+                              <td>{{ lote.fecha_vencimiento | date:'dd/MM/yyyy' }}</td>
+                              <td>{{ lote.dias_para_vencer }}</td>
+                              <td>
+                                <span class="pill" [ngClass]="estadoLotePill(lote.estado, lote.dias_para_vencer)">
+                                  {{ etiquetaEstadoLote(lote) }}
+                                </span>
+                              </td>
+                              <td>
+                                @if (lote.cantidad_disponible > 0 && (lote.estado === 'VENCIDO' || lote.estado === 'ACTIVO')) {
+                                  <button type="button" class="btn-action btn-baja-lote" (click)="darBajaLote(lote, re.id)">
+                                    Dar de baja
+                                  </button>
+                                }
+                              </td>
+                            </tr>
+                          } @empty {
+                            <tr>
+                              <td colspan="7" class="empty-row">Sin lotes registrados. Usa «Registrar Lote» para el primer ingreso.</td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+@if (mostrarNuevoReactivoModal()) {
+  <div class="modal-overlay">
+    <div class="modal-card glass">
+      <h3>Registrar Insumo en Bodega</h3>
+      <p class="subtitle">Ingresa un nuevo reactivo o consumible químico en el inventario MRP.</p>
+
+      <form (ngSubmit)="crearNuevoReactivo()" class="modal-form">
+        <div class="form-group">
+          <label>Nombre del Reactivo</label>
+          <input type="text" [(ngModel)]="nuevoReactivoNombre" name="r_nombre" placeholder="Ej: Reactivo de Hematocrito" required />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Stock Inicial</label>
+            <input type="number" [(ngModel)]="nuevoReactivoStockInicial" name="r_stock_ini" required min="0" />
+          </div>
+          <div class="form-group">
+            <label>Stock Mínimo (Alerta)</label>
+            <input type="number" [(ngModel)]="nuevoReactivoMin" name="r_stock_min" required min="1" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Unidad de Medida</label>
+            <select [(ngModel)]="nuevoReactivoUnidad" name="r_unidad">
+              <option value="unidades">unidades</option>
+              <option value="ml">ml</option>
+              <option value="g">gramos</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Proveedor</label>
+            <select [(ngModel)]="nuevoReactivoProveedorId" name="r_prov">
+              <option [value]="null">Sin proveedor</option>
+              @for (prov of proveedores(); track prov.id) {
+                <option [value]="prov.id">{{ prov.nombre }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Código de Lote</label>
+            <input type="text" [(ngModel)]="nuevoReactivoLote" name="r_lote" placeholder="Ej: L-X88" required />
+          </div>
+          <div class="form-group">
+            <label>Fecha de Vencimiento</label>
+            <input type="date" [(ngModel)]="nuevoReactivoVencimiento" name="r_venc" required />
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-modal-cancel" (click)="mostrarNuevoReactivoModal.set(false)">Cancelar</button>
+          <button type="submit" class="btn-modal-submit">Registrar Reactivo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@if (reactivoSeleccionadoReorden()) {
+  <div class="modal-overlay" (click)="reactivoSeleccionadoReorden.set(null)">
+    <div class="modal-card glass" (click)="$event.stopPropagation()">
+      <h3>Registrar Lote / Reabastecer</h3>
+      <p class="subtitle">
+        Ingreso de stock para
+        <strong>{{ reactivoSeleccionadoReorden()?.nombre }}</strong>
+        (stock actual: {{ reactivoSeleccionadoReorden()?.stock_actual }}
+        {{ reactivoSeleccionadoReorden()?.unidad_medida }})
+      </p>
+
+      <form (ngSubmit)="registrarEntradaStock()" class="modal-form">
+        <div class="form-group">
+          <label>Cantidad a ingresar</label>
+          <input
+            type="number"
+            [(ngModel)]="cantidadIngreso"
+            name="cantidad_ingreso"
+            required
+            min="1"
+            [placeholder]="'Ej: 100 ' + (reactivoSeleccionadoReorden()?.unidad_medida || '')"
+          />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Código de Lote</label>
+            <input
+              type="text"
+              [(ngModel)]="loteIngreso"
+              name="lote_ingreso"
+              placeholder="Ej: L-COL-2026"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label>Fecha de Vencimiento</label>
+            <input
+              type="date"
+              [(ngModel)]="vencimientoIngreso"
+              name="venc_ingreso"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-modal-cancel" (click)="reactivoSeleccionadoReorden.set(null)">
+            Cancelar
+          </button>
+          <button type="submit" class="btn-modal-submit">Confirmar ingreso</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@if (mostrarHistorialInventario()) {
+  <div class="modal-overlay" (click)="mostrarHistorialInventario.set(false)">
+    <div class="modal-card glass modal-wide" (click)="$event.stopPropagation()">
+      <h3>Historial de movimientos</h3>
+      <p class="subtitle">
+        Trazabilidad LIMS: entradas, consumos automáticos (FEFO) y bajas por vencimiento.
+        @if (filtroMovimientoReactivo(); as rid) {
+          — Reactivo #{{ rid }}
+        }
+      </p>
+
+      <div class="table-wrapper movimientos-modal-table">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Reactivo</th>
+              <th>Lote</th>
+              <th>Tipo</th>
+              <th>Cantidad</th>
+              <th>Stock</th>
+              <th>Usuario</th>
+              <th>Detalle</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (mov of movimientosInventario(); track mov.id) {
+              <tr>
+                <td>{{ mov.fecha | date:'dd/MM/yyyy HH:mm' }}</td>
+                <td>{{ mov.reactivo_nombre }}</td>
+                <td>{{ mov.codigo_lote || '—' }}</td>
+                <td><span class="pill pill-info">{{ mov.tipo }}</span></td>
+                <td [class.text-danger]="mov.cantidad < 0">{{ mov.cantidad }}</td>
+                <td>{{ mov.stock_antes }} → {{ mov.stock_despues }}</td>
+                <td>{{ mov.usuario_nombre || 'Sistema' }}</td>
+                <td class="mov-desc">{{ mov.descripcion }}</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="8" class="empty-row">Sin movimientos registrados.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-modal-cancel" (click)="mostrarHistorialInventario.set(false)">Cerrar</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (mostrarBajaLoteModal() && loteBajaTarget(); as target) {
+  <div class="modal-overlay" (click)="mostrarBajaLoteModal.set(false)">
+    <div class="modal-card glass" (click)="$event.stopPropagation()">
+      <h3>Baja de lote</h3>
+      <p class="subtitle">Lote <strong>{{ target.lote.codigo_lote }}</strong></p>
+      <div class="form-group">
+        <label>Motivo de baja</label>
+        <input
+          type="text"
+          [ngModel]="motivoBajaLote()"
+          (ngModelChange)="motivoBajaLote.set($event)"
+          name="motivoBajaLote"
+          placeholder="Ej: Retiro por vencimiento"
+        />
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-modal-cancel" (click)="mostrarBajaLoteModal.set(false)">Cancelar</button>
+        <button type="button" class="btn-modal-submit" (click)="confirmarBajaLote()">Dar de baja</button>
+      </div>
+    </div>
+  </div>
+}

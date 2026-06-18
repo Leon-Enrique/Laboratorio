@@ -1,0 +1,730 @@
+@if (vista() === 'nueva') {
+  <div class="ordenes-layout ordenes-layout--nueva">
+    <div class="nueva-orden-toolbar">
+      <button type="button" class="btn-volver-cola" (click)="volverLista.emit()">
+        ← Volver a cola de trabajo
+      </button>
+    </div>
+
+    <div id="nueva-orden-form" class="form-card glass nueva-orden-card">
+      <h3>Recepción Rápida de Muestras</h3>
+      <p class="subtitle">Registra los datos del paciente y selecciona sus exámenes solicitados.</p>
+
+      <form (ngSubmit)="crearNuevaOrden()" class="admin-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Cédula de identidad (CI)</label>
+          <input type="text" [(ngModel)]="nuevoDni" name="dni" placeholder="Ej: 12345678-9" required />
+        </div>
+        <div class="form-group">
+          <label>Género</label>
+          <select [(ngModel)]="nuevoGenero" name="genero">
+            <option value="M">Masculino</option>
+            <option value="F">Femenino</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nombre</label>
+          <input type="text" [(ngModel)]="nuevoNombre" name="nombre" placeholder="Ej: Juan" required />
+        </div>
+        <div class="form-group">
+          <label>Apellido</label>
+          <input type="text" [(ngModel)]="nuevoApellido" name="apellido" placeholder="Ej: Pérez" required />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Fecha de Nacimiento</label>
+          <input type="date" [(ngModel)]="nuevaFechaNac" name="fecha_nac" [max]="hoyIso" required />
+        </div>
+        <div class="form-group">
+          <label>Teléfono</label>
+          <input type="text" [(ngModel)]="nuevoTelefono" name="telefono" placeholder="+591 7..." />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Dirección</label>
+        <input type="text" [(ngModel)]="nuevaDireccion" name="direccion" placeholder="Calle..." />
+      </div>
+
+      <div class="form-group factura-section">
+        <label class="checkbox-cobro">
+          <input type="checkbox" [(ngModel)]="requiereFactura" name="requiereFactura" />
+          Emitir factura con NIT
+        </label>
+        @if (requiereFactura()) {
+          <div class="form-row factura-fields">
+            <div class="form-group">
+              <label>NIT</label>
+              <input type="text" [(ngModel)]="nitFactura" name="nitFactura" placeholder="Ej: 123456789" />
+            </div>
+            <div class="form-group">
+              <label>Razón social / Nombre en factura</label>
+              <input type="text" [(ngModel)]="razonSocialFactura" name="razonSocialFactura" placeholder="Nombre o empresa" />
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Médico solicitante</label>
+          <input type="text" [(ngModel)]="nuevoMedicoSolicitante" name="medico" placeholder="Dr. ... (opcional)" />
+        </div>
+        <div class="form-group checkbox-urgente-wrap">
+          <label class="checkbox-cobro checkbox-urgente">
+            <input type="checkbox" [(ngModel)]="nuevaOrdenUrgente" name="urgente" />
+            Orden urgente
+          </label>
+        </div>
+      </div>
+
+      <div class="exam-selector-autocomplete">
+        <label class="section-label">Seleccione Análisis Clínicos:</label>
+
+        @if (examenesSeleccionadosObjetos().length > 0) {
+          <div class="selected-chips-container">
+            @for (ex of examenesSeleccionadosObjetos(); track ex.id) {
+              <div class="exam-chip">
+                <span class="chip-name">{{ ex.nombre }} ({{ ex.precio_bob | currency:moneda:'symbol-narrow':'1.0-0' }})</span>
+                <button type="button" class="chip-remove-btn" (click)="deseleccionarExamenChip(ex.id)">×</button>
+              </div>
+            }
+          </div>
+        }
+
+        <div class="autocomplete-wrapper">
+          <input
+            type="text"
+            class="autocomplete-input"
+            placeholder="Buscar y agregar análisis clínicos (ej: Glucosa, Colesterol)..."
+            [(ngModel)]="busquedaExamen"
+            name="busquedaExamenInput"
+            (focus)="mostrarDropdownExamenes.set(true)"
+            (blur)="ocultarDropdownConRetraso()"
+            autocomplete="off"
+          />
+
+          @if (mostrarDropdownExamenes() && examenesFiltradosBusqueda().length > 0) {
+            <div class="autocomplete-dropdown glass">
+              @for (ex of examenesFiltradosBusqueda(); track ex.id) {
+                <div class="dropdown-item" (click)="seleccionarExamenAutocomplete(ex.id)">
+                  <span class="dropdown-item-name">{{ ex.nombre }}</span>
+                  <span class="dropdown-item-price">{{ ex.precio_bob | currency:moneda:'symbol-narrow':'1.2-2' }}</span>
+                </div>
+              }
+            </div>
+          } @else if (mostrarDropdownExamenes() && busquedaExamen() && examenesFiltradosBusqueda().length === 0) {
+            <div class="autocomplete-dropdown glass empty-dropdown">
+              No se encontraron análisis disponibles.
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="payment-summary-box">
+        <span>Total a pagar:</span>
+        <span class="price-value">{{ precioTotalAcumulado() | currency:moneda:'symbol-narrow':'1.2-2' }}</span>
+      </div>
+
+      <div class="payment-cobro-row">
+        <label class="checkbox-cobro">
+          <input type="checkbox" [(ngModel)]="ordenCobradaEnRecepcion" name="ordenCobrada" />
+          Cobrado en recepción
+        </label>
+        @if (ordenCobradaEnRecepcion()) {
+          <select [(ngModel)]="metodoPagoRecepcion" name="metodoPagoRecepcion" class="metodo-pago-select">
+            <option value="EFECTIVO">Efectivo</option>
+            <option value="TRANSFERENCIA">Transferencia</option>
+            <option value="TARJETA">Tarjeta</option>
+            <option value="QR">QR</option>
+          </select>
+        }
+      </div>
+
+      <button type="submit" class="btn-submit">Emitir Orden de Muestra</button>
+    </form>
+    </div>
+  </div>
+} @else {
+  <div class="ordenes-layout ordenes-layout--lista">
+  <div class="list-card glass orders-panel">
+    <div class="orders-panel-header">
+      <div>
+        <h3>Cola de trabajo</h3>
+        <p class="subtitle">Órdenes activas del laboratorio — análisis, cobro y entrega de informes.</p>
+      </div>
+      <button type="button" class="btn-action btn-refresh-orders" (click)="refresh()">
+        ↻ Actualizar
+      </button>
+    </div>
+
+    <div class="orders-kpi-strip">
+      <div class="orders-kpi">
+        <span class="orders-kpi-num">{{ resumenOrdenes().total }}</span>
+        <span class="orders-kpi-label">Total</span>
+      </div>
+      <div class="orders-kpi orders-kpi-warn">
+        <span class="orders-kpi-num">{{ resumenOrdenes().proceso }}</span>
+        <span class="orders-kpi-label">En proceso</span>
+      </div>
+      <div class="orders-kpi orders-kpi-ok">
+        <span class="orders-kpi-num">{{ resumenOrdenes().firmadas }}</span>
+        <span class="orders-kpi-label">Firmadas</span>
+      </div>
+      <div class="orders-kpi orders-kpi-danger">
+        <span class="orders-kpi-num">{{ resumenOrdenes().cobroPendiente }}</span>
+        <span class="orders-kpi-label">Cobro pend.</span>
+      </div>
+    </div>
+
+    <div class="orders-toolbar">
+      <div class="orders-search-wrap">
+        <span class="search-icon-inline">🔍</span>
+        <input
+          type="text"
+          class="orders-search-input"
+          placeholder="Buscar por código, paciente, CI o examen…"
+          [ngModel]="busquedaOrdenes()"
+          (ngModelChange)="onBusquedaOrdenesChange($event)"
+          name="busquedaOrdenes"
+        />
+      </div>
+      <div class="orders-date-tabs">
+        <button type="button" class="orders-filter-tab orders-date-tab" [class.active]="filtroFechaOrdenes() === 'todas'" (click)="cambiarFiltroFechaOrdenes('todas')">Todas fechas</button>
+        <button type="button" class="orders-filter-tab orders-date-tab" [class.active]="filtroFechaOrdenes() === 'hoy'" (click)="cambiarFiltroFechaOrdenes('hoy')">Hoy</button>
+        <button type="button" class="orders-filter-tab orders-date-tab" [class.active]="filtroFechaOrdenes() === 'semana'" (click)="cambiarFiltroFechaOrdenes('semana')">Semana</button>
+        <button type="button" class="orders-filter-tab orders-date-tab" [class.active]="filtroFechaOrdenes() === 'mes'" (click)="cambiarFiltroFechaOrdenes('mes')">Mes</button>
+      </div>
+      <div class="orders-filter-tabs">
+        <button type="button" class="orders-filter-tab" [class.active]="filtroOrdenesTab() === 'todas'" (click)="cambiarFiltroOrdenesTab('todas')">Todas</button>
+        <button type="button" class="orders-filter-tab" [class.active]="filtroOrdenesTab() === 'proceso'" (click)="cambiarFiltroOrdenesTab('proceso')">En proceso</button>
+        <button type="button" class="orders-filter-tab" [class.active]="filtroOrdenesTab() === 'firmadas'" (click)="cambiarFiltroOrdenesTab('firmadas')">Firmadas</button>
+      </div>
+      <div class="orders-cobro-rapido">
+        <label>Cobro rápido</label>
+        <select [(ngModel)]="metodoPagoRapido" name="metodoPagoRapido" class="metodo-pago-select">
+          <option value="EFECTIVO">Efectivo</option>
+          <option value="TRANSFERENCIA">Transferencia</option>
+          <option value="TARJETA">Tarjeta</option>
+          <option value="QR">QR</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrapper orders-table-wrap">
+      <table class="admin-table orders-table-pro">
+        <thead>
+          <tr>
+            <th class="th-sortable" [title]="sortTitle('fecha')" (click)="ordenarPor('fecha')">
+              Orden <span class="sort-icon">{{ sortIcon('fecha') }}</span>
+            </th>
+            <th class="th-sortable" [title]="sortTitle('paciente')" (click)="ordenarPor('paciente')">
+              Paciente <span class="sort-icon">{{ sortIcon('paciente') }}</span>
+            </th>
+            <th>Análisis solicitados</th>
+            <th class="th-sortable" [title]="sortTitle('total')" (click)="ordenarPor('total')">
+              Total <span class="sort-icon">{{ sortIcon('total') }}</span>
+            </th>
+            <th>Pago</th>
+            <th class="th-sortable" [title]="sortTitle('estado')" (click)="ordenarPor('estado')">
+              Estado lab. <span class="sort-icon">{{ sortIcon('estado') }}</span>
+            </th>
+            <th class="th-acciones">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (ord of ordenesPaginadas(); track ord.id) {
+            <tr
+              class="orders-row-clickable"
+              [class.row-orden-firmada]="ord.estado === 'COMPLETADO'"
+              [class.row-orden-proceso]="ord.estado !== 'COMPLETADO'"
+              [class.row-orden-urgente]="(ord.prioridad || 'NORMAL') === 'URGENTE'"
+              (click)="abrirDetalleOrden(ord)"
+            >
+              <td class="td-orden">
+                <span class="orden-codigo">{{ ord.codigo_orden }}</span>
+                <span class="orden-fecha">{{ ord.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</span>
+                @if ((ord.prioridad || 'NORMAL') === 'URGENTE') {
+                  <span class="pill pill-danger pill-urgente">URGENTE</span>
+                }
+                @if (ord.medico_solicitante) {
+                  <span class="orden-medico" [title]="ord.medico_solicitante">Dr. {{ ord.medico_solicitante }}</span>
+                }
+              </td>
+              <td class="td-paciente">
+                <span class="paciente-nombre">{{ nombrePacienteDisplay(ord) }}</span>
+                <span class="paciente-dni">CI {{ ord.paciente.dni }}</span>
+              </td>
+              <td class="td-examenes">
+                <div class="orden-exam-chips">
+                  @for (item of examenesOrdenItems(ord); track item.examenId) {
+                    <span class="orden-exam-chip-wrap">
+                      <span class="orden-exam-chip" [title]="item.nombre">{{ item.nombre }}</span>
+                      @if (item.crearResultadoPendiente) {
+                        <span class="alert-crear-resultado-pendiente">Crear resultado pendiente</span>
+                      }
+                    </span>
+                  } @empty {
+                    <span class="orden-exam-empty">—</span>
+                  }
+                </div>
+              </td>
+              <td class="td-total">
+                <span class="orden-monto">{{ ord.precio_total | currency:moneda:'symbol-narrow':'1.2-2' }}</span>
+                <span class="orden-moneda">BOB</span>
+              </td>
+              <td class="pago-cell" (click)="$event.stopPropagation()">
+                <div class="pago-cell-inner">
+                  @if (ord.estado_pago === 'PAGADO') {
+                    <span class="pill pill-success">Pagado</span>
+                    @if (ord.metodo_pago) {
+                      <span class="metodo-pago-label">{{ labelMetodoPago(ord.metodo_pago) }}</span>
+                    }
+                    <button type="button" class="btn-pago-icon" title="Anular cobro" (click)="actualizarEstadoPago(ord, 'PENDIENTE')">↩</button>
+                  } @else {
+                    <span class="pill pill-danger">Pendiente</span>
+                    <button type="button" class="btn-cobrar-mini" (click)="actualizarEstadoPago(ord, 'PAGADO')">Cobrar</button>
+                  }
+                </div>
+              </td>
+              <td>
+                <span class="pill pill-estado" [ngClass]="claseEstadoLab(ord.estado)">{{ labelEstadoLab(ord.estado) }}</span>
+              </td>
+              <td class="td-acciones" (click)="$event.stopPropagation()">
+                @if (ordenTieneResultadosRellenados(ord)) {
+                  <button type="button" class="btn-orden-action btn-orden-primary" (click)="abrirDialogoCargarResultados(ord)">
+                    Resultados
+                  </button>
+                } @else {
+                  <button type="button" class="btn-orden-action btn-orden-rellenar" (click)="abrirDialogoCargarResultados(ord)">
+                    Rellenar resultado
+                  </button>
+                }
+                <button type="button" class="btn-orden-action btn-orden-ticket" title="Reimprimir ticket" (click)="reimprimirTicket(ord, $event)">
+                  🎫
+                </button>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="7" class="empty-row">
+                @if (busquedaOrdenes() || filtroOrdenesTab() !== 'todas' || filtroFechaOrdenes() !== 'todas') {
+                  No hay órdenes con ese filtro. Prueba otra búsqueda.
+                } @else {
+                  No hay órdenes registradas. Usa <strong>Nueva orden</strong> en el menú para registrar una.
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    @if (ordenesOrdenadas().length > 0) {
+      <div class="orders-pagination">
+        <p class="orders-footnote">
+          Mostrando {{ ordenesPaginadas().length }} de {{ ordenesOrdenadas().length }} órdenes
+          ({{ ordenes().length }} en total)
+        </p>
+        @if (totalPaginasOrdenes() > 1) {
+          <div class="orders-pager">
+            <button type="button" class="pager-btn" [disabled]="paginaOrdenes() <= 1" (click)="cambiarPaginaOrdenes(-1)">← Anterior</button>
+            <span class="pager-info">Página {{ paginaOrdenes() }} / {{ totalPaginasOrdenes() }}</span>
+            <button type="button" class="pager-btn" [disabled]="paginaOrdenes() >= totalPaginasOrdenes()" (click)="cambiarPaginaOrdenes(1)">Siguiente →</button>
+          </div>
+        }
+      </div>
+    }
+  </div>
+  </div>
+}
+
+@if (mostrarDetalleOrden() && ordenDetalle(); as ord) {
+  <div class="modal-overlay" (click)="cerrarDetalleOrden()">
+    <div class="modal-card orden-detalle-card glass" (click)="$event.stopPropagation()">
+      <div class="orden-detalle-header">
+        <div>
+          <h3>Orden {{ ord.codigo_orden }}</h3>
+          <p class="orden-detalle-fecha">Id: {{ ord.id }} · {{ ord.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</p>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="cerrarDetalleOrden()">×</button>
+      </div>
+
+      <div class="modal-tabs" role="tablist">
+        <button type="button" class="modal-tab" [class.active]="detalleTab() === 'orden'" (click)="cambiarDetalleTab('orden')">Orden</button>
+        <button type="button" class="modal-tab" [class.active]="detalleTab() === 'resultados'" (click)="cambiarDetalleTab('resultados')">Resultados</button>
+        <button type="button" class="modal-tab" [class.active]="detalleTab() === 'otros'" (click)="cambiarDetalleTab('otros')">Otros datos</button>
+      </div>
+
+      <div class="orden-detalle-body">
+        @if (detalleTab() === 'orden') {
+          <div class="orden-detalle-grid">
+            <div class="detalle-block">
+              <h4>Paciente</h4>
+              <p><strong>{{ nombrePacienteDisplay(ord) }}</strong></p>
+              <p>CI {{ ord.paciente.dni }}</p>
+              @if (ord.paciente.telefono) {
+                <p>Tel. {{ ord.paciente.telefono }}</p>
+              }
+              @if (ord.paciente.direccion) {
+                <p>{{ ord.paciente.direccion }}</p>
+              }
+              @if (ord.paciente.fecha_nacimiento) {
+                <p>Nac. {{ ord.paciente.fecha_nacimiento | date:'dd/MM/yyyy' }}</p>
+              }
+            </div>
+            <div class="detalle-block">
+              <h4>Estado</h4>
+              <p>
+                <span class="pill pill-estado" [ngClass]="claseEstadoLab(ord.estado)">{{ labelEstadoLab(ord.estado) }}</span>
+                @if ((ord.prioridad || 'NORMAL') === 'URGENTE') {
+                  <span class="pill pill-danger pill-urgente">URGENTE</span>
+                }
+              </p>
+              <p>Pago: {{ ord.estado_pago === 'PAGADO' ? 'Pagado' : 'Pendiente' }}
+                @if (ord.metodo_pago) { ({{ labelMetodoPago(ord.metodo_pago) }}) }
+              </p>
+              <p>Total: <strong>{{ ord.precio_total | currency:moneda:'symbol-narrow':'1.2-2' }}</strong></p>
+              @if (ord.medico_solicitante) {
+                <p>Médico: Dr. {{ ord.medico_solicitante }}</p>
+              }
+            </div>
+          </div>
+
+          <div class="detalle-block">
+            <h4>Análisis solicitados</h4>
+            <div class="orden-exam-chips">
+              @for (item of examenesOrdenItems(ord); track item.examenId) {
+                <span class="orden-exam-chip-wrap">
+                  <span class="orden-exam-chip">{{ item.nombre }}</span>
+                  @if (item.crearResultadoPendiente) {
+                    <span class="alert-crear-resultado-pendiente">Crear resultado pendiente</span>
+                  }
+                </span>
+              }
+            </div>
+          </div>
+
+          @if (ord.notas) {
+            <div class="detalle-block">
+              <h4>Notas</h4>
+              <p>{{ ord.notas }}</p>
+            </div>
+          }
+        }
+
+        @if (detalleTab() === 'resultados') {
+          <div class="detalle-block detalle-resultados-panel">
+            <h4>Valores de laboratorio</h4>
+            @if (ord.resultados.length) {
+              <div class="resultados-resumen-list">
+                @for (res of ord.resultados; track res.id) {
+                  <div class="resultado-resumen-item">
+                    <strong>{{ nombreExamenDeResultado(res) }}</strong>
+                    @if (res.valor_resultado && objectKeys(res.valor_resultado).length) {
+                      <ul>
+                        @for (key of objectKeys(res.valor_resultado); track key) {
+                          <li><span>{{ key }}:</span> {{ res.valor_resultado[key] }}</li>
+                        }
+                      </ul>
+                    } @else {
+                      <p class="resultado-pendiente-text">Sin valores cargados</p>
+                    }
+                  </div>
+                }
+              </div>
+            } @else {
+              <p class="empty-hint">Esta orden no tiene exámenes asociados.</p>
+            }
+
+            <div class="detalle-resultados-actions">
+              @if (!ordenCompletada(ord)) {
+                @if (ordenTieneResultadosRellenados(ord)) {
+                  <button type="button" class="btn-modal-submit" (click)="cerrarDetalleOrden(); abrirDialogoCargarResultados(ord)">
+                    Ver y validar resultados
+                  </button>
+                } @else {
+                  <button type="button" class="btn-modal-submit" (click)="cerrarDetalleOrden(); abrirDialogoCargarResultados(ord)">
+                    Rellenar resultado
+                  </button>
+                }
+              } @else {
+                <button type="button" class="btn-modal-submit btn-orden-pdf" (click)="generarInformePDF(ord)">
+                  Descargar informe PDF
+                </button>
+                <button type="button" class="btn-modal-cancel btn-whatsapp-outline" (click)="ordenFirmadaWhatsapp.set(ord); mostrarWhatsappResultadoModal.set(true)">
+                  Enviar por WhatsApp
+                </button>
+              }
+            </div>
+          </div>
+        }
+
+        @if (detalleTab() === 'otros') {
+          <div class="detalle-block">
+            <h4>Facturación y cobro</h4>
+            @if (ord.requiere_factura && ord.nit_factura) {
+              <p>Factura NIT {{ ord.nit_factura }}@if (ord.razon_social_factura) { — {{ ord.razon_social_factura }} }</p>
+            } @else {
+              <p>Sin datos de factura registrados.</p>
+            }
+            <p>Estado de pago: <strong>{{ ord.estado_pago === 'PAGADO' ? 'Pagado' : 'Pendiente' }}</strong></p>
+          </div>
+
+          <div class="detalle-otros-actions">
+            <button type="button" class="btn-modal-cancel" (click)="togglePrioridadUrgente(ord)">
+              {{ (ord.prioridad || 'NORMAL') === 'URGENTE' ? 'Quitar urgente' : 'Marcar urgente' }}
+            </button>
+            <button type="button" class="btn-modal-cancel" (click)="reimprimirTicket(ord)">Reimprimir ticket</button>
+          </div>
+        }
+      </div>
+
+      <div class="modal-actions orden-detalle-actions">
+        <button type="button" class="btn-modal-cancel" (click)="cerrarDetalleOrden()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (mostrarTicketModal()) {
+  <div class="modal-overlay">
+    <div class="modal-card ticket-card glass">
+      <div class="ticket-header">
+        <app-brand-logo size="full" theme="light" />
+        <p>Comprobante de Caja y Etiquetado</p>
+      </div>
+
+      <div class="ticket-body">
+        <div class="ticket-row">
+          <span>Código de Orden:</span>
+          <strong class="highlight-code">{{ ticketOrden()?.codigo_orden }}</strong>
+        </div>
+        <div class="ticket-row">
+          <span>Paciente:</span>
+          <span>{{ ticketOrden()?.paciente?.nombre }} {{ ticketOrden()?.paciente?.apellido }}</span>
+        </div>
+        <div class="ticket-row">
+          <span>CI:</span>
+          <span>{{ ticketOrden()?.paciente?.dni }}</span>
+        </div>
+        @if (ticketOrden()?.requiere_factura && ticketOrden()?.nit_factura) {
+          <div class="ticket-row">
+            <span>Factura NIT:</span>
+            <span>{{ ticketOrden()?.nit_factura }}@if (ticketOrden()?.razon_social_factura) { — {{ ticketOrden()?.razon_social_factura }} }</span>
+          </div>
+        }
+        <div class="ticket-row">
+          <span>Fecha:</span>
+          <span>{{ ticketOrden()?.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</span>
+        </div>
+
+        <div class="ticket-exams-box">
+          <strong>Análisis clínicos a realizar:</strong>
+          <ul>
+            @for (res of ticketOrden()?.resultados; track res.id) {
+              <li>✓ {{ res.examen_nombre }}</li>
+            }
+          </ul>
+        </div>
+
+        <div class="ticket-price-box" [class.ticket-pendiente]="ticketOrden()?.estado_pago !== 'PAGADO'">
+          @if (ticketOrden()?.estado_pago === 'PAGADO') {
+            <span>Total Cobrado ({{ labelMetodoPago(ticketOrden()?.metodo_pago) }}):</span>
+          } @else {
+            <span>Total Pendiente de Cobro:</span>
+          }
+          <strong>{{ ticketOrden()?.precio_total | currency:moneda:'symbol-narrow':'1.2-2' }}</strong>
+        </div>
+
+        <div class="qr-code-section">
+          <p class="qr-title">Rotulado de Tubos de Ensayo</p>
+          <div class="qr-code-box">
+            <div class="qr-inner">
+              @if (ticketOrden()?.codigo_orden) {
+                <img [src]="qrOrdenUrl(ticketOrden()?.codigo_orden)" alt="QR orden" class="qr-image" width="140" height="140" />
+              }
+              <span class="qr-code-text">{{ ticketOrden()?.codigo_orden }}</span>
+            </div>
+          </div>
+          <p class="qr-instructions">Escanea el QR para consultar resultados en el portal del paciente. Recorta y pega en los tubos antes del análisis.</p>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-modal-submit" (click)="mostrarTicketModal.set(false)">Imprimir y Cerrar</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (ordenSeleccionadaResultados(); as ordRes) {
+  <div class="modal-overlay" (click)="ordenSeleccionadaResultados.set(null)">
+    <div class="modal-card glass modal-resultados-card" (click)="$event.stopPropagation()">
+      <div class="orden-detalle-header">
+        <div>
+          <h3>{{ tituloModalResultados(ordRes) }}</h3>
+          <p class="orden-detalle-fecha">
+            Orden <strong>{{ ordRes.codigo_orden }}</strong> · {{ nombrePacienteDisplay(ordRes) }}
+          </p>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="ordenSeleccionadaResultados.set(null)">×</button>
+      </div>
+
+      <div class="modal-tabs modal-tabs--compact" role="tablist">
+        <button type="button" class="modal-tab active">Resultados</button>
+      </div>
+
+      <form class="modal-form modal-form--resultados">
+        @if (ordenCompletada(ordRes)) {
+          <p class="resultado-firmado-hint">
+            Esta orden ya está firmada. Si los resultados no son correctos, use
+            <strong>Corregir resultados</strong> para anular la firma, limpiar los valores y volver a rellenarlos.
+          </p>
+        }
+        @for (grupo of gruposCamposResultado(); track grupo.examenId) {
+          <section class="resultado-examen-bloque">
+            <h4 class="resultado-examen-titulo">
+              {{ grupo.examenNombre }}
+              @if (faltaCrearResultadosExamenId(grupo.examenId)) {
+                <span class="alert-crear-resultado-pendiente">Crear resultado pendiente</span>
+              }
+            </h4>
+            <div class="form-grid-2col form-grid-compact resultado-campos-grid">
+              @for (campo of grupo.campos; track campo.key) {
+                <div
+                  class="form-group"
+                  [class.form-group--span2]="tipoCampoResultado(campo.param) === 'Texto Area'"
+                >
+                  <label>
+                    {{ campo.param.nombre }}
+                    @if (campo.param.unidad) {
+                      <span class="param-unidad">({{ campo.param.unidad }})</span>
+                    }
+                    @if (tipoCampoResultado(campo.param) !== 'Texto' && referenciasResultados()[campo.key]) {
+                      <small class="ref-range">Ref: {{ referenciasResultados()[campo.key] }}</small>
+                    }
+                  </label>
+                  @switch (tipoCampoResultado(campo.param)) {
+                    @case ('Numero') {
+                      <input
+                        type="number"
+                        [(ngModel)]="valoresResultados()[campo.key]"
+                        name="val-{{campo.key}}"
+                        [step]="stepCampoNumerico(campo.param)"
+                        [readonly]="ordenCompletada(ordRes)"
+                        [class.input-readonly]="ordenCompletada(ordRes)"
+                        placeholder="Solo números"
+                      />
+                    }
+                    @case ('Texto Area') {
+                      <textarea
+                        [(ngModel)]="valoresResultados()[campo.key]"
+                        name="val-{{campo.key}}"
+                        rows="3"
+                        [readonly]="ordenCompletada(ordRes)"
+                        [class.input-readonly]="ordenCompletada(ordRes)"
+                        placeholder="Texto del resultado"
+                      ></textarea>
+                    }
+                    @case ('Fecha') {
+                      <input
+                        type="date"
+                        [(ngModel)]="valoresResultados()[campo.key]"
+                        name="val-{{campo.key}}"
+                        [readonly]="ordenCompletada(ordRes)"
+                        [class.input-readonly]="ordenCompletada(ordRes)"
+                      />
+                    }
+                    @case ('Hora') {
+                      <input
+                        type="time"
+                        [(ngModel)]="valoresResultados()[campo.key]"
+                        name="val-{{campo.key}}"
+                        [readonly]="ordenCompletada(ordRes)"
+                        [class.input-readonly]="ordenCompletada(ordRes)"
+                      />
+                    }
+                    @default {
+                      <input
+                        type="text"
+                        [(ngModel)]="valoresResultados()[campo.key]"
+                        name="val-{{campo.key}}"
+                        [readonly]="ordenCompletada(ordRes)"
+                        [class.input-readonly]="ordenCompletada(ordRes)"
+                        [placeholder]="campo.param.valor_referencia || 'Letras y números'"
+                      />
+                      @if (campo.param.valor_referencia) {
+                        <small class="campo-descripcion">{{ campo.param.valor_referencia }}</small>
+                      }
+                    }
+                  }
+                </div>
+              }
+            </div>
+          </section>
+        }
+
+        <div class="modal-actions justify-between modal-actions--resultados">
+          <button type="button" class="btn-modal-cancel" (click)="ordenSeleccionadaResultados.set(null)">Cerrar</button>
+
+          <div class="flex gap-2">
+            @if (!ordenCompletada(ordRes)) {
+              @if (ordenTieneResultadosRellenados(ordRes)) {
+                <button type="button" class="btn-action btn-corregir-resultados" (click)="reabrirResultadosParaEdicion(ordRes)">
+                  Vaciar y rellenar
+                </button>
+              }
+              <button type="button" class="btn-action" (click)="guardarBorradorResultados()">
+                Guardar borrador
+              </button>
+              <button type="button" class="btn-modal-submit btn-firmar" (click)="firmarYAprobarResultados()">
+                Firmar y emitir PDF
+              </button>
+            } @else {
+              <button type="button" class="btn-action btn-corregir-resultados" (click)="reabrirResultadosParaEdicion(ordRes)">
+                Corregir resultados
+              </button>
+              <button type="button" class="btn-modal-submit btn-orden-pdf" (click)="generarInformePDF(ordRes)">
+                Descargar informe PDF
+              </button>
+              <button type="button" class="btn-modal-cancel btn-whatsapp-outline" (click)="ordenFirmadaWhatsapp.set(ordRes); mostrarWhatsappResultadoModal.set(true)">
+                WhatsApp paciente
+              </button>
+            }
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@if (mostrarWhatsappResultadoModal() && ordenFirmadaWhatsapp(); as ord) {
+  <div class="modal-overlay" (click)="cerrarWhatsappResultadoModal()">
+    <div class="modal-card glass modal-whatsapp" (click)="$event.stopPropagation()">
+      <h3>Resultados listos</h3>
+      <p class="subtitle">
+        Orden <strong>{{ ord.codigo_orden }}</strong> firmada para
+        {{ ord.paciente.nombre }} {{ ord.paciente.apellido }}.
+      </p>
+      @if (ord.paciente.telefono) {
+        <p class="whatsapp-hint">Se enviará al WhatsApp: <strong>{{ ord.paciente.telefono }}</strong></p>
+      } @else {
+        <p class="whatsapp-hint whatsapp-hint-warn">Sin teléfono del paciente. Se abrirá el chat del laboratorio para reenviar el mensaje.</p>
+      }
+      <div class="whatsapp-preview">{{ mensajeWhatsappResultado(ord) }}</div>
+      <div class="modal-actions">
+        <button type="button" class="btn-modal-cancel" (click)="cerrarWhatsappResultadoModal()">Cerrar</button>
+        <button type="button" class="btn-modal-submit btn-whatsapp" (click)="abrirWhatsappResultado(ord)">
+          Enviar por WhatsApp
+        </button>
+      </div>
+    </div>
+  </div>
+}

@@ -1,30 +1,21 @@
 <!-- Header / Navbar -->
-<header class="navbar">
-  <div class="nav-container">
-    <div class="logo">
-      <app-brand-logo size="compact" theme="light" />
-    </div>
-    <nav class="nav-links">
-      <a href="#inicio" class="nav-link">Inicio</a>
-      <a href="#servicios" class="nav-link">Servicios</a>
-      <a href="#catalogo" class="nav-link">Exámenes</a>
-      <a href="#tecnologia" class="nav-link">Tecnología</a>
-      <a href="#nosotros" class="nav-link">Nosotros</a>
-      <a href="#ubicacion" class="nav-link">Ubicación</a>
-      <a [routerLink]="['/blog']" class="nav-link">Blog</a>
-      <a href="#reclamos" class="nav-link">Contacto</a>
-      <a [routerLink]="['/resultados']" class="btn-secondary">Ver resultados</a>
-      <a [href]="whatsappUrl" target="_blank" rel="noopener" class="btn-whatsapp">WhatsApp</a>
-      <a [routerLink]="['/login']" class="btn-primary">Acceso personal</a>
-    </nav>
-  </div>
-</header>
+<app-public-navbar [anchorMode]="true" />
 
 <!-- Hero -->
 <section id="inicio" class="hero">
+  <div class="hero-bg" aria-hidden="true">
+    <div class="hero-orb hero-orb--1"></div>
+    <div class="hero-orb hero-orb--2"></div>
+    <div class="hero-orb hero-orb--3"></div>
+    <div class="hero-grid-pattern"></div>
+  </div>
+
   <div class="hero-inner">
     <div class="hero-content">
-      <span class="hero-location">Genotipia · Laboratorio Clínico</span>
+      <span class="hero-badge">
+        <span class="hero-badge-dot"></span>
+        Genotipia · Laboratorio Clínico · Santa Cruz
+      </span>
       <h1>
         Tecnología de precisión que transforma
         <em>resultados</em> clínicos.
@@ -34,7 +25,7 @@
         portal online seguro y atención orientada al paciente y al médico tratante.
       </p>
       <div class="hero-actions">
-        <a href="#catalogo" class="btn-hero-primary">Ver todos los exámenes</a>
+        <a [routerLink]="['/examenes']" class="btn-hero-primary">Ver catálogo completo</a>
         <a [routerLink]="['/resultados']" class="btn-hero-secondary">Ver mis resultados</a>
       </div>
     </div>
@@ -86,68 +77,51 @@
   </div>
 </div>
 
-<!-- Catálogo -->
-<section id="catalogo" class="catalogo-section">
-  <div class="section-eyebrow">Catálogo · {{ totalExamenes() }} exámenes</div>
+<!-- Exámenes destacados -->
+<section id="catalogo" class="catalogo-section catalogo-section--destacados">
+  <div class="section-eyebrow">Destacados · {{ totalExamenes() }} exámenes en catálogo</div>
   <div class="section-header">
-    <h2>Busca tu <em>examen</em></h2>
-    <p>Consulta nuestro catálogo de pruebas disponibles, precios y requisitos de preparación.</p>
-
-    <div class="search-box">
-      <span class="search-icon" aria-hidden="true">⌕</span>
-      <input
-        #buscador
-        type="text"
-        placeholder="Buscar examen por nombre (ej: Glucosa, Colesterol)..."
-        (input)="filtrarExamenes($event)"
-      />
-    </div>
-
-    <div class="category-chips">
-      @for (cat of categorias; track cat.id) {
-        <button
-          type="button"
-          class="chip"
-          [class.active]="categoriaActiva() === cat.id"
-          (click)="seleccionarCategoria(cat.id)"
-        >
-          {{ cat.label }}
-        </button>
-      }
-    </div>
+    <h2>Exámenes <em>destacados</em></h2>
+    <p>Los más solicitados del laboratorio. Para ver preparación y detalles de todo el catálogo, usa el buscador completo.</p>
   </div>
 
-  <div class="catalogo-grid">
-    @if (cargando()) {
+  <div class="destacados-grid">
+    @if (cargandoDestacados()) {
       <div class="spinner-container col-span-full">
         <div class="spinner"></div>
-        <p>Cargando catálogo de análisis clínicos...</p>
+        <p>Cargando exámenes destacados...</p>
+      </div>
+    } @else if (errorDestacados()) {
+      <div class="empty-state col-span-full">
+        <p class="empty-text">{{ errorDestacados() }}</p>
+        <button type="button" class="btn-reset" (click)="reintentarDestacados()">Reintentar</button>
       </div>
     } @else {
-      @for (ex of examenesFiltrados(); track ex.id) {
-        <div class="exam-card">
+      @for (ex of examenesDestacados(); track ex.id) {
+        <div class="exam-card exam-card--compact">
+          <span class="exam-badge">Destacado</span>
           <div class="exam-header">
             <h3>{{ ex.nombre }}</h3>
-            <span class="price">${{ ex.precio_usd | number:'1.2-2' }} USD</span>
           </div>
           <p class="description">{{ ex.descripcion }}</p>
-          <div class="prep-instructions">
-            <strong>Preparación</strong>
-            <span class="prep-badge">{{ ex.preparacion }}</span>
-          </div>
           <div class="exam-footer">
-            <span class="time-badge">Entrega estimada: {{ ex.tiempo_entrega_horas }} h</span>
+            <span class="time-badge">{{ ex.tiempo_entrega_horas }} h · {{ ex.preparacion }}</span>
           </div>
         </div>
       } @empty {
         <div class="empty-state col-span-full">
-          <p class="empty-text">No se encontraron exámenes con los filtros seleccionados.</p>
-          <button type="button" class="btn-reset" (click)="limpiarFiltros(buscador)">
-            Ver todos los exámenes
-          </button>
+          <p class="empty-text">Aún no hay exámenes marcados como destacados.</p>
         </div>
       }
     }
+  </div>
+
+  <div class="catalogo-cta">
+    <div class="catalogo-cta-text">
+      <h3>¿Buscas otro examen?</h3>
+      <p>Explora los {{ totalExamenes() || '—' }} análisis disponibles con búsqueda y filtros.</p>
+    </div>
+    <a [routerLink]="['/examenes']" class="btn-catalogo-completo">Abrir catálogo completo →</a>
   </div>
 </section>
 
@@ -206,20 +180,44 @@
 
 <!-- Tecnología -->
 <section id="tecnologia" class="tecnologia-section">
+  <div class="tecnologia-bg" aria-hidden="true">
+    <div class="tecnologia-orb tecnologia-orb--1"></div>
+    <div class="tecnologia-orb tecnologia-orb--2"></div>
+    <div class="tecnologia-grid-pattern"></div>
+  </div>
+
   <div class="tecnologia-inner">
-    <div class="section-eyebrow">Tecnología molecular</div>
-    <div class="section-header section-header--left">
-      <h2>Precisión científica en <em>cada análisis</em></h2>
-      <p>
-        Infraestructura de laboratorio con equipamiento automatizado para análisis clínicos,
-        bioquímicos y moleculares bajo estrictos protocolos de calidad.
-      </p>
+    <div class="tecnologia-header">
+      <div class="tecnologia-header-text">
+        <span class="section-eyebrow">Tecnología molecular</span>
+        <h2>Precisión científica en <em>cada análisis</em></h2>
+        <p>
+          Infraestructura de laboratorio con equipamiento automatizado para análisis clínicos,
+          bioquímicos y moleculares bajo estrictos protocolos de calidad.
+        </p>
+      </div>
+
+      <div class="tech-metrics">
+        @for (m of techMetricas; track m.valor) {
+          <div class="tech-metric">
+            <span class="tech-metric-value">{{ m.valor }}</span>
+            <span class="tech-metric-label">{{ m.etiqueta }}</span>
+          </div>
+        }
+      </div>
     </div>
 
-    <div class="tecnologia-grid">
+    <div class="tecnologia-bento">
       @for (tech of tecnologias; track tech.num) {
-        <article class="tech-card">
-          <span class="tech-num">{{ tech.num }}</span>
+        <article
+          class="tech-card tech-card--{{ tech.accent }}"
+          [class.tech-card--featured]="tech.destacado"
+        >
+          <div class="tech-card-glow" aria-hidden="true"></div>
+          <div class="tech-card-top">
+            <span class="tech-icon-wrap">{{ tech.icono }}</span>
+            <span class="tech-num">{{ tech.num }}</span>
+          </div>
           <h3>{{ tech.titulo }}</h3>
           <p>{{ tech.descripcion }}</p>
           <div class="tech-tags">
@@ -229,6 +227,19 @@
           </div>
         </article>
       }
+    </div>
+
+    <div class="tecnologia-adn-banner">
+      <div class="adn-banner-glow" aria-hidden="true"></div>
+      <div class="adn-banner-content">
+        <span class="section-eyebrow">Genética y filiación</span>
+        <h3>Pruebas de paternidad y parentesco por <em>ADN</em></h3>
+        <p>Estudios de filiación con tecnología STR, confidencialidad total y resultados en 3 a 5 días.</p>
+      </div>
+      <a routerLink="/adn" class="btn-tecnologia-adn">
+        <span>Conocer pruebas de ADN</span>
+        <span class="btn-arrow" aria-hidden="true">→</span>
+      </a>
     </div>
   </div>
 </section>
@@ -273,46 +284,48 @@
   </div>
 </section>
 
-<!-- Médicos y Empresas (detalle) -->
-<section id="medicos-empresas" class="audiencias-section">
-  <div class="audiencias-inner">
-    <div class="audiencia-block audiencia-block--medicos">
-      <div class="audiencia-header">
-        <span class="audiencia-badge">Para médicos</span>
-        <h2>Aliados en el <em>diagnóstico clínico</em></h2>
-        <p>
-          Genotipia apoya al médico tratante con resultados confiables, tiempos de respuesta competitivos
-          y un sistema digital de gestión de órdenes y reportes.
-        </p>
-      </div>
-      <ul class="audiencia-list">
-        @for (b of beneficiosMedicos; track b) {
-          <li>{{ b }}</li>
-        }
-      </ul>
-      <div class="audiencia-actions">
-        <a [routerLink]="['/login']" class="btn-audiencia-primary">Acceso profesional</a>
-        <a [href]="whatsappUrl" target="_blank" rel="noopener" class="btn-audiencia-outline">Consultar convenio</a>
-      </div>
+<!-- Cómo funciona + Resultados online -->
+<section id="proceso" class="proceso-section">
+  <div class="proceso-inner">
+    <div class="section-eyebrow section-eyebrow--dark">Tu visita al laboratorio</div>
+    <div class="section-header section-header--left">
+      <h2>Así funciona tu <em>experiencia</em> en Genotipia</h2>
+      <p>
+        Desde la coordinación hasta la entrega del informe, cada paso está pensado para que sea
+        claro, seguro y sin complicaciones.
+      </p>
     </div>
 
-    <div class="audiencia-block audiencia-block--empresas">
-      <div class="audiencia-header">
-        <span class="audiencia-badge">Para empresas</span>
-        <h2>Salud ocupacional <em>corporativa</em></h2>
+    <div class="proceso-grid">
+      @for (paso of pasosVisita; track paso.num) {
+        <article class="proceso-card">
+          <span class="proceso-num">{{ paso.num }}</span>
+          <span class="proceso-icon" aria-hidden="true">{{ paso.icono }}</span>
+          <h3>{{ paso.titulo }}</h3>
+          <p>{{ paso.descripcion }}</p>
+        </article>
+      }
+    </div>
+  </div>
+
+  <div class="resultados-banner">
+    <div class="resultados-banner-inner">
+      <div class="resultados-banner-text">
+        <span class="resultados-badge">Portal del paciente</span>
+        <h3>Consulta tus resultados <em>en línea</em></h3>
         <p>
-          Diseñamos programas preventivos para empresas de todos los tamaños, con atención prioritaria
-          y facturación adaptada a tus necesidades.
+          Ingresa tu código de orden y número de documento para ver tu informe validado
+          y firmado digitalmente por nuestro bioquímico regente.
         </p>
+        <ul class="resultados-hints">
+          <li>Acceso seguro y confidencial</li>
+          <li>Disponible cuando el estudio esté validado</li>
+          <li>También puedes retirar el informe físico en el laboratorio</li>
+        </ul>
       </div>
-      <ul class="audiencia-list">
-        @for (b of beneficiosEmpresas; track b) {
-          <li>{{ b }}</li>
-        }
-      </ul>
-      <div class="audiencia-actions">
-        <a [href]="whatsappUrl" target="_blank" rel="noopener" class="btn-audiencia-primary">Solicitar información</a>
-        <a href="#ubicacion" class="btn-audiencia-outline">Ver ubicación</a>
+      <div class="resultados-banner-actions">
+        <a [routerLink]="['/resultados']" class="btn-resultados-primary">Ver mis resultados</a>
+        <a [href]="whatsappUrl" target="_blank" rel="noopener" class="btn-resultados-outline">¿Necesitas ayuda? WhatsApp</a>
       </div>
     </div>
   </div>
@@ -320,34 +333,52 @@
 
 <!-- Nosotros -->
 <section id="nosotros" class="about-section">
-  <div class="about-content">
-    <div class="section-eyebrow">Por qué Genotipia</div>
-    <h2>Más que un laboratorio: un compromiso con tu <em>salud</em></h2>
-    <p>
-      En Genotipia contamos con tecnología analítica de última generación y personal especializado.
-      Todos nuestros análisis se procesan bajo rigurosas guías de control de calidad.
-    </p>
-    <div class="features-list">
-      <div class="feat-card">
-        <span class="feat-icon">🔬</span>
-        <h4>Tecnología avanzada</h4>
-        <p>Analizadores automatizados con trazabilidad completa de muestras.</p>
+  <div class="about-bg" aria-hidden="true">
+    <div class="about-orb about-orb--1"></div>
+    <div class="about-orb about-orb--2"></div>
+  </div>
+
+  <div class="about-inner">
+    <div class="about-intro">
+      <span class="section-eyebrow section-eyebrow--dark">Por qué Genotipia</span>
+      <h2>Más que un laboratorio: un compromiso con tu <em>salud</em></h2>
+      <p>
+        Combinamos tecnología analítica de última generación con un equipo humano que te acompaña
+        en cada paso. Cada resultado refleja rigor científico, trazabilidad y cuidado genuino.
+      </p>
+
+      <ul class="about-destacados">
+        @for (item of aboutDestacados; track item) {
+          <li>{{ item }}</li>
+        }
+      </ul>
+
+      <div class="about-cta-row">
+        <a [routerLink]="['/examenes']" class="btn-about-primary">Explorar exámenes</a>
+        <a href="#ubicacion" class="btn-about-outline">Visítanos</a>
       </div>
-      <div class="feat-card">
-        <span class="feat-icon">⚡</span>
-        <h4>Resultados rápidos</h4>
-        <p>Flujo optimizado que reduce tiempos de entrega sin sacrificar precisión.</p>
-      </div>
-      <div class="feat-card">
-        <span class="feat-icon">🔒</span>
-        <h4>Confidencialidad</h4>
-        <p>Acceso seguro y privado a los reportes clínicos de cada paciente.</p>
-      </div>
-      <div class="feat-card">
-        <span class="feat-icon">📋</span>
-        <h4>Informes certificados</h4>
-        <p>Resultados validados y firmados electrónicamente por bioquímico regente.</p>
-      </div>
+    </div>
+
+    <div class="about-pilares">
+      @for (pilar of pilares; track pilar.num) {
+        <article class="pilar-card pilar-card--{{ pilar.accent }}">
+          <span class="pilar-num" aria-hidden="true">{{ pilar.num }}</span>
+          <span class="pilar-icon">{{ pilar.icono }}</span>
+          <h3>{{ pilar.titulo }}</h3>
+          <p>{{ pilar.descripcion }}</p>
+        </article>
+      }
+    </div>
+  </div>
+
+  <div class="about-mission">
+    <div class="about-mission-inner">
+      <span class="about-mission-quote" aria-hidden="true">"</span>
+      <p>
+        Nuestra misión es acercarte diagnóstico clínico de alta precisión con la calidez
+        y confianza que mereces — aquí, en Santa Cruz.
+      </p>
+      <span class="about-mission-firma">Genotipia · Laboratorio Clínico</span>
     </div>
   </div>
 </section>
@@ -561,7 +592,7 @@
     <p>Consulta nuestro catálogo, verifica tus resultados online o escríbenos por WhatsApp.</p>
     <div class="cta-actions">
       <a [href]="whatsappUrl" target="_blank" rel="noopener" class="btn-cta-whatsapp">Consultar por WhatsApp</a>
-      <a href="#catalogo" class="btn-cta-secondary">Ver todos los exámenes</a>
+      <a [routerLink]="['/examenes']" class="btn-cta-secondary">Ver catálogo completo</a>
       <a [routerLink]="['/resultados']" class="btn-cta-outline">Ver mis resultados</a>
     </div>
   </div>
@@ -581,15 +612,16 @@
     <div class="footer-col">
       <h4>Servicios</h4>
       <a href="#catalogo">Catálogo de exámenes</a>
+      <a [routerLink]="['/examenes']">Buscar examen</a>
       <a [routerLink]="['/resultados']">Verificar resultados</a>
-      <a href="#medicos-empresas">Para médicos</a>
+      <a href="#proceso">Cómo funciona</a>
       <a [routerLink]="['/login']">Acceso personal</a>
     </div>
 
     <div class="footer-col">
       <h4>Información</h4>
       <a href="#nosotros">Nosotros</a>
-      <a href="#medicos-empresas">Para empresas</a>
+      <a href="#servicios">Servicios</a>
       <a href="#tecnologia">Tecnología</a>
       <a href="#instalaciones">Instalaciones</a>
       <a [routerLink]="['/blog']">Blog de salud</a>

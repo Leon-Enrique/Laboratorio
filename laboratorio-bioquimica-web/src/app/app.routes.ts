@@ -5,10 +5,14 @@ import { LoginComponent } from './features/auth/login/login';
 import { PanelAdminComponent } from './features/admin/panel/panel';
 import { BlogListComponent } from './features/publico/blog/blog-list';
 import { BlogArticuloComponent } from './features/publico/blog/blog-articulo';
+import { CatalogoExamenesComponent } from './features/publico/catalogo-examenes/catalogo-examenes';
+import { PruebasAdnComponent } from './features/publico/pruebas-adn/pruebas-adn';
 import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   { path: '', component: InicioComponent },
+  { path: 'examenes', component: CatalogoExamenesComponent },
+  { path: 'adn', component: PruebasAdnComponent },
   { path: 'blog', component: BlogListComponent },
   { path: 'blog/:slug', component: BlogArticuloComponent },
   { path: 'resultados', component: ResultadosPacienteComponent },

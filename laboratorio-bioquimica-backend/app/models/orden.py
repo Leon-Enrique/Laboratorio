@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, JSON
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, JSON, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.session import Base
@@ -18,6 +18,9 @@ class Orden(Base):
     medico_solicitante = Column(String, nullable=True)
     prioridad = Column(String, default="NORMAL")  # NORMAL | URGENTE
     notas = Column(String, nullable=True)
+    requiere_factura = Column(Boolean, default=False)
+    nit_factura = Column(String, nullable=True)
+    razon_social_factura = Column(String, nullable=True)
     bioquimico_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
 
     # Relaciones
@@ -27,7 +30,7 @@ class Orden(Base):
 
     @property
     def precio_total(self) -> float:
-        return sum(res.examen.precio_usd for res in self.resultados if res.examen)
+        return sum(res.examen.precio_bob for res in self.resultados if res.examen)
 
 
 class Resultado(Base):

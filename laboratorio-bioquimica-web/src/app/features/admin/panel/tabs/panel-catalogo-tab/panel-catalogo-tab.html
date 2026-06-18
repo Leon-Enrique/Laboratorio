@@ -1,0 +1,81 @@
+<div class="catalog-config-section fade-in glass">
+  <div class="section-title-bar">
+    <h3>Catálogo público</h3>
+  </div>
+  <p class="subtitle">
+    Administra qué análisis se muestran en la web y cuáles aparecen destacados en el inicio (máx. {{ maxDestacados }}).
+    Los nombres se agregan automáticamente al registrar un análisis en <strong>Nuevo análisis</strong>.
+  </p>
+
+  <div class="catalog-public-stats">
+    <span class="catalog-count">{{ examenesFiltrados().length }} análisis registrados</span>
+    <span class="catalog-count">{{ cantidadDestacados() }} / {{ maxDestacados }} destacados en inicio</span>
+  </div>
+
+  <div class="catalog-list-toolbar">
+    <input
+      type="search"
+      class="catalog-search"
+      placeholder="Buscar por nombre o grupo..."
+      [ngModel]="busquedaCatalogo()"
+      (ngModelChange)="busquedaCatalogo.set($event)"
+      name="busqueda_catalogo"
+    />
+  </div>
+
+  <div class="table-wrapper">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Nombre del análisis</th>
+          <th>Grupo</th>
+          <th>Precio</th>
+          <th>Visible en web</th>
+          <th>Destacado inicio</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (ex of examenesFiltrados(); track ex.id) {
+          <tr>
+            <td>
+              <span class="font-bold">{{ ex.nombre }}</span>
+              @if (!ex.visible) {
+                <small class="text-muted d-block">Oculto del sitio público</small>
+              }
+            </td>
+            <td class="text-muted">{{ ex.grupo || '—' }}</td>
+            <td class="font-bold text-primary">{{ ex.precio_bob | currency:moneda:'symbol-narrow':'1.2-2' }}</td>
+            <td>
+              <button
+                type="button"
+                class="toggle-switch"
+                [class.is-on]="ex.visible"
+                (click)="toggleVisibilidadExamen(ex)"
+                role="switch"
+                [attr.aria-label]="'Visibilidad de ' + ex.nombre"
+              ></button>
+            </td>
+            <td>
+              <button
+                type="button"
+                class="toggle-switch"
+                [class.is-on]="ex.destacado"
+                (click)="toggleDestacadoExamen(ex)"
+                [disabled]="!ex.visible"
+                role="switch"
+                [attr.aria-label]="'Destacado de ' + ex.nombre"
+                title="{{ ex.visible ? 'Mostrar en página de inicio' : 'Debe estar visible en web' }}"
+              ></button>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="5" class="empty-hint">
+              No hay análisis registrados. Créalos en <strong>Configuración → Nuevo análisis</strong>.
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

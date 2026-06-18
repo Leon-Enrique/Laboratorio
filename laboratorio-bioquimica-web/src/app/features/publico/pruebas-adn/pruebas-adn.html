@@ -1,0 +1,150 @@
+<app-public-navbar />
+
+<main class="adn-page">
+  <!-- Hero -->
+  <section class="adn-hero">
+    <div class="adn-hero-bg" aria-hidden="true"></div>
+    <div class="adn-hero-inner">
+      <span class="section-eyebrow">Unidad de Genética · Genotipia</span>
+      <h1>Prueba de paternidad<br /><em>por ADN</em> en Santa Cruz</h1>
+      <p>
+        Determinación de vínculos biológicos con precisión superior al 99.9%, confidencialidad total
+        y respaldo de nuestro laboratorio clínico.
+      </p>
+      <div class="hero-actions">
+        <a [href]="whatsappUrl" target="_blank" rel="noopener" class="btn-hero-primary">Consultar por WhatsApp</a>
+        <a routerLink="/adn" fragment="faq" class="btn-hero-secondary">Preguntas frecuentes</a>
+      </div>
+
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <span class="hero-stat-value">99.9<span class="hero-stat-unit">%</span></span>
+          <span class="hero-stat-label">Precisión del resultado</span>
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat-value">3–5</span>
+          <span class="hero-stat-label">Días de entrega</span>
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat-value">100<span class="hero-stat-unit">%</span></span>
+          <span class="hero-stat-label">Confidencial</span>
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat-value">STR</span>
+          <span class="hero-stat-label">Tecnología molecular</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Ticker -->
+  <div class="adn-ticker" aria-hidden="true">
+    <div class="adn-ticker-track">
+      @for (t of ['Paternidad', 'Maternidad', 'Parentesco', 'Linaje familiar', 'Confidencial', 'Modalidad legal']; track t) {
+        <span class="ticker-item">{{ t }}</span>
+      }
+      @for (t of ['Paternidad', 'Maternidad', 'Parentesco', 'Linaje familiar', 'Confidencial', 'Modalidad legal']; track t + '2') {
+        <span class="ticker-item">{{ t }}</span>
+      }
+    </div>
+  </div>
+
+  <!-- Qué es -->
+  <section class="adn-section adn-section--split">
+    <div class="adn-split-text">
+      <span class="section-eyebrow section-eyebrow--dark">Filiación genética</span>
+      <h2>¿Qué es una prueba de <em>paternidad</em>?</h2>
+      <p>
+        Es un estudio de filiación genética que compara perfiles de ADN para confirmar o descartar
+        un vínculo biológico. Utilizamos tecnología de amplificación de marcadores <strong>STR</strong>
+        con interpretación estadística especializada.
+      </p>
+      <ul class="adn-list">
+        <li><strong>Paternidad</strong> — presunto padre e hijo/a</li>
+        <li><strong>Maternidad</strong> — madre e hijo/a</li>
+        <li><strong>Hermandad</strong> — parentesco entre hermanos</li>
+        <li><strong>Linaje</strong> — abuelos, tíos cuando falta el presunto padre</li>
+      </ul>
+      <a [href]="whatsappUrl" target="_blank" rel="noopener" class="btn-inline">Consultar por WhatsApp →</a>
+    </div>
+    <div class="adn-split-card">
+      <h3>Garantías del proceso</h3>
+      <div class="garantia-item">
+        <span class="garantia-icon">🔒</span>
+        <div>
+          <strong>Confidencialidad total</strong>
+          <p>Entrega controlada de resultados solo a personas autorizadas.</p>
+        </div>
+      </div>
+      <div class="garantia-item">
+        <span class="garantia-icon">📋</span>
+        <div>
+          <strong>Proceso documentado</strong>
+          <p>Registro → muestra → análisis → interpretación → informe.</p>
+        </div>
+      </div>
+      <div class="garantia-item">
+        <span class="garantia-icon">🧬</span>
+        <div>
+          <strong>Análisis en Santa Cruz</strong>
+          <p>Estudio realizado en nuestra unidad de biología molecular con control de calidad.</p>
+        </div>
+      </div>
+      <p class="muestras-tipos">
+        <strong>Muestras:</strong> hisopado bucal · sangre · cabello · uñas
+      </p>
+    </div>
+  </section>
+
+  <!-- Proceso -->
+  <section class="adn-section adn-section--process">
+    <div class="section-header-center">
+      <span class="section-eyebrow">Cómo funciona</span>
+      <h2>El proceso, paso a <em>paso</em></h2>
+    </div>
+    <div class="pasos-grid">
+      @for (paso of pasos; track paso.num) {
+        <article class="paso-card">
+          <span class="paso-num">{{ paso.num }}</span>
+          <h3>{{ paso.titulo }}</h3>
+          <p>{{ paso.descripcion }}</p>
+        </article>
+      }
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq" class="adn-section adn-section--faq">
+    <div class="faq-layout">
+      <div class="faq-intro">
+        <span class="section-eyebrow section-eyebrow--dark">FAQ</span>
+        <h2>Preguntas frecuentes sobre <em>paternidad</em></h2>
+        <p>Si tu duda no está aquí, escríbenos directamente.</p>
+        <a [href]="whatsappUrl" target="_blank" rel="noopener" class="btn-inline">Hacer una consulta →</a>
+      </div>
+      <div class="faq-list">
+        @for (faq of faqs; track faq.id) {
+          <div class="faq-item" [class.is-open]="faqAbierta() === faq.id">
+            <button type="button" class="faq-question" (click)="toggleFaq(faq.id)" [attr.aria-expanded]="faqAbierta() === faq.id">
+              {{ faq.pregunta }}
+              <span class="faq-chevron" aria-hidden="true">{{ faqAbierta() === faq.id ? '−' : '+' }}</span>
+            </button>
+            @if (faqAbierta() === faq.id) {
+              <div class="faq-answer">{{ faq.respuesta }}</div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="adn-cta">
+    <h2>¿Listo para resolver tus dudas con <em>certeza científica</em>?</h2>
+    <p>Coordina tu cita o consulta sin compromiso. Atención en Av. Japón N° 3555, Santa Cruz.</p>
+    <div class="cta-actions">
+      <a [href]="whatsappUrl" target="_blank" rel="noopener" class="btn-cta-whatsapp">Consultar al {{ telefono }}</a>
+      <a routerLink="/examenes" class="btn-cta-secondary">Ver catálogo de exámenes</a>
+    </div>
+  </section>
+</main>

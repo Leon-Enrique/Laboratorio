@@ -1,12 +1,13 @@
-"""Migración ligera para SQLite: tablas/columnas LIMS sin Alembic."""
+"""Migraciones legacy (columnas) y backfills de datos LIMS."""
 from datetime import date
 
 from sqlalchemy import inspect, text
 
+from app.core.config import settings
 from app.db.session import engine, SessionLocal, Base
-from app.models.inventario import Reactivo, Lote, MovimientoStock
+from app.models.inventario import Reactivo, Lote
 from app.models.orden import Orden
-from app.models.parametro_examen import ParametroExamen  # noqa: F401 — create_all
+from app.models.parametro_examen import ParametroExamen  # noqa: F401 — metadata
 
 
 def _column_exists(inspector, table: str, column: str) -> bool:
@@ -29,7 +30,16 @@ def _datetime_column_ddl(engine, column: str) -> str:
     return f"{column} DATETIME"
 
 
-def migrate_lims_inventory() -> None:
+def _rename_column_if_exists(conn, inspector, table: str, old: str, new: str) -> None:
+    if not _table_exists(inspector, table):
+        return
+    cols = {c["name"] for c in inspector.get_columns(table)}
+    if old in cols and new not in cols:
+        conn.execute(text(f"ALTER TABLE {table} RENAME COLUMN {old} TO {new}"))
+
+
+def apply_legacy_schema_patches() -> None:
+    """Parches idempotentes para BDs creadas antes de Alembic."""
     Base.metadata.create_all(bind=engine)
     inspector = inspect(engine)
     fecha_ddl = _datetime_column_ddl(engine, "fecha_completado")
@@ -53,13 +63,116 @@ def migrate_lims_inventory() -> None:
             _add_column_if_missing(conn, inspector, "ordenes", "medico_solicitante", "medico_solicitante VARCHAR")
             _add_column_if_missing(conn, inspector, "ordenes", "prioridad", "prioridad VARCHAR DEFAULT 'NORMAL'")
             _add_column_if_missing(conn, inspector, "ordenes", "notas", "notas VARCHAR")
+            _add_column_if_missing(conn, inspector, "ordenes", "requiere_factura", "requiere_factura BOOLEAN DEFAULT false")
+            _add_column_if_missing(conn, inspector, "ordenes", "nit_factura", "nit_factura VARCHAR")
+            _add_column_if_missing(conn, inspector, "ordenes", "razon_social_factura", "razon_social_factura VARCHAR")
 
+        if _table_exists(inspector, "examenes"):
+            _rename_column_if_exists(conn, inspector, "examenes", "precio_usd", "precio_bob")
+            _add_column_if_missing(conn, inspector, "examenes", "destacado", "destacado BOOLEAN DEFAULT false")
+            _add_column_if_missing(conn, inspector, "examenes", "tipo", "tipo VARCHAR DEFAULT 'Laboratorio'")
+            _add_column_if_missing(conn, inspector, "examenes", "grupo", "grupo VARCHAR")
+            _add_column_if_missing(conn, inspector, "examenes", "grupo_impresion", "grupo_impresion VARCHAR")
+            _add_column_if_missing(conn, inspector, "examenes", "derivacion", "derivacion VARCHAR")
+            _add_column_if_missing(conn, inspector, "examenes", "material_muestra", "material_muestra VARCHAR")
+            _add_column_if_missing(conn, inspector, "examenes", "estado", "estado VARCHAR DEFAULT 'Activo'")
+            _add_column_if_missing(conn, inspector, "examenes", "codigo_abrev", "codigo_abrev VARCHAR")
+            _add_column_if_missing(conn, inspector, "examenes", "precio_derivacion", "precio_derivacion FLOAT DEFAULT 0")
+            _add_column_if_missing(conn, inspector, "examenes", "etiqueta", "etiqueta VARCHAR")
+
+        if _table_exists(inspector, "parametros_examen"):
+            _add_column_if_missing(conn, inspector, "parametros_examen", "tipo", "tipo VARCHAR DEFAULT 'Numero'")
+            _add_column_if_missing(conn, inspector, "parametros_examen", "grupo", "grupo VARCHAR")
+            _add_column_if_missing(conn, inspector, "parametros_examen", "seccion", "seccion VARCHAR")
+            _add_column_if_missing(conn, inspector, "parametros_examen", "llave", "llave VARCHAR")
+            _add_column_if_missing(conn, inspector, "parametros_examen", "valor_defecto", "valor_defecto VARCHAR")
+            _add_column_if_missing(conn, inspector, "parametros_examen", "decimales", "decimales INTEGER DEFAULT 2")
+            _add_column_if_missing(conn, inspector, "parametros_examen", "metodo_prueba", "metodo_prueba TEXT")
+            _add_column_if_missing(conn, inspector, "parametros_examen", "valor_referencia", "valor_referencia TEXT")
+
+        if _table_exists(inspector, "pacientes"):
+            _add_column_if_missing(conn, inspector, "pacientes", "nit", "nit VARCHAR")
+            _add_column_if_missing(conn, inspector, "pacientes", "razon_social", "razon_social VARCHAR")
+
+
+def run_data_backfills() -> None:
     db = SessionLocal()
     try:
         _migrar_reactivos_a_lotes(db)
         _backfill_fecha_completado(db)
+        _backfill_catalogo_examenes_comunes(db)
+        _fix_fechas_nacimiento_invalidas(db)
     finally:
         db.close()
+
+
+def migrate_lims_inventory() -> None:
+    """Compatibilidad: parches legacy + backfills (sin Alembic)."""
+    if settings.RUN_LEGACY_SCHEMA_PATCHES:
+        apply_legacy_schema_patches()
+    if settings.RUN_DATA_BACKFILL:
+        run_data_backfills()
+
+
+def _aplicar_parametros_catalogo(db) -> None:
+    from app.db.seed_parametros import aplicar_parametros_catalogo
+
+    n = aplicar_parametros_catalogo(db)
+    if n:
+        print(f"Parámetros de resultado: {n} exámenes actualizados con formulario específico.")
+
+
+def _rellenar_resultados_demo(db) -> None:
+    from app.db.seed_parametros import rellenar_resultados_demo
+
+    n = rellenar_resultados_demo(db)
+    if n:
+        print(f"Resultados demo: {n} registros rellenados con valores de ejemplo.")
+
+
+def _backfill_catalogo_examenes_comunes(db) -> None:
+    from app.db.seed_catalogo import seed_examenes_comunes
+
+    result = seed_examenes_comunes(db)
+    if result["creados"] or result["destacados_actualizados"]:
+        print(
+            f"Catálogo: +{result['creados']} exámenes nuevos, "
+            f"{result['destacados_actualizados']} marcados destacados "
+            f"({result['total_visibles']} visibles en total)."
+        )
+
+
+def _fix_fechas_nacimiento_invalidas(db) -> None:
+    from app.models.usuario import Paciente
+
+    hoy = date.today()
+    placeholder = date(1990, 1, 1)
+    cambios = 0
+    for p in db.query(Paciente).all():
+        if p.fecha_nacimiento.year < 1900 or p.fecha_nacimiento > hoy:
+            p.fecha_nacimiento = placeholder
+            cambios += 1
+    if cambios:
+        db.commit()
+
+
+def _backfill_parametros_examen(db) -> None:
+    from app.models.examen import Examen
+    from app.models.parametro_examen import ParametroExamen
+
+    for examen in db.query(Examen).all():
+        tiene = db.query(ParametroExamen).filter(ParametroExamen.examen_id == examen.id).count()
+        if tiene > 0:
+            continue
+        nombre_lower = examen.nombre.lower()
+        if "vih" in nombre_lower:
+            nombre = "Resultado VIH"
+        elif "embarazo" in nombre_lower:
+            nombre = "Resultado"
+        else:
+            nombre = "Resultado"
+        db.add(ParametroExamen(examen_id=examen.id, nombre=nombre, orden=0))
+    db.commit()
 
 
 def _migrar_reactivos_a_lotes(db) -> None:

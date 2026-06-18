@@ -1,0 +1,397 @@
+<div class="analisis-workspace fade-in">
+  <div class="section-title-bar">
+    <h3>Gestión de análisis</h3>
+    <button type="button" class="btn-primary" (click)="toggleRegistroRapido()">
+      {{ mostrarRegistroRapido() ? 'Cancelar registro' : '➕ Registrar análisis' }}
+    </button>
+  </div>
+  <p class="subtitle">
+    Lista de análisis del laboratorio. Selecciona uno y abre <strong>Prueba</strong>, <strong>Insumos</strong> o <strong>Crear Resultados</strong> para configurarlo.
+    Al registrar uno nuevo, su nombre aparece automáticamente en el catálogo público.
+  </p>
+
+  @if (mostrarRegistroRapido()) {
+    <div class="registro-rapido-card glass">
+      <h4>Registrar nuevo análisis</h4>
+      <div class="form-row">
+        <div class="form-group flex-1">
+          <label>Nombre del análisis <span class="req">*</span></label>
+          <input type="text" [(ngModel)]="registroNombre" name="reg_nombre" placeholder="Ej: Glucosa en Ayunas" />
+        </div>
+        <div class="form-group" style="width: 160px;">
+          <label>Precio venta (BOB) <span class="req">*</span></label>
+          <input type="number" [(ngModel)]="registroPrecio" name="reg_precio" min="1" step="0.01" />
+        </div>
+        <div class="form-group" style="align-self: flex-end;">
+          <button type="button" class="btn-modal-submit" (click)="registrarAnalisis()">Registrar</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <div class="analisis-layout">
+    <aside class="analisis-lista glass">
+      <input
+        type="search"
+        class="catalog-search"
+        placeholder="Buscar análisis..."
+        [ngModel]="busqueda()"
+        (ngModelChange)="busqueda.set($event)"
+        name="busqueda_analisis"
+      />
+      <ul class="analisis-nombres-list" role="listbox">
+        @for (ex of examenesFiltrados(); track ex.id) {
+          <li>
+            <button
+              type="button"
+              class="analisis-nombre-btn"
+              [class.active]="examenSeleccionadoId() === ex.id"
+              (click)="seleccionarExamen(ex)"
+            >
+              <span class="analisis-nombre-text">{{ ex.nombre }}</span>
+              @if (faltaCrearResultados(ex)) {
+                <span class="alert-crear-resultado-pendiente">Crear resultado pendiente</span>
+              }
+              @if (ex.grupo) {
+                <small>{{ ex.grupo }}</small>
+              }
+            </button>
+          </li>
+        } @empty {
+          <li class="empty-hint">Sin análisis. Usa <strong>Registrar análisis</strong>.</li>
+        }
+      </ul>
+    </aside>
+
+    <section class="analisis-panel glass">
+      @if (examenSeleccionado(); as exSel) {
+        <div class="analisis-panel-head">
+          <div>
+            <h4>{{ exSel.nombre }}</h4>
+            <p class="orden-detalle-fecha">Id: {{ exSel.id }} · Configura cada sección por separado</p>
+          </div>
+        </div>
+
+        <div class="analisis-acciones" role="tablist">
+          <button
+            type="button"
+            class="modal-tab"
+            [class.active]="panelAbierto() === 'prueba'"
+            (click)="abrirPanel('prueba')"
+          >Prueba</button>
+          <button
+            type="button"
+            class="modal-tab"
+            [class.active]="panelAbierto() === 'insumos'"
+            (click)="abrirPanel('insumos')"
+          >Insumos (BOM)</button>
+          <button
+            type="button"
+            class="modal-tab"
+            [class.active]="panelAbierto() === 'resultados'"
+            (click)="abrirPanel('resultados')"
+          >Crear Resultados</button>
+        </div>
+
+        <div class="analisis-resumen">
+          <div class="analisis-resumen-prueba">
+            <span class="analisis-resumen-label">Prueba</span>
+            <strong>{{ exSel.nombre }}</strong>
+          </div>
+          <div class="analisis-resumen-insumos">
+            <span class="analisis-resumen-label">Insumos</span>
+            @if (insumosResumen().length) {
+              <ul class="analisis-insumos-chips">
+                @for (ins of insumosResumen(); track ins.nombre) {
+                  <li>
+                    <span class="insumo-nombre">{{ ins.nombre }}</span>
+                    <span class="insumo-cantidad">{{ ins.cantidad }} {{ ins.unidad }}</span>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <span class="text-muted">Sin insumos configurados — abre <strong>Insumos (BOM)</strong></span>
+            }
+          </div>
+        </div>
+
+        @if (panelAbierto() === 'prueba') {
+          <form (ngSubmit)="guardarAnalisis()" class="modal-form analisis-form-panel">
+            <div class="form-grid-2col">
+              <div class="form-group">
+                <label>Tipo <span class="req">*</span></label>
+                <select [(ngModel)]="examenTipo" name="a_tipo" required>
+                  @for (t of tiposPrueba; track t) { <option [value]="t">{{ t }}</option> }
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Código Abrev.</label>
+                <input type="text" [(ngModel)]="examenCodigoAbrev" name="a_codigo_abrev" />
+              </div>
+              <div class="form-group">
+                <label>Grupo <span class="req">*</span></label>
+                <select [(ngModel)]="examenGrupo" name="a_grupo">
+                  <option value="">Seleccionar...</option>
+                  @for (g of gruposPrueba; track g) { <option [value]="g">{{ g }}</option> }
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Precio derivación</label>
+                <input type="number" [(ngModel)]="examenPrecioDerivacion" name="a_precio_deriv" min="0" step="0.01" />
+              </div>
+              <div class="form-group">
+                <label>Grupo impresión (Título del informe)</label>
+                <input type="text" [(ngModel)]="examenGrupoImpresion" name="a_grupo_imp" />
+              </div>
+              <div class="form-group">
+                <label>Etiqueta</label>
+                <input type="text" [(ngModel)]="examenEtiqueta" name="a_etiqueta" />
+              </div>
+              <div class="form-group">
+                <label>Nombre <span class="req">*</span></label>
+                <input type="text" [(ngModel)]="examenNombre" name="a_nombre" required />
+              </div>
+              <div class="form-group">
+                <label>Precio de venta (BOB) <span class="req">*</span></label>
+                <input type="number" [(ngModel)]="examenPrecio" name="a_precio" required min="1" step="0.01" />
+              </div>
+              <div class="form-group">
+                <label>Derivación</label>
+                <input type="text" [(ngModel)]="examenDerivacion" name="a_derivacion" />
+              </div>
+              <div class="form-group">
+                <label>Tiempo de entrega (horas)</label>
+                <input type="number" [(ngModel)]="examenEntrega" name="a_entrega" min="1" />
+              </div>
+              <div class="form-group">
+                <label>Material de muestra</label>
+                <select [(ngModel)]="examenMaterial" name="a_material">
+                  <option value="">Seleccionar...</option>
+                  @for (m of materialesMuestra; track m) { <option [value]="m">{{ m }}</option> }
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Estado</label>
+                <select [(ngModel)]="examenEstado" name="a_estado">
+                  @for (e of estadosPrueba; track e) { <option [value]="e">{{ e }}</option> }
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Descripción científica</label>
+              <input type="text" [(ngModel)]="examenDesc" name="a_desc" />
+            </div>
+            <div class="form-group">
+              <label>Preparación del paciente</label>
+              <input type="text" [(ngModel)]="examenPrep" name="a_prep" />
+            </div>
+            <div class="modal-actions">
+              <button type="submit" class="btn-modal-submit">Guardar prueba</button>
+            </div>
+          </form>
+        }
+
+        @if (panelAbierto() === 'insumos') {
+          <div class="analisis-form-panel">
+            <div class="recipe-section">
+              <div class="recipe-header">
+                <strong>Fórmula de consumo (BOM / MRP)</strong>
+                <button type="button" class="btn-action" (click)="agregarFilaReceta()">➕ Agregar insumo</button>
+              </div>
+              <div class="recipe-rows-container recipe-rows-tall">
+                @for (fila of recetaInsumos(); track $index) {
+                  <div class="recipe-row">
+                    <div class="form-group flex-1">
+                      <label>Insumo</label>
+                      <select [(ngModel)]="fila.reactivo_id" name="receta-ins-{{$index}}">
+                        @for (r of reactivos(); track r.id) {
+                          <option [value]="r.id">{{ r.nombre }} ({{ r.unidad_medida }})</option>
+                        }
+                      </select>
+                    </div>
+                    <div class="form-group" style="width: 120px;">
+                      <label>Cantidad</label>
+                      <input type="number" [(ngModel)]="fila.cantidad_consumo" name="receta-cant-{{$index}}" min="0.1" step="0.1" />
+                    </div>
+                    <button type="button" class="btn-delete-row" (click)="eliminarFilaReceta($index)">🗑</button>
+                  </div>
+                } @empty {
+                  <p class="empty-hint">Sin insumos. Agrega los reactivos que consume este análisis.</p>
+                }
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="btn-modal-submit" (click)="guardarAnalisis()">Guardar insumos</button>
+            </div>
+          </div>
+        }
+
+        @if (panelAbierto() === 'resultados') {
+          <div class="analisis-form-panel">
+            <div class="modal-form modal-form--compact resultado-form-inline">
+              <div class="resultado-form-toolbar">
+                <button type="button" class="btn-action btn-adicionar" (click)="abrirMiniAdicionar()">➕ Adicionar</button>
+              </div>
+
+              <div class="form-grid-2col form-grid-compact">
+                <div class="form-group form-group--span2">
+                  <label>Tipo <span class="req">*</span></label>
+                  <select
+                    [(ngModel)]="parametroFormModel.tipo"
+                    name="res_tipo"
+                    required
+                    (ngModelChange)="onCambioTipoResultado()"
+                  >
+                    @for (t of tiposResultado; track t) { <option [value]="t">{{ t }}</option> }
+                  </select>
+                  <small class="tipo-resultado-hint">
+                    @switch (tipoResultadoForm()) {
+                      @case ('Numero') { Solo números al cargar el resultado en una orden. }
+                      @case ('Texto') { Texto corto: letras y números. }
+                      @case ('Texto Area') { Texto largo en varias líneas. }
+                      @case ('Fecha') { Fecha en que se trajo la muestra — aparece un calendario para seleccionar el día. }
+                      @case ('Hora') { Hora en que se tomó la muestra. }
+                    }
+                  </small>
+                </div>
+                @if (tipoResultadoForm() === 'Numero') {
+                  <div class="form-group">
+                    <label>Decimales</label>
+                    <input type="number" [(ngModel)]="parametroFormModel.decimales" name="res_decimales" min="0" max="6" />
+                  </div>
+                  <div class="form-group">
+                    <label>Unidad de medida</label>
+                    <select [(ngModel)]="parametroFormModel.unidad" name="res_unidad">
+                      @for (u of unidadesMedida; track u) {
+                        <option [value]="u">{{ u || 'Seleccionar...' }}</option>
+                      }
+                    </select>
+                  </div>
+                }
+                @if (tipoResultadoForm() === 'Texto') {
+                  <div class="form-group form-group--span2">
+                    <label>Descripción</label>
+                    <input
+                      type="text"
+                      [(ngModel)]="parametroFormModel.valor_referencia"
+                      name="res_descripcion"
+                      placeholder="Texto de ayuda o descripción del campo"
+                    />
+                  </div>
+                }
+                @if (tipoResultadoForm() === 'Fecha') {
+                  <div class="form-group">
+                    <label>Fecha</label>
+                    <input
+                      type="date"
+                      [(ngModel)]="parametroFormModel.valor_defecto"
+                      name="res_fecha"
+                    />
+                  </div>
+                }
+                @if (tipoResultadoForm() === 'Hora') {
+                  <div class="form-group">
+                    <label>Hora</label>
+                    <input
+                      type="time"
+                      [(ngModel)]="parametroFormModel.valor_defecto"
+                      name="res_hora"
+                    />
+                  </div>
+                }
+              </div>
+
+              <div class="resultado-campos-grid form-grid-2col form-grid-compact">
+                @for (p of camposFijosResultado(); track p.nombre) {
+                  <div class="form-group">
+                    <label>{{ p.nombre }}</label>
+                    <input type="text" />
+                  </div>
+                }
+                @for (p of examenParametros(); track $index) {
+                  <div class="form-group form-group--resultado-dinamico">
+                    <div class="form-group-label-row">
+                      <label>{{ p.nombre }}</label>
+                      <button
+                        type="button"
+                        class="btn-delete-row btn-delete-row--inline"
+                        (click)="eliminarParametroResultado($index)"
+                        title="Eliminar"
+                      >🗑</button>
+                    </div>
+                    @switch (tipoParametro(p)) {
+                      @case ('Numero') {
+                        <input type="number" [step]="stepDecimales(p.decimales)" />
+                      }
+                      @case ('Texto') {
+                        <input type="text" />
+                        @if (p.valor_referencia) {
+                          <small class="campo-descripcion">{{ p.valor_referencia }}</small>
+                        }
+                      }
+                      @case ('Texto Area') {
+                        <textarea rows="2"></textarea>
+                      }
+                      @case ('Fecha') {
+                        <input type="date" />
+                      }
+                      @case ('Hora') {
+                        <input type="time" />
+                      }
+                      @default {
+                        <input type="text" />
+                      }
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+
+            <div class="modal-actions">
+              <button type="button" class="btn-modal-submit" (click)="guardarAnalisis()">Guardar resultados</button>
+            </div>
+          </div>
+        }
+
+        @if (!panelAbierto()) {
+          <p class="empty-hint analisis-panel-hint">
+            Pulsa <strong>Prueba</strong>, <strong>Insumos</strong> o <strong>Crear Resultados</strong> para abrir el formulario de esa sección.
+          </p>
+        }
+      } @else {
+        <p class="empty-hint analisis-panel-hint">
+          Selecciona un análisis de la lista de la izquierda para configurarlo.
+        </p>
+      }
+    </section>
+  </div>
+</div>
+
+@if (mostrarMiniAdicionar()) {
+  <div class="modal-overlay modal-overlay-nested" (click)="cerrarMiniAdicionar()">
+    <div class="modal-card modal-mini-adicionar glass" (click)="$event.stopPropagation()">
+      <div class="orden-detalle-header modal-resultado-header">
+        <h3>Nuevo espacio en el formulario</h3>
+        <button type="button" class="modal-close-btn" (click)="cerrarMiniAdicionar()">×</button>
+      </div>
+      <form (ngSubmit)="aceptarNuevoCampoNombre()" class="modal-form modal-form--compact">
+        <div class="form-group">
+          <label>Nombre del campo <span class="req">*</span></label>
+          <input
+            type="text"
+            [(ngModel)]="nuevoCampoNombre"
+            name="nuevo_campo_nombre"
+            placeholder="Ej: Colesterol Total, Color, Conclusión..."
+            autofocus
+            required
+          />
+          <small class="tipo-resultado-hint">Se añadirá al formulario de resultados de esta prueba.</small>
+        </div>
+        <div class="modal-actions modal-actions--compact">
+          <button type="button" class="btn-modal-cancel btn-modal-sm" (click)="cerrarMiniAdicionar()">Cancelar</button>
+          <button type="submit" class="btn-modal-submit btn-modal-sm">✓ Añadir</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

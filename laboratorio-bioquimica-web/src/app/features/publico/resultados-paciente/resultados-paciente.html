@@ -1,14 +1,4 @@
-<header class="navbar">
-  <div class="nav-container">
-    <div class="logo">
-      <app-brand-logo size="compact" theme="light" />
-    </div>
-    <nav class="nav-links">
-      <a [routerLink]="['/']" class="nav-link">Inicio</a>
-      <a [routerLink]="['/login']" class="btn-primary">Acceso Personal</a>
-    </nav>
-  </div>
-</header>
+<app-public-navbar />
 
 <main class="portal-container">
   <div class="search-card glass">
@@ -34,8 +24,8 @@
         <p class="codigo-confirmado">Código: <strong>{{ codigoBusqueda() }}</strong>
           <button type="button" class="btn-link" (click)="volverPaso1()">Cambiar</button>
         </p>
-        <label>CI / Identificación</label>
-        <input type="text" [(ngModel)]="dniVerificacion" name="dni" placeholder="Ej: 12345678" required />
+        <label>Cédula de identidad (CI)</label>
+        <input type="text" [(ngModel)]="dniVerificacion" name="dni" placeholder="Ej: 1234567 SC" required />
         <label>Fecha de nacimiento</label>
         <input type="date" [(ngModel)]="fechaNacVerificacion" name="fecha_nac" required />
         <button type="submit" class="btn-search" [disabled]="cargando()">
@@ -92,19 +82,16 @@
                     </tr>
                   </thead>
                   <tbody>
-                    @if (res.valor_resultado) {
-                      @for (key of objectKeys(res.valor_resultado); track key) {
-                        <tr>
-                          <td class="param-name">{{ key }}</td>
-                          <td class="param-val">{{ res.valor_resultado![key] }}</td>
-                          <td class="param-ref">{{ referenciaTexto(res, key) }}</td>
-                          <td>
-                            @let est = evaluarEstado(res, key);
-                            <span class="status-pill" [class]="est.clase">{{ est.label }}</span>
-                          </td>
-                        </tr>
-                      }
-                    } @else {
+                    @for (fila of filasResultado(res); track fila.label) {
+                      <tr>
+                        <td class="param-name">{{ fila.label }}</td>
+                        <td class="param-val">{{ fila.valor }}</td>
+                        <td class="param-ref">{{ fila.referencia }}</td>
+                        <td>
+                          <span class="status-pill" [class]="fila.estado.clase">{{ fila.estado.label }}</span>
+                        </td>
+                      </tr>
+                    } @empty {
                       <tr>
                         <td colspan="4" class="no-values">Valores pendientes de firma.</td>
                       </tr>

@@ -1,0 +1,137 @@
+<app-public-navbar />
+
+<main class="catalogo-page">
+  <header class="catalogo-hero">
+    <span class="section-eyebrow">Genotipia · Santa Cruz de la Sierra</span>
+    <h1>Catálogo de <em>exámenes</em> clínicos</h1>
+    <p>
+      Listado completo organizado por especialidad. Consulta tiempos de entrega y preparación.
+      Resultados consultables en línea.
+    </p>
+
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <span class="hero-stat-value">{{ examenes().length || '—' }}</span>
+        <span class="hero-stat-label">Exámenes disponibles</span>
+      </div>
+      <div class="hero-stat">
+        <span class="hero-stat-value">{{ totalEspecialidades() || '—' }}</span>
+        <span class="hero-stat-label">Especialidades</span>
+      </div>
+      <div class="hero-stat">
+        <span class="hero-stat-value">24<span class="hero-stat-unit">/7</span></span>
+        <span class="hero-stat-label">Portal de resultados</span>
+      </div>
+      <div class="hero-stat">
+        <span class="hero-stat-value">100<span class="hero-stat-unit">%</span></span>
+        <span class="hero-stat-label">Consulta online</span>
+      </div>
+    </div>
+  </header>
+
+  @if (!cargando() && !error() && resumen().length > 0) {
+    <div class="catalogo-resumen" aria-label="Resumen por especialidad">
+      <span class="resumen-total"><strong>{{ examenes().length }}</strong> exámenes disponibles</span>
+      <div class="resumen-chips">
+        @for (item of resumen(); track item.id) {
+          <button type="button" class="resumen-chip" (click)="irACategoria(item.id)">
+            {{ item.label }} <span class="resumen-count">{{ item.count }}</span>
+          </button>
+        }
+      </div>
+    </div>
+  }
+
+  <div class="catalogo-toolbar glass">
+    <div class="search-box">
+      <span class="search-icon" aria-hidden="true">⌕</span>
+      <input
+        #buscador
+        type="search"
+        placeholder="Buscar examen por nombre..."
+        (input)="onBuscar(buscador.value)"
+        aria-label="Buscar examen"
+      />
+    </div>
+
+    <div class="category-chips" role="group" aria-label="Filtrar por especialidad">
+      @for (cat of categorias; track cat.id) {
+        <button
+          type="button"
+          class="chip"
+          [class.active]="categoriaActiva() === cat.id"
+          (click)="seleccionarCategoria(cat.id)"
+        >
+          {{ cat.label }}
+        </button>
+      }
+    </div>
+
+    <div class="toolbar-meta">
+      <span>{{ totalFiltrados() }} resultado{{ totalFiltrados() === 1 ? '' : 's' }}</span>
+      @if (filtroTexto() || categoriaActiva() !== 'todos') {
+        <button type="button" class="btn-limpiar" (click)="limpiarFiltros(buscador)">Limpiar filtros</button>
+      }
+    </div>
+  </div>
+
+  @if (cargando()) {
+    <div class="estado-panel">
+      <div class="spinner"></div>
+      <p>Cargando catálogo...</p>
+    </div>
+  } @else if (error()) {
+    <div class="estado-panel estado-panel--error">
+      <p>{{ error() }}</p>
+      <button type="button" class="btn-reintentar" (click)="reintentar()">Reintentar</button>
+    </div>
+  } @else if (secciones().length === 0) {
+    <div class="estado-panel">
+      <p>Sin resultados para tu búsqueda.</p>
+      <button type="button" class="btn-reintentar" (click)="limpiarFiltros(buscador)">Ver catálogo completo</button>
+    </div>
+  } @else {
+    <div class="catalogo-secciones">
+      @for (grupo of secciones(); track grupo.id) {
+        <section [id]="'cat-' + grupo.id" class="cat-section">
+          <header class="cat-section-header">
+            <h2>{{ grupo.label }}</h2>
+            <span class="cat-section-count">{{ grupo.examenes.length }} examen{{ grupo.examenes.length === 1 ? '' : 'es' }}</span>
+          </header>
+
+          <ul class="cat-list">
+            @for (ex of grupo.examenes; track ex.id) {
+              <li class="cat-item" [class.is-expanded]="expandidoId() === ex.id">
+                <button type="button" class="cat-item-main" (click)="toggleDetalle(ex.id)">
+                  <span class="cat-item-name">{{ ex.nombre }}</span>
+                  <span class="cat-item-meta">
+                    <span class="cat-item-time">{{ ex.tiempo_entrega_horas }} h</span>
+                  </span>
+                </button>
+                @if (expandidoId() === ex.id) {
+                  <div class="cat-item-detail">
+                    @if (ex.descripcion) {
+                      <p class="cat-item-desc">{{ ex.descripcion }}</p>
+                    }
+                    <p class="cat-item-prep">
+                      <strong>Preparación:</strong> {{ ex.preparacion || 'Sin indicaciones especiales.' }}
+                    </p>
+                  </div>
+                }
+              </li>
+            }
+          </ul>
+        </section>
+      }
+    </div>
+  }
+
+  <section class="catalogo-cta">
+    <h2>¿No encontraste tu examen?</h2>
+    <p>Escríbenos por WhatsApp o consulta tus resultados en línea.</p>
+    <div class="catalogo-cta-actions">
+      <a [href]="whatsappUrl" target="_blank" rel="noopener" class="btn-cta-whatsapp">Consultar por WhatsApp</a>
+      <a routerLink="/resultados" class="btn-cta-secondary">Ver mis resultados</a>
+    </div>
+  </section>
+</main>

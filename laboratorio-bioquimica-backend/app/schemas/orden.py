@@ -21,6 +21,8 @@ class PacienteBase(BaseModel):
     genero: str
     telefono: Optional[str] = None
     direccion: Optional[str] = None
+    nit: Optional[str] = None
+    razon_social: Optional[str] = None
 
 class PacienteCreate(PacienteBase):
     usuario_id: Optional[int] = None
@@ -78,6 +80,9 @@ class OrdenCreate(BaseModel):
     medico_solicitante: Optional[str] = None
     prioridad: Optional[str] = "NORMAL"
     notas: Optional[str] = None
+    requiere_factura: Optional[bool] = False
+    nit_factura: Optional[str] = None
+    razon_social_factura: Optional[str] = None
 
 
 class OrdenMetaUpdate(BaseModel):
@@ -102,6 +107,9 @@ class OrdenResponse(BaseModel):
     medico_solicitante: Optional[str] = None
     prioridad: str = "NORMAL"
     notas: Optional[str] = None
+    requiere_factura: bool = False
+    nit_factura: Optional[str] = None
+    razon_social_factura: Optional[str] = None
     precio_total: float
     paciente: PacienteResponse
     bioquimico: Optional[UsuarioResponse] = None

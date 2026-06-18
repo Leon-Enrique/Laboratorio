@@ -1,9 +1,10 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink, ActivatedRoute } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
-import { BrandLogoComponent } from '../../../shared/components/brand-logo/brand-logo';
+import { PublicNavbarComponent } from '../../../shared/components/public-navbar/public-navbar';
+import { esParametroResultadoVisible } from '../../admin/panel/catalogo-examen.options';
 
 interface ParametroExamen {
   id: number;
@@ -43,10 +44,17 @@ interface Orden {
   resultados: Resultado[];
 }
 
+interface FilaResultado {
+  label: string;
+  valor: string;
+  referencia: string;
+  estado: { label: string; clase: string };
+}
+
 @Component({
   selector: 'app-resultados-paciente',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, BrandLogoComponent],
+  imports: [CommonModule, FormsModule, PublicNavbarComponent],
   templateUrl: './resultados-paciente.html',
   styleUrl: './resultados-paciente.scss'
 })
@@ -152,17 +160,25 @@ export class ResultadosPacienteComponent implements OnInit {
     return res.examen?.nombre || 'Examen Clínico';
   }
 
-  evaluarEstado(res: Resultado, paramKey: string): { label: string; clase: string } {
-    const valorStr = res.valor_resultado?.[paramKey];
-    if (!valorStr || !res.examen?.parametros?.length) {
+  evaluarEstado(res: Resultado, param: ParametroExamen): { label: string; clase: string } {
+    const valores = res.valor_resultado || {};
+    const clave = this.parametroClave(param);
+    const valorStr = valores[clave] ?? valores[param.nombre];
+    if (valorStr == null || valorStr === '') {
       return { label: '—', clase: '' };
     }
 
-    const param = res.examen.parametros.find(p => this.parametroClave(p) === paramKey || p.nombre === paramKey);
-    if (!param) return { label: '—', clase: '' };
-
     const valor = parseFloat(String(valorStr).replace(',', '.'));
-    if (Number.isNaN(valor)) return { label: '—', clase: '' };
+    if (Number.isNaN(valor)) {
+      const texto = String(valorStr).toLowerCase();
+      if (/positivo|reactive|alto|elevado/.test(texto)) {
+        return { label: 'Alterado', clase: 'status-danger' };
+      }
+      if (/negativo|normal|no reactivo/.test(texto)) {
+        return { label: 'Normal', clase: 'status-success-light' };
+      }
+      return { label: '—', clase: '' };
+    }
 
     if (param.valor_min != null && valor < param.valor_min) {
       return { label: 'Bajo', clase: 'status-warn' };
@@ -173,21 +189,48 @@ export class ResultadosPacienteComponent implements OnInit {
     return { label: 'Normal', clase: 'status-success-light' };
   }
 
-  referenciaTexto(res: Resultado, paramKey: string): string {
-    const param = res.examen?.parametros?.find(p => this.parametroClave(p) === paramKey);
-    if (!param) return '—';
+  referenciaTextoParam(param: ParametroExamen): string {
     if (param.valor_min != null && param.valor_max != null) {
       return `${param.valor_min} – ${param.valor_max}${param.unidad ? ' ' + param.unidad : ''}`;
     }
-    return '—';
+    if (param.valor_max != null) {
+      return `≤ ${param.valor_max}${param.unidad ? ' ' + param.unidad : ''}`;
+    }
+    if (param.valor_min != null) {
+      return `≥ ${param.valor_min}${param.unidad ? ' ' + param.unidad : ''}`;
+    }
+    return 'Consultar laboratorio';
+  }
+
+  filasResultado(res: Resultado): FilaResultado[] {
+    const valores = res.valor_resultado || {};
+    const params = [...(res.examen?.parametros || [])]
+      .filter(p => esParametroResultadoVisible(p.nombre))
+      .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
+
+    if (params.length) {
+      return params.map(param => {
+        const clave = this.parametroClave(param);
+        const valor = valores[clave] ?? valores[param.nombre] ?? '—';
+        return {
+          label: param.unidad ? `${param.nombre} (${param.unidad})` : param.nombre,
+          valor: String(valor),
+          referencia: this.referenciaTextoParam(param),
+          estado: this.evaluarEstado(res, param)
+        };
+      });
+    }
+
+    return Object.keys(valores).map(key => ({
+      label: key,
+      valor: String(valores[key]),
+      referencia: '—',
+      estado: { label: '—', clase: '' }
+    }));
   }
 
   parametroClave(p: ParametroExamen): string {
     return p.unidad ? `${p.nombre} (${p.unidad})` : p.nombre;
-  }
-
-  objectKeys(obj: Record<string, string> | null | undefined): string[] {
-    return obj ? Object.keys(obj) : [];
   }
 
   volverPaso1() {

@@ -1,4 +1,5 @@
 import uuid
+import re
 from datetime import datetime, timezone, date
 from typing import List, Any, Optional
 
@@ -74,6 +75,37 @@ def _actualizar_estado_workflow(db: Session, orden: Orden) -> None:
         orden.estado = "PENDIENTE"
 
 
+def _validar_fecha_nacimiento(fecha: date) -> None:
+    hoy = date.today()
+    if fecha.year < 1900 or fecha > hoy:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Fecha de nacimiento inválida. Use una fecha real (1900 – hoy).",
+        )
+
+
+def _validar_datos_factura(requiere: bool, nit: Optional[str], razon_social: Optional[str]) -> None:
+    if not requiere:
+        return
+    nit_limpio = (nit or "").strip()
+    if not nit_limpio:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ingrese el NIT para emitir factura.",
+        )
+    digitos = re.sub(r"\D", "", nit_limpio)
+    if len(digitos) < 5:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="NIT inválido. Debe tener al menos 5 dígitos.",
+        )
+    if not (razon_social or "").strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ingrese la razón social o nombre para factura.",
+        )
+
+
 # 1. Crear Orden (solo admin/bioquímico)
 # Si el paciente no existe (por DNI), lo crea automáticamente
 @router.post("/", response_model=OrdenResponse)
@@ -82,6 +114,9 @@ def crear_orden(
     db: Session = Depends(get_db),
     current_user: Any = Depends(RoleChecker(["admin", "bioquimico"]))
 ) -> Any:
+    _validar_fecha_nacimiento(orden_in.fecha_nacimiento_paciente)
+    requiere_factura = bool(orden_in.requiere_factura)
+    _validar_datos_factura(requiere_factura, orden_in.nit_factura, orden_in.razon_social_factura)
     # Buscar paciente
     paciente = db.query(Paciente).filter(Paciente.dni == orden_in.paciente_dni).first()
     if not paciente:
@@ -92,11 +127,20 @@ def crear_orden(
             fecha_nacimiento=orden_in.fecha_nacimiento_paciente,
             genero=orden_in.genero_paciente,
             telefono=orden_in.telefono_paciente,
-            direccion=orden_in.direccion_paciente
+            direccion=orden_in.direccion_paciente,
+            nit=orden_in.nit_factura.strip() if requiere_factura and orden_in.nit_factura else None,
+            razon_social=orden_in.razon_social_factura.strip() if requiere_factura and orden_in.razon_social_factura else None,
         )
         db.add(paciente)
         db.commit()
         db.refresh(paciente)
+    elif requiere_factura:
+        if orden_in.nit_factura:
+            paciente.nit = orden_in.nit_factura.strip()
+        if orden_in.razon_social_factura:
+            paciente.razon_social = orden_in.razon_social_factura.strip()
+        db.add(paciente)
+        db.commit()
 
     # Validar que los exámenes solicitados existan
     examenes = db.query(Examen).filter(Examen.id.in_(orden_in.examenes_ids)).all()
@@ -120,6 +164,9 @@ def crear_orden(
         medico_solicitante=orden_in.medico_solicitante,
         prioridad=prioridad,
         notas=orden_in.notas,
+        requiere_factura=requiere_factura,
+        nit_factura=orden_in.nit_factura.strip() if requiere_factura and orden_in.nit_factura else None,
+        razon_social_factura=orden_in.razon_social_factura.strip() if requiere_factura and orden_in.razon_social_factura else None,
     )
     db.add(nueva_orden)
     db.commit()
@@ -228,6 +275,8 @@ def consultar_resultado_paciente(
     if paciente.fecha_nacimiento != body.fecha_nacimiento:
         raise HTTPException(status_code=401, detail="La fecha de nacimiento no coincide con nuestros registros")
 
+    _validar_fecha_nacimiento(body.fecha_nacimiento)
+
     pdf_url = _informe_pdf_url(codigo)
     for res in orden.resultados:
         if orden.estado == "COMPLETADO":
@@ -325,6 +374,34 @@ def aprobar_y_emitir_orden(
     pdf_url = _informe_pdf_url(orden.codigo_orden)
     for res in orden.resultados:
         res.pdf_url = pdf_url
+        db.add(res)
+
+    db.add(orden)
+    db.commit()
+    return _orden_query(db).filter(Orden.id == orden_id).first()
+
+
+@router.post("/{orden_id}/reabrir-resultados", response_model=OrdenResponse)
+def reabrir_resultados_orden(
+    orden_id: int,
+    db: Session = Depends(get_db),
+    current_user: Any = Depends(RoleChecker(["admin", "bioquimico"])),
+) -> Any:
+    """Anula la firma para permitir corregir resultados y volver a emitir el informe."""
+    orden = _orden_query(db).filter(Orden.id == orden_id).first()
+    if not orden:
+        raise HTTPException(status_code=404, detail="Orden no encontrada")
+    if orden.estado not in ("COMPLETADO", "PROCESANDO"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Solo se pueden reiniciar órdenes con borrador o ya firmadas",
+        )
+
+    orden.fecha_completado = None
+    orden.estado = "PENDIENTE"
+    for res in orden.resultados:
+        res.pdf_url = None
+        res.valor_resultado = {}
         db.add(res)
 
     db.add(orden)
