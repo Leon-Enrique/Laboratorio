@@ -4,16 +4,16 @@
 # Sitio Angular (frontend)
 server {
     listen 80;
-    server_name genotipia.com www.genotipia.com;
+    server_name genotipia-lab.com www.genotipia-lab.com;
     return 301 https://$host$request_uri;
 }
 
 server {
     listen 443 ssl http2;
-    server_name genotipia.com www.genotipia.com;
+    server_name genotipia-lab.com www.genotipia-lab.com;
 
-    # ssl_certificate /etc/letsencrypt/live/genotipia.com/fullchain.pem;
-    # ssl_certificate_key /etc/letsencrypt/live/genotipia.com/privkey.pem;
+    # ssl_certificate /etc/letsencrypt/live/genotipia-lab.com/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/genotipia-lab.com/privkey.pem;
 
     root /var/www/genotipia;
     index index.html;
@@ -26,13 +26,13 @@ server {
 # API FastAPI
 server {
     listen 80;
-    server_name api.genotipia.com;
+    server_name api.genotipia-lab.com;
     return 301 https://$host$request_uri;
 }
 
 server {
     listen 443 ssl http2;
-    server_name api.genotipia.com;
+    server_name api.genotipia-lab.com;
 
     # ssl_certificate ...
 

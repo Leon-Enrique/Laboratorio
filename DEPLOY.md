@@ -20,9 +20,9 @@ Eso solo prueba en tu PC que el proyecto está sano. **No sube nada a internet.*
 
 ### Lo que necesitarás contratar
 
-1. **Dominio** — ej. `genotipia.com`
+1. **Dominio** — ej. `genotipia-lab.com`
 2. **Servidor (VPS)** — Linux recomendado (DigitalOcean, Hetzner, AWS Lightsail, etc.)
-3. **Opcional:** correo profesional para `contacto@genotipia.com`
+3. **Opcional:** correo profesional para `contacto@genotipia-lab.com`
 
 ### Archivos que ya están preparados en el repo
 
@@ -61,7 +61,7 @@ Eso solo prueba en tu PC que el proyecto está sano. **No sube nada a internet.*
    ./scripts/deploy-update.sh
    ```
 8. Nginx + certificado SSL (Let's Encrypt) con `scripts/nginx-genotipia.conf.example`.
-9. Probar: `https://genotipia.com` y login admin.
+9. Probar: `https://genotipia-lab.com` y login admin.
 
 ### Cada actualización después (cuando ya está online)
 

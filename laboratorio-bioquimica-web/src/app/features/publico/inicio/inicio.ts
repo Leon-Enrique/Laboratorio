@@ -74,7 +74,7 @@ export class InicioComponent implements OnInit {
   readonly whatsappUrl = 'https://wa.me/59175548529';
   readonly telefono = '755 48529';
   readonly telefonoTel = '+59175548529';
-  readonly email = 'contacto@genotipia.com';
+  readonly email = 'contacto@genotipia-lab.com';
   readonly direccion = 'Av. Japón N° 3555, 3er. Anillo Externo — Diagonal entrada Emergencias Hospital Japonés, Santa Cruz de la Sierra';
   readonly mapsUrl = 'https://maps.app.goo.gl/VkYj2TjRARZuUaFE7';
   readonly instagramUrl = 'https://www.instagram.com/genotipia';
@@ -309,7 +309,7 @@ export class InicioComponent implements OnInit {
 
     const subject = encodeURIComponent(`Contacto Genotipia — ${nombre}`);
     const body = encodeURIComponent(
-      `Nombre: ${nombre}\nEmail: ${email}\n\nMensaje:\n${mensaje}\n\n— Enviado desde genotipia.com`
+      `Nombre: ${nombre}\nEmail: ${email}\n\nMensaje:\n${mensaje}\n\n— Enviado desde genotipia-lab.com`
     );
 
     window.location.href = `mailto:${this.email}?subject=${subject}&body=${body}`;
