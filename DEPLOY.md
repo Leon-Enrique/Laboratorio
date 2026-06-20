@@ -2,6 +2,8 @@
 
 Guía corta para el día que termines de mejorar la página y quieras publicar. **Hoy no hace falta hacer nada de esto.**
 
+**Demo gratis (ingeniero / universidad):** use [DEMO-DEPLOY.md](./DEMO-DEPLOY.md) — Neon + Render + Vercel, BD vacía.
+
 ## Mientras sigues en local (ahora)
 
 - Sigue desarrollando y mejorando la web como hasta ahora.
