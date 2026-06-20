@@ -2,7 +2,7 @@ from app.db.session import Base
 from app.models.usuario import Usuario, Paciente
 from app.models.examen import Examen, FormulaConsumo
 from app.models.parametro_examen import ParametroExamen
-from app.models.inventario import Proveedor, Reactivo, MovimientoStock, Lote
+from app.models.inventario import Proveedor, Reactivo, MovimientoStock, Lote, MermaInventario, OrdenPedido
 from app.models.orden import Orden, Resultado
 
 # Todos los modelos se heredan de Base.
@@ -18,6 +18,8 @@ __all__ = [
     "Reactivo",
     "Lote",
     "MovimientoStock",
+    "MermaInventario",
+    "OrdenPedido",
     "Orden",
     "Resultado"
 ]

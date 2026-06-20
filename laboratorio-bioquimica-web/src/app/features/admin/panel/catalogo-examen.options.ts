@@ -58,7 +58,7 @@ export const UNIDADES_MEDIDA = [
 export type TipoPrueba = (typeof TIPOS_PRUEBA)[number];
 export type TipoResultado = (typeof TIPOS_RESULTADO)[number];
 
-/** El nombre del análisis ya aparece como título del bloque; no se pide en el formulario. */
+/** El nombre de la prueba ya aparece como título del bloque; no se pide en el formulario. */
 export const PARAMETROS_RESULTADO_OCULTOS = ['Nombre'] as const;
 
 export function esParametroResultadoVisible(nombre: string): boolean {

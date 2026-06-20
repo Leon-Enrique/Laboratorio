@@ -1,21 +1,21 @@
 <div class="analisis-workspace fade-in">
   <div class="section-title-bar">
-    <h3>Gestión de análisis</h3>
+    <h3>Gestión de pruebas</h3>
     <button type="button" class="btn-primary" (click)="toggleRegistroRapido()">
-      {{ mostrarRegistroRapido() ? 'Cancelar registro' : '➕ Registrar análisis' }}
+      {{ mostrarRegistroRapido() ? 'Cancelar registro' : '➕ Registrar prueba' }}
     </button>
   </div>
   <p class="subtitle">
-    Lista de análisis del laboratorio. Selecciona uno y abre <strong>Prueba</strong>, <strong>Insumos</strong> o <strong>Crear Resultados</strong> para configurarlo.
+    Lista de pruebas del laboratorio. Selecciona una y abre <strong>Prueba</strong>, <strong>Insumos</strong> o <strong>Crear Resultados</strong> para configurarla.
     Al registrar uno nuevo, su nombre aparece automáticamente en el catálogo público.
   </p>
 
   @if (mostrarRegistroRapido()) {
     <div class="registro-rapido-card glass">
-      <h4>Registrar nuevo análisis</h4>
+      <h4>Registrar nueva prueba</h4>
       <div class="form-row">
         <div class="form-group flex-1">
-          <label>Nombre del análisis <span class="req">*</span></label>
+          <label>Nombre de la prueba <span class="req">*</span></label>
           <input type="text" [(ngModel)]="registroNombre" name="reg_nombre" placeholder="Ej: Glucosa en Ayunas" />
         </div>
         <div class="form-group" style="width: 160px;">
@@ -34,10 +34,10 @@
       <input
         type="search"
         class="catalog-search"
-        placeholder="Buscar análisis..."
+        placeholder="Buscar prueba..."
         [ngModel]="busqueda()"
         (ngModelChange)="busqueda.set($event)"
-        name="busqueda_analisis"
+        name="busqueda_prueba"
       />
       <ul class="analisis-nombres-list" role="listbox">
         @for (ex of examenesFiltrados(); track ex.id) {
@@ -58,7 +58,7 @@
             </button>
           </li>
         } @empty {
-          <li class="empty-hint">Sin análisis. Usa <strong>Registrar análisis</strong>.</li>
+          <li class="empty-hint">Sin pruebas. Usa <strong>Registrar prueba</strong>.</li>
         }
       </ul>
     </aside>
@@ -216,7 +216,7 @@
                     <button type="button" class="btn-delete-row" (click)="eliminarFilaReceta($index)">🗑</button>
                   </div>
                 } @empty {
-                  <p class="empty-hint">Sin insumos. Agrega los reactivos que consume este análisis.</p>
+                  <p class="empty-hint">Sin insumos. Agrega los reactivos que consume esta prueba.</p>
                 }
               </div>
             </div>
@@ -360,7 +360,7 @@
         }
       } @else {
         <p class="empty-hint analisis-panel-hint">
-          Selecciona un análisis de la lista de la izquierda para configurarlo.
+          Selecciona una prueba de la lista de la izquierda para configurarla.
         </p>
       }
     </section>

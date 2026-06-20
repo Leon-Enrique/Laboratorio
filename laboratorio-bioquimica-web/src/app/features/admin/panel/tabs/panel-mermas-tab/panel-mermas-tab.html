@@ -1,0 +1,44 @@
+<div class="inventory-dashboard fade-in">
+  <div class="section-title-bar">
+    <h3>Historial de Mermas</h3>
+    <button type="button" class="btn-action" (click)="cargarMermas()">Actualizar</button>
+  </div>
+  <p class="subtitle">
+    Registro de insumos dados de baja por vencimiento, calibración o desecho manual. Los lotes no se eliminan; quedan en estado <strong>Dado de baja</strong>.
+  </p>
+
+  <div class="inventory-table-card glass">
+    @if (cargando()) {
+      <p class="loading-lotes">Cargando mermas…</p>
+    } @else {
+      <div class="table-wrapper">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Fecha baja</th>
+              <th>Insumo</th>
+              <th>Lote</th>
+              <th>Cantidad perdida</th>
+              <th>Motivo</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (m of mermas(); track m.id) {
+              <tr>
+                <td>{{ m.fecha_baja | date:'dd/MM/yyyy HH:mm' }}</td>
+                <td class="font-bold">{{ m.insumo_nombre || ('Insumo #' + m.id_insumo) }}</td>
+                <td>{{ m.codigo_lote || '—' }}</td>
+                <td>{{ m.cantidad_perdida }}</td>
+                <td><span class="pill pill-warning">{{ m.motivo }}</span></td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="5" class="empty-row">No hay mermas registradas.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>

@@ -44,8 +44,22 @@
             }
             <div class="alert-reasons">
               @for (reason of al.alertas; track reason) {
-                <span class="reason-pill">{{ reason }}</span>
+                <button
+                  type="button"
+                  class="reason-pill"
+                  [title]="'Ver «' + al.nombre + '» en la tabla'"
+                  (click)="irAlInsumo(al.id)"
+                >
+                  {{ reason }}
+                </button>
               }
+              <button
+                type="button"
+                class="btn-sugerencia-compra"
+                (click)="irSugerenciaCompra.emit(al.id)"
+              >
+                Ver sugerencia de compra
+              </button>
             </div>
           </div>
         </div>
@@ -71,13 +85,19 @@
             <th>Próximo vencimiento</th>
             <th>Stock Total</th>
             <th>Lotes</th>
+            <th>Proveedor</th>
             <th>Estado</th>
             <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
           @for (re of reactivos(); track re.id) {
-            <tr class="master-row" [class.expanded]="reactivoExpandido() === re.id">
+            <tr
+              class="master-row"
+              [id]="'insumo-row-' + re.id"
+              [class.expanded]="reactivoExpandido() === re.id"
+              [class.row-highlight]="insumoResaltado() === re.id"
+            >
               <td>
                 <button type="button" class="btn-expand" (click)="toggleExpandirReactivo(re)" [attr.aria-expanded]="reactivoExpandido() === re.id">
                   {{ reactivoExpandido() === re.id ? '▼' : '▶' }}
@@ -88,6 +108,12 @@
               <td>{{ (re.fecha_vencimiento | date:'dd/MM/yyyy') || '—' }}</td>
               <td>{{ re.stock_actual }} {{ re.unidad_medida }}</td>
               <td>{{ re.lotes_activos ?? 0 }} / {{ re.total_lotes ?? 0 }}</td>
+              <td>
+                {{ nombreProveedor(re) }}
+                @if (rolUsuario === 'admin') {
+                  <button type="button" class="btn-link-inline" (click)="abrirEditarProveedor(re)">Cambiar</button>
+                }
+              </td>
               <td>
                 @if (re.stock_actual <= re.stock_minimo) {
                   <span class="pill pill-danger">Crítico</span>
@@ -104,7 +130,7 @@
             </tr>
             @if (reactivoExpandido() === re.id) {
               <tr class="detail-row">
-                <td colspan="8">
+                <td colspan="9">
                   <div class="lotes-detail-panel">
                     <h4>Lotes de {{ re.nombre }}</h4>
                     @if (lotesCargando() === re.id) {
@@ -136,7 +162,7 @@
                                 </span>
                               </td>
                               <td>
-                                @if (lote.cantidad_disponible > 0 && (lote.estado === 'VENCIDO' || lote.estado === 'ACTIVO')) {
+                                @if (lote.cantidad_disponible > 0 && lote.estado !== 'Dado_de_Baja' && (lote.estado === 'VENCIDO' || lote.estado === 'ACTIVO')) {
                                   <button type="button" class="btn-action btn-baja-lote" (click)="darBajaLote(lote, re.id)">
                                     Dar de baja
                                   </button>
@@ -340,17 +366,45 @@
       <p class="subtitle">Lote <strong>{{ target.lote.codigo_lote }}</strong></p>
       <div class="form-group">
         <label>Motivo de baja</label>
-        <input
-          type="text"
+        <select
           [ngModel]="motivoBajaLote()"
           (ngModelChange)="motivoBajaLote.set($event)"
           name="motivoBajaLote"
-          placeholder="Ej: Retiro por vencimiento"
-        />
+        >
+          @for (m of motivosBaja; track m) {
+            <option [value]="m">{{ m }}</option>
+          }
+        </select>
       </div>
       <div class="modal-actions">
         <button type="button" class="btn-modal-cancel" (click)="mostrarBajaLoteModal.set(false)">Cancelar</button>
         <button type="button" class="btn-modal-submit" (click)="confirmarBajaLote()">Dar de baja</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (mostrarEditarProveedorModal() && reactivoEditarProveedor(); as re) {
+  <div class="modal-overlay" (click)="mostrarEditarProveedorModal.set(false)">
+    <div class="modal-card glass" (click)="$event.stopPropagation()">
+      <h3>Proveedor habitual</h3>
+      <p class="subtitle">Insumo: <strong>{{ re.nombre }}</strong></p>
+      <div class="form-group">
+        <label>Proveedor</label>
+        <select
+          [ngModel]="editarProveedorId()"
+          (ngModelChange)="editarProveedorId.set($event === 'null' || $event === '' ? null : +$event)"
+          name="edit_prov"
+        >
+          <option [ngValue]="null">Sin proveedor</option>
+          @for (prov of proveedores(); track prov.id) {
+            <option [ngValue]="prov.id">{{ prov.nombre }}</option>
+          }
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-modal-cancel" (click)="mostrarEditarProveedorModal.set(false)">Cancelar</button>
+        <button type="button" class="btn-modal-submit" (click)="guardarProveedorReactivo()">Guardar</button>
       </div>
     </div>
   </div>

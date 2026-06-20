@@ -63,7 +63,7 @@ export class PanelCatalogoTabComponent implements OnInit {
   toggleDestacadoExamen(examen: Examen) {
     if (!examen.visible) return;
     if (!examen.destacado && this.cantidadDestacados() >= this.maxDestacados) {
-      this.notify.mostrarToast(`Máximo ${this.maxDestacados} exámenes destacados en el inicio.`, 'error');
+      this.notify.mostrarToast(`Máximo ${this.maxDestacados} pruebas destacadas en el inicio.`, 'error');
       return;
     }
 

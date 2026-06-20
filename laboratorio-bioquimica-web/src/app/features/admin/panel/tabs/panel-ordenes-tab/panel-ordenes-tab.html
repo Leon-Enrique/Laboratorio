@@ -8,7 +8,7 @@
 
     <div id="nueva-orden-form" class="form-card glass nueva-orden-card">
       <h3>Recepción Rápida de Muestras</h3>
-      <p class="subtitle">Registra los datos del paciente y selecciona sus exámenes solicitados.</p>
+      <p class="subtitle">Registra los datos del paciente y selecciona sus pruebas solicitadas.</p>
 
       <form (ngSubmit)="crearNuevaOrden()" class="admin-form">
       <div class="form-row">
@@ -86,7 +86,7 @@
       </div>
 
       <div class="exam-selector-autocomplete">
-        <label class="section-label">Seleccione Análisis Clínicos:</label>
+        <label class="section-label">Seleccione pruebas clínicas:</label>
 
         @if (examenesSeleccionadosObjetos().length > 0) {
           <div class="selected-chips-container">
@@ -103,7 +103,7 @@
           <input
             type="text"
             class="autocomplete-input"
-            placeholder="Buscar y agregar análisis clínicos (ej: Glucosa, Colesterol)..."
+            placeholder="Buscar y agregar pruebas clínicas (ej: Glucosa, Colesterol)..."
             [(ngModel)]="busquedaExamen"
             name="busquedaExamenInput"
             (focus)="mostrarDropdownExamenes.set(true)"
@@ -122,7 +122,7 @@
             </div>
           } @else if (mostrarDropdownExamenes() && busquedaExamen() && examenesFiltradosBusqueda().length === 0) {
             <div class="autocomplete-dropdown glass empty-dropdown">
-              No se encontraron análisis disponibles.
+              No se encontraron pruebas disponibles.
             </div>
           }
         </div>
@@ -158,7 +158,7 @@
     <div class="orders-panel-header">
       <div>
         <h3>Cola de trabajo</h3>
-        <p class="subtitle">Órdenes activas del laboratorio — análisis, cobro y entrega de informes.</p>
+        <p class="subtitle">Órdenes activas del laboratorio — pruebas, cobro y entrega de informes.</p>
       </div>
       <button type="button" class="btn-action btn-refresh-orders" (click)="refresh()">
         ↻ Actualizar
@@ -190,7 +190,7 @@
         <input
           type="text"
           class="orders-search-input"
-          placeholder="Buscar por código, paciente, CI o examen…"
+          placeholder="Buscar por código, paciente, CI o prueba…"
           [ngModel]="busquedaOrdenes()"
           (ngModelChange)="onBusquedaOrdenesChange($event)"
           name="busquedaOrdenes"
@@ -228,7 +228,7 @@
             <th class="th-sortable" [title]="sortTitle('paciente')" (click)="ordenarPor('paciente')">
               Paciente <span class="sort-icon">{{ sortIcon('paciente') }}</span>
             </th>
-            <th>Análisis solicitados</th>
+            <th>Pruebas solicitadas</th>
             <th class="th-sortable" [title]="sortTitle('total')" (click)="ordenarPor('total')">
               Total <span class="sort-icon">{{ sortIcon('total') }}</span>
             </th>
@@ -398,7 +398,7 @@
           </div>
 
           <div class="detalle-block">
-            <h4>Análisis solicitados</h4>
+            <h4>Pruebas solicitadas</h4>
             <div class="orden-exam-chips">
               @for (item of examenesOrdenItems(ord); track item.examenId) {
                 <span class="orden-exam-chip-wrap">
@@ -440,7 +440,7 @@
                 }
               </div>
             } @else {
-              <p class="empty-hint">Esta orden no tiene exámenes asociados.</p>
+              <p class="empty-hint">Esta orden no tiene pruebas asociadas.</p>
             }
 
             <div class="detalle-resultados-actions">
@@ -526,7 +526,7 @@
         </div>
 
         <div class="ticket-exams-box">
-          <strong>Análisis clínicos a realizar:</strong>
+          <strong>Pruebas clínicas a realizar:</strong>
           <ul>
             @for (res of ticketOrden()?.resultados; track res.id) {
               <li>✓ {{ res.examen_nombre }}</li>
@@ -553,7 +553,7 @@
               <span class="qr-code-text">{{ ticketOrden()?.codigo_orden }}</span>
             </div>
           </div>
-          <p class="qr-instructions">Escanea el QR para consultar resultados en el portal del paciente. Recorta y pega en los tubos antes del análisis.</p>
+          <p class="qr-instructions">Escanea el QR para consultar resultados en el portal del paciente. Recorta y pega en los tubos antes de la prueba.</p>
         </div>
       </div>
 

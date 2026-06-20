@@ -34,18 +34,18 @@
             <button
               type="button"
               class="nav-child-btn"
-              [class.active]="esNavActivo('ordenes-lista')"
-              (click)="navegar('ordenes-lista')"
-            >
-              Cola de trabajo
-            </button>
-            <button
-              type="button"
-              class="nav-child-btn"
               [class.active]="esNavActivo('ordenes-nueva')"
               (click)="navegar('ordenes-nueva')"
             >
               Nueva orden
+            </button>
+            <button
+              type="button"
+              class="nav-child-btn"
+              [class.active]="esNavActivo('ordenes-lista')"
+              (click)="navegar('ordenes-lista')"
+            >
+              Cola de trabajo
             </button>
             <button
               type="button"
@@ -59,18 +59,85 @@
         }
       </div>
 
-      <button
-        type="button"
-        class="nav-item-btn"
-        [class.active]="esNavActivo('inventario')"
-        (click)="navegar('inventario')"
-        [attr.title]="sidebarColapsado() ? 'Inventario' : null"
-      >
-        <span class="nav-icon" aria-hidden="true">📦</span>
-        @if (!sidebarColapsado()) {
-          <span class="nav-label">Inventario</span>
+      <div class="nav-group" [class.is-active]="grupoActivo('inventario')">
+        <button
+          type="button"
+          class="nav-group-btn"
+          [class.expanded]="gruposExpandidos()['inventario']"
+          (click)="onGrupoClick('inventario', 'inventario-insumos')"
+          [attr.title]="sidebarColapsado() ? 'Inventario' : null"
+        >
+          <span class="nav-icon" aria-hidden="true">📦</span>
+          @if (!sidebarColapsado()) {
+            <span class="nav-label">Inventario</span>
+            <span class="nav-chevron" aria-hidden="true"></span>
+          }
+        </button>
+        @if (gruposExpandidos()['inventario'] && !sidebarColapsado()) {
+          <div class="nav-children">
+            <button
+              type="button"
+              class="nav-child-btn"
+              [class.active]="esNavActivo('inventario-insumos')"
+              (click)="navegar('inventario-insumos')"
+            >
+              Control de Insumos
+            </button>
+            <button
+              type="button"
+              class="nav-child-btn"
+              [class.active]="esNavActivo('inventario-mermas')"
+              (click)="navegar('inventario-mermas')"
+            >
+              Historial de Mermas
+            </button>
+          </div>
         }
-      </button>
+      </div>
+
+      <div class="nav-group" [class.is-active]="grupoActivo('compras')">
+        <button
+          type="button"
+          class="nav-group-btn"
+          [class.expanded]="gruposExpandidos()['compras']"
+          (click)="onGrupoClick('compras', 'compras-sugerencias')"
+          [attr.title]="sidebarColapsado() ? 'Compras' : null"
+        >
+          <span class="nav-icon" aria-hidden="true">🛒</span>
+          @if (!sidebarColapsado()) {
+            <span class="nav-label">Compras</span>
+            <span class="nav-chevron" aria-hidden="true"></span>
+          }
+        </button>
+        @if (gruposExpandidos()['compras'] && !sidebarColapsado()) {
+          <div class="nav-children">
+            <button
+              type="button"
+              class="nav-child-btn"
+              [class.active]="esNavActivo('compras-sugerencias')"
+              (click)="navegar('compras-sugerencias')"
+            >
+              Sugerencias de Compra
+            </button>
+            <button
+              type="button"
+              class="nav-child-btn"
+              [class.active]="esNavActivo('compras-ordenes-pedido')"
+              (click)="navegar('compras-ordenes-pedido')"
+            >
+              Órdenes de Pedido
+            </button>
+            <button
+              type="button"
+              class="nav-child-btn"
+              [class.active]="esNavActivo('compras-proveedores')"
+              (click)="navegar('compras-proveedores')"
+            >
+              Catálogo de Proveedores
+            </button>
+          </div>
+        }
+      </div>
 
       <div class="nav-group" [class.is-active]="grupoActivo('reportes')">
         <button
@@ -115,11 +182,11 @@
             class="nav-group-btn"
             [class.expanded]="gruposExpandidos()['config']"
             (click)="onGrupoClick('config', 'config-catalogo')"
-            [attr.title]="sidebarColapsado() ? 'Configuración' : null"
+            [attr.title]="sidebarColapsado() ? 'Examen' : null"
           >
-            <span class="nav-icon" aria-hidden="true">⚙</span>
+            <span class="nav-icon" aria-hidden="true">🧪</span>
             @if (!sidebarColapsado()) {
-              <span class="nav-label">Configuración</span>
+              <span class="nav-label">Examen</span>
               <span class="nav-chevron" aria-hidden="true"></span>
             }
           </button>
@@ -131,7 +198,7 @@
                 [class.active]="esNavActivo('config-catalogo')"
                 (click)="navegar('config-catalogo')"
               >
-                Catálogo de exámenes
+                Catálogo de pruebas
               </button>
               <button
                 type="button"
@@ -139,7 +206,7 @@
                 [class.active]="esNavActivo('config-catalogo-nuevo')"
                 (click)="navegar('config-catalogo-nuevo')"
               >
-                Nuevo análisis
+                Nueva prueba
               </button>
             </div>
           }
@@ -210,8 +277,31 @@
         />
       }
 
-      @if (tabActiva() === 'inventario') {
-        <app-panel-inventario-tab [rolUsuario]="rolUsuario() ?? ''" />
+      @if (tabActiva() === 'inventario-insumos') {
+        <app-panel-inventario-tab
+          [rolUsuario]="rolUsuario() ?? ''"
+          (irSugerenciaCompra)="navegarSugerenciaCompra($event)"
+        />
+      }
+
+      @if (tabActiva() === 'inventario-mermas') {
+        <app-panel-mermas-tab />
+      }
+
+      @if (tabActiva() === 'compras-sugerencias') {
+        <app-panel-sugerencias-compra-tab
+          [rolUsuario]="rolUsuario() ?? ''"
+          [filtroReactivoId]="filtroSugerenciaReactivoId()"
+          (limpiarFiltro)="limpiarFiltroSugerencia()"
+        />
+      }
+
+      @if (tabActiva() === 'compras-proveedores') {
+        <app-panel-proveedores-tab [rolUsuario]="rolUsuario() ?? ''" />
+      }
+
+      @if (tabActiva() === 'compras-ordenes-pedido') {
+        <app-panel-ordenes-pedido-tab />
       }
 
       @if (tabActiva() === 'reportes') {

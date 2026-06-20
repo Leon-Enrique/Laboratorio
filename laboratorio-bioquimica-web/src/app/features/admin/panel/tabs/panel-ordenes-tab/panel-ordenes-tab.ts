@@ -272,7 +272,7 @@ export class PanelOrdenesTabComponent implements OnInit {
 
   crearNuevaOrden() {
     if (this.examenesSeleccionados().length === 0 || !this.nuevoDni() || !this.nuevoNombre() || !this.nuevoApellido()) {
-      this.notify.mostrarToast('Por favor complete todos los datos requeridos y seleccione al menos un examen.', 'error');
+      this.notify.mostrarToast('Por favor complete todos los datos requeridos y seleccione al menos una prueba.', 'error');
       return;
     }
 
@@ -317,7 +317,7 @@ export class PanelOrdenesTabComponent implements OnInit {
         if (data.resultados) {
           data.resultados.forEach(res => {
             const ex = this.examenesCatalogo().find(e => e.id === res.examen_id);
-            res.examen_nombre = ex ? ex.nombre : 'Examen Clínico';
+            res.examen_nombre = ex ? ex.nombre : 'Prueba clínica';
           });
         }
         this.ticketOrden.set(data);
@@ -439,7 +439,7 @@ export class PanelOrdenesTabComponent implements OnInit {
   labelEstadoLab(estado: string): string {
     if (estado === 'COMPLETADO') return 'Firmado';
     if (estado === 'PROCESANDO') return 'Resultados cargados';
-    return 'En análisis';
+    return 'En prueba';
   }
 
   claseEstadoLab(estado: string): string {
@@ -480,7 +480,7 @@ export class PanelOrdenesTabComponent implements OnInit {
 
   tituloModalResultados(ord: Orden): string {
     if (this.ordenCompletada(ord)) return 'Informe de resultados';
-    if (this.ordenTieneResultadosRellenados(ord)) return 'Resultados del análisis';
+    if (this.ordenTieneResultadosRellenados(ord)) return 'Resultados de la prueba';
     return 'Rellenar resultado';
   }
 
@@ -489,7 +489,7 @@ export class PanelOrdenesTabComponent implements OnInit {
       res.examen?.nombre
       || res.examen_nombre
       || this.examenesCatalogo().find(e => e.id === res.examen_id)?.nombre
-      || 'Examen'
+      || 'Prueba'
     );
   }
 
@@ -508,7 +508,7 @@ export class PanelOrdenesTabComponent implements OnInit {
         ...res,
         examen_nombre: res.examen?.nombre
           || this.examenesCatalogo().find(e => e.id === res.examen_id)?.nombre
-          || 'Examen Clínico'
+          || 'Prueba clínica'
       }))
     };
     this.ticketOrden.set(ticket);
@@ -559,7 +559,7 @@ export class PanelOrdenesTabComponent implements OnInit {
     const campos: CampoResultadoForm[] = [];
     orden.resultados.forEach(res => {
       const examen = this.examenDeResultado(res);
-      const examenNombre = examen?.nombre || res.examen?.nombre || `Examen #${res.examen_id}`;
+      const examenNombre = examen?.nombre || res.examen?.nombre || `Prueba #${res.examen_id}`;
       this.parametrosDeExamen(examen, res).forEach(p => {
         campos.push({
           key: this.parametroClave(p),
@@ -655,7 +655,7 @@ export class PanelOrdenesTabComponent implements OnInit {
     if (desdeOrden?.length) {
       return filtrar(desdeOrden);
     }
-    const nombre = examen?.nombre || res.examen?.nombre || `Examen #${res.examen_id}`;
+    const nombre = examen?.nombre || res.examen?.nombre || `Prueba #${res.examen_id}`;
     return [{ nombre: `Resultado ${nombre}`, unidad: '', tipo: 'Texto' }];
   }
 

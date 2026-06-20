@@ -5,18 +5,26 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, joinedload
 
 from app.db.session import get_db
-from app.models.inventario import Reactivo, Proveedor, MovimientoStock, Lote
+from app.models.inventario import Reactivo, Proveedor, MovimientoStock, Lote, MermaInventario, OrdenPedido
 from app.models.usuario import Usuario
 from app.schemas.inventario import (
     ReactivoResponse,
     ReactivoCreate,
     ProveedorResponse,
+    ProveedorCreate,
+    ProveedorUpdate,
     MovimientoStockResponse,
     MovimientoStockCreate,
     LoteCreate,
     LoteResponse,
     BajaLoteRequest,
     AuditoriaInventarioResponse,
+    MermaInventarioResponse,
+    SugerenciaCompraResponse,
+    OrdenPedidoCreate,
+    OrdenPedidoUpdate,
+    OrdenPedidoResponse,
+    ReactivoMrpUpdate,
 )
 from app.api.v1.endpoints.auth import RoleChecker
 from app.services import inventario_service as inv
@@ -85,6 +93,8 @@ def crear_reactivo(
         nombre=reactivo_in.nombre,
         stock_actual=0,
         stock_minimo=reactivo_in.stock_minimo,
+        stock_de_seguridad=reactivo_in.stock_de_seguridad,
+        tiempo_entrega_proveedor_dias=reactivo_in.tiempo_entrega_proveedor_dias,
         unidad_medida=reactivo_in.unidad_medida,
         proveedor_id=reactivo_in.proveedor_id,
     )
@@ -302,6 +312,206 @@ def registrar_movimiento(
     raise HTTPException(status_code=400, detail="Use tipo ENTRADA con lote o cantidad negativa para salidas")
 
 
+def _orden_pedido_response(orden: OrdenPedido) -> OrdenPedidoResponse:
+    return OrdenPedidoResponse(
+        id=orden.id,
+        reactivo_id=orden.reactivo_id,
+        reactivo_nombre=orden.reactivo.nombre if orden.reactivo else None,
+        proveedor_id=orden.proveedor_id,
+        proveedor_nombre=orden.proveedor.nombre if orden.proveedor else None,
+        proveedor_telefono=orden.proveedor.telefono if orden.proveedor else None,
+        cantidad_pedida=orden.cantidad_pedida,
+        estado=orden.estado,
+        fecha_creacion=orden.fecha_creacion,
+        fecha_esperada=orden.fecha_esperada,
+        notas=orden.notas,
+    )
+
+
 @router.get("/proveedores", response_model=List[ProveedorResponse], dependencies=dependencias_seguridad)
 def listar_proveedores(db: Session = Depends(get_db)) -> Any:
-    return db.query(Proveedor).all()
+    return db.query(Proveedor).order_by(Proveedor.nombre).all()
+
+
+@router.post("/proveedores", response_model=ProveedorResponse, dependencies=dependencias_seguridad)
+def crear_proveedor(
+    body: ProveedorCreate,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(RoleChecker(["admin"])),
+) -> Any:
+    existente = db.query(Proveedor).filter(Proveedor.nombre == body.nombre.strip()).first()
+    if existente:
+        raise HTTPException(status_code=400, detail="Ya existe un proveedor con ese nombre")
+    proveedor = Proveedor(
+        nombre=body.nombre.strip(),
+        telefono=body.telefono,
+        email=body.email,
+        direccion=body.direccion,
+    )
+    db.add(proveedor)
+    db.commit()
+    db.refresh(proveedor)
+    return proveedor
+
+
+@router.patch("/proveedores/{proveedor_id}", response_model=ProveedorResponse, dependencies=dependencias_seguridad)
+def actualizar_proveedor(
+    proveedor_id: int,
+    body: ProveedorUpdate,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(RoleChecker(["admin"])),
+) -> Any:
+    proveedor = db.query(Proveedor).filter(Proveedor.id == proveedor_id).first()
+    if not proveedor:
+        raise HTTPException(status_code=404, detail="Proveedor no encontrado")
+    if body.nombre is not None:
+        nombre = body.nombre.strip()
+        if not nombre:
+            raise HTTPException(status_code=400, detail="El nombre del proveedor no puede estar vacío")
+        otro = db.query(Proveedor).filter(Proveedor.nombre == nombre, Proveedor.id != proveedor_id).first()
+        if otro:
+            raise HTTPException(status_code=400, detail="Ya existe otro proveedor con ese nombre")
+        proveedor.nombre = nombre
+    if body.telefono is not None:
+        proveedor.telefono = body.telefono or None
+    if body.email is not None:
+        proveedor.email = body.email or None
+    if body.direccion is not None:
+        proveedor.direccion = body.direccion or None
+    db.add(proveedor)
+    db.commit()
+    db.refresh(proveedor)
+    return proveedor
+
+
+@router.patch("/reactivos/{reactivo_id}", response_model=ReactivoResponse, dependencies=dependencias_seguridad)
+def actualizar_reactivo_mrp(
+    reactivo_id: int,
+    body: ReactivoMrpUpdate,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(RoleChecker(["admin"])),
+) -> Any:
+    reactivo = db.query(Reactivo).filter(Reactivo.id == reactivo_id).first()
+    if not reactivo:
+        raise HTTPException(status_code=404, detail="Reactivo no encontrado")
+    if body.stock_de_seguridad is not None:
+        reactivo.stock_de_seguridad = body.stock_de_seguridad
+    if body.tiempo_entrega_proveedor_dias is not None:
+        reactivo.tiempo_entrega_proveedor_dias = body.tiempo_entrega_proveedor_dias
+    if body.stock_minimo is not None:
+        reactivo.stock_minimo = body.stock_minimo
+    if body.proveedor_id is not None:
+        if body.proveedor_id == 0:
+            reactivo.proveedor_id = None
+        else:
+            prov = db.query(Proveedor).filter(Proveedor.id == body.proveedor_id).first()
+            if not prov:
+                raise HTTPException(status_code=404, detail="Proveedor no encontrado")
+            reactivo.proveedor_id = body.proveedor_id
+    db.add(reactivo)
+    db.commit()
+    db.refresh(reactivo)
+    return reactivo
+
+
+@router.get("/mermas", response_model=List[MermaInventarioResponse], dependencies=dependencias_seguridad)
+def listar_mermas(
+    limit: int = Query(200, le=500),
+    db: Session = Depends(get_db),
+) -> Any:
+    mermas = inv.listar_mermas(db, limit=limit)
+    return [
+        MermaInventarioResponse(
+            id=m.id,
+            id_insumo=m.id_insumo,
+            insumo_nombre=m.reactivo.nombre if m.reactivo else None,
+            lote_id=m.lote_id,
+            codigo_lote=m.codigo_lote,
+            cantidad_perdida=m.cantidad_perdida,
+            fecha_baja=m.fecha_baja,
+            motivo=m.motivo,
+        )
+        for m in mermas
+    ]
+
+
+@router.get("/sugerencias-compra", response_model=List[SugerenciaCompraResponse], dependencies=dependencias_seguridad)
+def sugerencias_compra(
+    reactivo_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db),
+) -> Any:
+    return inv.obtener_sugerencias_compra(db, reactivo_id=reactivo_id)
+
+
+@router.get("/ordenes-pedido", response_model=List[OrdenPedidoResponse], dependencies=dependencias_seguridad)
+def listar_ordenes_pedido(db: Session = Depends(get_db)) -> Any:
+    ordenes = (
+        db.query(OrdenPedido)
+        .options(joinedload(OrdenPedido.reactivo), joinedload(OrdenPedido.proveedor))
+        .order_by(OrdenPedido.fecha_creacion.desc())
+        .all()
+    )
+    return [_orden_pedido_response(o) for o in ordenes]
+
+
+@router.post("/ordenes-pedido", response_model=OrdenPedidoResponse, dependencies=dependencias_seguridad)
+def crear_orden_pedido(
+    body: OrdenPedidoCreate,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(RoleChecker(["admin", "bioquimico"])),
+) -> Any:
+    reactivo = db.query(Reactivo).filter(Reactivo.id == body.reactivo_id).first()
+    if not reactivo:
+        raise HTTPException(status_code=404, detail="Reactivo no encontrado")
+    orden = OrdenPedido(
+        reactivo_id=body.reactivo_id,
+        cantidad_pedida=body.cantidad_pedida,
+        proveedor_id=body.proveedor_id or reactivo.proveedor_id,
+        fecha_esperada=body.fecha_esperada,
+        notas=body.notas,
+        usuario_id=current_user.id,
+        estado="BORRADOR",
+    )
+    db.add(orden)
+    db.commit()
+    db.refresh(orden)
+    orden = (
+        db.query(OrdenPedido)
+        .options(joinedload(OrdenPedido.reactivo), joinedload(OrdenPedido.proveedor))
+        .filter(OrdenPedido.id == orden.id)
+        .first()
+    )
+    return _orden_pedido_response(orden)
+
+
+@router.patch("/ordenes-pedido/{orden_id}", response_model=OrdenPedidoResponse, dependencies=dependencias_seguridad)
+def actualizar_orden_pedido(
+    orden_id: int,
+    body: OrdenPedidoUpdate,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(RoleChecker(["admin", "bioquimico"])),
+) -> Any:
+    orden = db.query(OrdenPedido).filter(OrdenPedido.id == orden_id).first()
+    if not orden:
+        raise HTTPException(status_code=404, detail="Orden de pedido no encontrada")
+    if body.estado is not None:
+        if body.estado not in ("BORRADOR", "ENVIADA", "RECIBIDA", "CANCELADA"):
+            raise HTTPException(status_code=400, detail="Estado de pedido inválido")
+        orden.estado = body.estado
+    if body.cantidad_pedida is not None:
+        orden.cantidad_pedida = body.cantidad_pedida
+    if body.proveedor_id is not None:
+        orden.proveedor_id = body.proveedor_id
+    if body.fecha_esperada is not None:
+        orden.fecha_esperada = body.fecha_esperada
+    if body.notas is not None:
+        orden.notas = body.notas
+    db.add(orden)
+    db.commit()
+    orden = (
+        db.query(OrdenPedido)
+        .options(joinedload(OrdenPedido.reactivo), joinedload(OrdenPedido.proveedor))
+        .filter(OrdenPedido.id == orden.id)
+        .first()
+    )
+    return _orden_pedido_response(orden)

@@ -5,7 +5,7 @@ from sqlalchemy import inspect, text
 
 from app.core.config import settings
 from app.db.session import engine, SessionLocal, Base
-from app.models.inventario import Reactivo, Lote
+from app.models.inventario import Reactivo, Lote, MermaInventario, OrdenPedido  # noqa: F401
 from app.models.orden import Orden
 from app.models.parametro_examen import ParametroExamen  # noqa: F401 — metadata
 
@@ -89,6 +89,10 @@ def apply_legacy_schema_patches() -> None:
             _add_column_if_missing(conn, inspector, "parametros_examen", "decimales", "decimales INTEGER DEFAULT 2")
             _add_column_if_missing(conn, inspector, "parametros_examen", "metodo_prueba", "metodo_prueba TEXT")
             _add_column_if_missing(conn, inspector, "parametros_examen", "valor_referencia", "valor_referencia TEXT")
+
+        if _table_exists(inspector, "reactivos"):
+            _add_column_if_missing(conn, inspector, "reactivos", "stock_de_seguridad", "stock_de_seguridad FLOAT DEFAULT 0")
+            _add_column_if_missing(conn, inspector, "reactivos", "tiempo_entrega_proveedor_dias", "tiempo_entrega_proveedor_dias INTEGER DEFAULT 7")
 
         if _table_exists(inspector, "pacientes"):
             _add_column_if_missing(conn, inspector, "pacientes", "nit", "nit VARCHAR")

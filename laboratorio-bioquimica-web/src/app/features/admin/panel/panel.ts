@@ -8,6 +8,10 @@ import { PanelNotifyService } from './panel-notify.service';
 import { PanelOverlaysComponent } from './overlays/panel-overlays';
 import { PanelOrdenesTabComponent } from './tabs/panel-ordenes-tab/panel-ordenes-tab';
 import { PanelInventarioTabComponent } from './tabs/panel-inventario-tab/panel-inventario-tab';
+import { PanelMermasTabComponent } from './tabs/panel-mermas-tab/panel-mermas-tab';
+import { PanelSugerenciasCompraTabComponent } from './tabs/panel-sugerencias-compra-tab/panel-sugerencias-compra-tab';
+import { PanelOrdenesPedidoTabComponent } from './tabs/panel-ordenes-pedido-tab/panel-ordenes-pedido-tab';
+import { PanelProveedoresTabComponent } from './tabs/panel-proveedores-tab/panel-proveedores-tab';
 import { PanelReportesTabComponent } from './tabs/panel-reportes-tab/panel-reportes-tab';
 import { PanelHistorialTabComponent } from './tabs/panel-historial-tab/panel-historial-tab';
 import { PanelCatalogoTabComponent } from './tabs/panel-catalogo-tab/panel-catalogo-tab';
@@ -27,6 +31,10 @@ interface BreadcrumbItem {
     PanelOverlaysComponent,
     PanelOrdenesTabComponent,
     PanelInventarioTabComponent,
+    PanelMermasTabComponent,
+    PanelSugerenciasCompraTabComponent,
+    PanelOrdenesPedidoTabComponent,
+    PanelProveedoresTabComponent,
     PanelReportesTabComponent,
     PanelHistorialTabComponent,
     PanelCatalogoTabComponent,
@@ -53,14 +61,21 @@ export class PanelAdminComponent {
   tabActiva = signal<PanelTabId>('ordenes');
   sidebarColapsado = signal(false);
   sidebarMovilAbierto = signal(false);
+  filtroSugerenciaReactivoId = signal<number | null>(null);
   gruposExpandidos = signal<Record<string, boolean>>({
     ordenes: true,
+    inventario: true,
+    compras: true,
     reportes: true,
     config: true
   });
 
   ordenesTab = viewChild(PanelOrdenesTabComponent);
   inventarioTab = viewChild(PanelInventarioTabComponent);
+  mermasTab = viewChild(PanelMermasTabComponent);
+  sugerenciasTab = viewChild(PanelSugerenciasCompraTabComponent);
+  ordenesPedidoTab = viewChild(PanelOrdenesPedidoTabComponent);
+  proveedoresTab = viewChild(PanelProveedoresTabComponent);
   catalogoTab = viewChild(PanelCatalogoTabComponent);
   analisisTab = viewChild(PanelAnalisisTabComponent);
 
@@ -76,11 +91,15 @@ export class PanelAdminComponent {
       'ordenes-lista': 'Cola de trabajo',
       'ordenes-nueva': 'Nueva orden',
       'ordenes-cobros': 'Cobros pendientes',
-      inventario: 'Inventario y planificación',
+      'inventario-insumos': 'Control de insumos',
+      'inventario-mermas': 'Historial de mermas',
+      'compras-sugerencias': 'Sugerencias de compra',
+      'compras-proveedores': 'Catálogo de proveedores',
+      'compras-ordenes-pedido': 'Órdenes de pedido',
       'reportes-stats': 'Reportes y estadísticas',
       'reportes-paciente': 'Historial por paciente',
-      'config-catalogo': 'Catálogo de exámenes',
-      'config-catalogo-nuevo': 'Nuevo análisis'
+      'config-catalogo': 'Catálogo de pruebas',
+      'config-catalogo-nuevo': 'Nueva prueba'
     };
     return map[this.navActivo()] ?? 'Panel';
   });
@@ -92,14 +111,17 @@ export class PanelAdminComponent {
     if (nav.startsWith('ordenes')) {
       return [...base, { label: 'Órdenes' }, { label: this.tituloPagina() }];
     }
+    if (nav.startsWith('inventario')) {
+      return [...base, { label: 'Inventario' }, { label: this.tituloPagina() }];
+    }
+    if (nav.startsWith('compras')) {
+      return [...base, { label: 'Compras' }, { label: this.tituloPagina() }];
+    }
     if (nav.startsWith('reportes')) {
       return [...base, { label: 'Reportes' }, { label: this.tituloPagina() }];
     }
     if (nav.startsWith('config-catalogo')) {
-      return [...base, { label: 'Configuración' }, { label: this.tituloPagina() }];
-    }
-    if (nav === 'inventario') {
-      return [...base, { label: 'Laboratorio' }, { label: this.tituloPagina() }];
+      return [...base, { label: 'Examen' }, { label: this.tituloPagina() }];
     }
     return base;
   });
@@ -112,6 +134,12 @@ export class PanelAdminComponent {
     if (nav.startsWith('ordenes')) {
       this.gruposExpandidos.update(g => ({ ...g, ordenes: true }));
     }
+    if (nav.startsWith('inventario')) {
+      this.gruposExpandidos.update(g => ({ ...g, inventario: true }));
+    }
+    if (nav.startsWith('compras')) {
+      this.gruposExpandidos.update(g => ({ ...g, compras: true }));
+    }
     if (nav.startsWith('reportes')) {
       this.gruposExpandidos.update(g => ({ ...g, reportes: true }));
     }
@@ -120,6 +148,15 @@ export class PanelAdminComponent {
     }
 
     setTimeout(() => this.aplicarVistaNav(nav), 0);
+  }
+
+  navegarSugerenciaCompra(reactivoId: number) {
+    this.filtroSugerenciaReactivoId.set(reactivoId);
+    this.navegar('compras-sugerencias');
+  }
+
+  limpiarFiltroSugerencia() {
+    this.filtroSugerenciaReactivoId.set(null);
   }
 
   onGrupoClick(grupo: string, navPorDefecto: PanelNavId) {
@@ -154,6 +191,8 @@ export class PanelAdminComponent {
   grupoActivo(grupo: string): boolean {
     const nav = this.navActivo();
     if (grupo === 'ordenes') return nav.startsWith('ordenes');
+    if (grupo === 'inventario') return nav.startsWith('inventario');
+    if (grupo === 'compras') return nav.startsWith('compras');
     if (grupo === 'reportes') return nav.startsWith('reportes');
     if (grupo === 'config') return nav.startsWith('config-catalogo');
     return false;
@@ -161,6 +200,7 @@ export class PanelAdminComponent {
 
   onInventarioChanged() {
     this.inventarioTab()?.cargarDatosInventario();
+    this.sugerenciasTab()?.cargarSugerencias();
   }
 
   logout() {
@@ -170,11 +210,16 @@ export class PanelAdminComponent {
 
   private tabDesdeNav(nav: PanelNavId): PanelTabId {
     if (nav.startsWith('ordenes')) return 'ordenes';
+    if (nav === 'inventario-insumos') return 'inventario-insumos';
+    if (nav === 'inventario-mermas') return 'inventario-mermas';
+    if (nav === 'compras-sugerencias') return 'compras-sugerencias';
+    if (nav === 'compras-proveedores') return 'compras-proveedores';
+    if (nav === 'compras-ordenes-pedido') return 'compras-ordenes-pedido';
     if (nav === 'reportes-stats') return 'reportes';
     if (nav === 'reportes-paciente') return 'historial';
     if (nav === 'config-catalogo') return 'config-catalogo';
     if (nav === 'config-catalogo-nuevo') return 'config-analisis';
-    return 'inventario';
+    return 'inventario-insumos';
   }
 
   private aplicarVistaNav(nav: PanelNavId) {
@@ -185,8 +230,20 @@ export class PanelAdminComponent {
       this.ordenesTab()?.refresh();
       return;
     }
-    if (nav === 'inventario') {
+    if (nav === 'inventario-insumos') {
       this.inventarioTab()?.cargarDatosInventario();
+    }
+    if (nav === 'inventario-mermas') {
+      this.mermasTab()?.cargarMermas();
+    }
+    if (nav === 'compras-sugerencias') {
+      this.sugerenciasTab()?.cargarSugerencias();
+    }
+    if (nav === 'compras-proveedores') {
+      this.proveedoresTab()?.cargarProveedores();
+    }
+    if (nav === 'compras-ordenes-pedido') {
+      this.ordenesPedidoTab()?.cargarDatos();
     }
     if (nav === 'config-catalogo') {
       this.catalogoTab()?.cargarExamenesCatalogo();

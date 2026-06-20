@@ -1,0 +1,96 @@
+<div class="inventory-dashboard fade-in">
+  <div class="section-title-bar">
+    <h3>Sugerencias de Compra (MRP)</h3>
+    <button type="button" class="btn-action" (click)="cargarSugerencias()">Recalcular</button>
+  </div>
+  <p class="subtitle">
+    Punto de reorden = (Consumo diario promedio × Tiempo de entrega) + Stock de seguridad.
+    @if (filtroReactivoId) {
+      Filtrando insumo #{{ filtroReactivoId }}.
+      <button type="button" class="btn-link-inline" (click)="onLimpiarFiltro()">Ver todos</button>
+    }
+  </p>
+
+  <div class="inventory-table-card glass">
+    @if (cargando()) {
+      <p class="loading-lotes">Calculando sugerencias…</p>
+    } @else {
+      <div class="table-wrapper">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Insumo</th>
+              <th>Stock actual</th>
+              <th>Consumo/día</th>
+              <th>Lead time (d)</th>
+              <th>Stock seguridad</th>
+              <th>Punto reorden</th>
+              <th>Cant. sugerida</th>
+              <th>Proveedor</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (s of sugerencias(); track s.reactivo_id) {
+              <tr [class.row-destacada]="filtroReactivoId === s.reactivo_id">
+                <td class="font-bold">
+                  {{ s.nombre }}
+                  <div class="alert-reasons">
+                    @for (a of s.alertas; track a) {
+                      <span class="reason-pill">{{ a }}</span>
+                    }
+                  </div>
+                </td>
+                <td>{{ s.stock_actual }} {{ s.unidad_medida }}</td>
+                <td>{{ s.consumo_diario_promedio }}</td>
+                <td>{{ s.tiempo_entrega_proveedor_dias }}</td>
+                <td>{{ s.stock_de_seguridad }}</td>
+                <td><strong>{{ s.punto_reorden }}</strong></td>
+                <td class="text-primary font-bold">{{ s.cantidad_sugerida }} {{ s.unidad_medida }}</td>
+                <td>{{ s.proveedor_nombre || '—' }}</td>
+                <td class="actions-cell">
+                  <button type="button" class="btn-action btn-add-stock" (click)="crearPedido(s)">
+                    Crear pedido
+                  </button>
+                  @if (rolUsuario === 'admin') {
+                    <button type="button" class="btn-action" (click)="abrirEditarMrp(s)">MRP</button>
+                  }
+                </td>
+              </tr>
+              @if (reactivoEditando() === s.reactivo_id && rolUsuario === 'admin') {
+                <tr class="detail-row">
+                  <td colspan="9">
+                    <div class="mrp-edit-inline form-row">
+                      <div class="form-group">
+                        <label>Tiempo entrega (días)</label>
+                        <input type="number" [(ngModel)]="editLeadTime" min="1" />
+                      </div>
+                      <div class="form-group">
+                        <label>Stock de seguridad</label>
+                        <input type="number" [(ngModel)]="editStockSeguridad" min="0" step="0.1" />
+                      </div>
+                      <div class="form-group">
+                        <label>Stock mínimo</label>
+                        <input type="number" [(ngModel)]="editStockMinimo" min="0" step="0.1" />
+                      </div>
+                      <div class="form-group" style="align-self: flex-end;">
+                        <button type="button" class="btn-modal-submit btn-modal-sm" (click)="guardarMrp(s.reactivo_id)">Guardar</button>
+                        <button type="button" class="btn-modal-cancel btn-modal-sm" (click)="reactivoEditando.set(null)">Cancelar</button>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              }
+            } @empty {
+              <tr>
+                <td colspan="9" class="empty-row">
+                  No hay insumos bajo el punto de reorden. Todos los niveles están dentro del rango MRP.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>

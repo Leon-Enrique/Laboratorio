@@ -149,7 +149,7 @@ export class PanelAnalisisTabComponent implements OnInit {
 
   abrirPanel(panel: PanelAnalisis) {
     if (!this.examenSeleccionadoId()) {
-      this.notify.mostrarToast('Selecciona un análisis de la lista.', 'error');
+      this.notify.mostrarToast('Selecciona una prueba de la lista.', 'error');
       return;
     }
     const abierto = this.panelAbierto() === panel ? null : panel;
@@ -256,7 +256,7 @@ export class PanelAnalisisTabComponent implements OnInit {
         this.cargarFormularioDesdeExamen(creado);
         this.panelAbierto.set('prueba');
       },
-      error: (err) => this.notify.mostrarError(err, 'Error al registrar análisis')
+      error: (err) => this.notify.mostrarError(err, 'Error al registrar prueba')
     });
   }
 

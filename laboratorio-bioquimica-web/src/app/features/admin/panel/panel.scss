@@ -1744,7 +1744,9 @@ h3 {
 
   .alert-reasons {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.4rem;
+    align-items: center;
 
     .reason-pill {
       background: white;
@@ -1754,6 +1756,15 @@ h3 {
       font-size: 0.75rem;
       font-weight: 700;
       color: #495057;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+
+      &:hover {
+        background: #f1f3f5;
+        border-color: rgba(0, 0, 0, 0.18);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+      }
     }
   }
 
@@ -1816,6 +1827,10 @@ h3 {
 .inventory-master-table {
   .master-row.expanded td {
     background: #f8f9fa;
+  }
+
+  .master-row.row-highlight td {
+    animation: insumo-row-highlight 2.8s ease-out;
   }
 
   .actions-cell {
@@ -2376,6 +2391,47 @@ h3 {
   font-size: 0.62rem;
 }
 
+.btn-sugerencia-compra {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.35rem;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #1864ab;
+  background: #e7f5ff;
+  border: 1px solid #74c0fc;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+
+  &:hover {
+    background: #d0ebff;
+    box-shadow: 0 2px 6px rgba(24, 100, 171, 0.15);
+  }
+}
+
+.btn-link-inline {
+  background: none;
+  border: none;
+  color: #1864ab;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  margin-left: 0.25rem;
+}
+
+.mrp-edit-inline {
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.row-destacada {
+  background: #fff9db !important;
+}
+
 .modal-form {
   display: flex;
   flex-direction: column;
@@ -2449,6 +2505,11 @@ h3 {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes insumo-row-highlight {
+  0%, 15% { background: rgba(255, 193, 7, 0.35); }
+  100% { background: transparent; }
 }
 
 // ─── Buscador Inteligente (Historial de Pacientes) ───────────────────────────

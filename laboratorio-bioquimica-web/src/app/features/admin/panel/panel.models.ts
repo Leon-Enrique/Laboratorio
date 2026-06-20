@@ -1,6 +1,9 @@
 export interface Proveedor {
   id: number;
   nombre: string;
+  telefono?: string | null;
+  email?: string | null;
+  direccion?: string | null;
 }
 
 export interface Reactivo {
@@ -8,11 +11,56 @@ export interface Reactivo {
   nombre: string;
   stock_actual: number;
   stock_minimo: number;
+  stock_de_seguridad?: number;
+  tiempo_entrega_proveedor_dias?: number;
   unidad_medida: string;
   lote: string;
   fecha_vencimiento: string;
   total_lotes?: number;
   lotes_activos?: number;
+  proveedor_id?: number | null;
+  proveedor?: Proveedor | null;
+}
+
+export interface MermaInventario {
+  id: number;
+  id_insumo: number;
+  insumo_nombre?: string;
+  lote_id?: number | null;
+  codigo_lote?: string | null;
+  cantidad_perdida: number;
+  fecha_baja: string;
+  motivo: string;
+}
+
+export interface SugerenciaCompra {
+  reactivo_id: number;
+  nombre: string;
+  unidad_medida: string;
+  stock_actual: number;
+  consumo_diario_promedio: number;
+  tiempo_entrega_proveedor_dias: number;
+  stock_de_seguridad?: number;
+  stock_minimo?: number;
+  punto_reorden: number;
+  cantidad_sugerida: number;
+  proveedor_id?: number | null;
+  proveedor_nombre?: string | null;
+  alertas: string[];
+}
+
+export interface OrdenPedido {
+  id: number;
+  reactivo_id: number;
+  reactivo_nombre?: string;
+  proveedor_id?: number | null;
+  proveedor_nombre?: string | null;
+  proveedor_telefono?: string | null;
+  cantidad_pedida: number;
+  estado: string;
+  fecha_creacion: string;
+  fecha_esperada?: string | null;
+  notas?: string | null;
 }
 
 export interface Lote {
@@ -193,13 +241,27 @@ export interface Orden {
   }[];
 }
 
-export type PanelTabId = 'ordenes' | 'inventario' | 'reportes' | 'historial' | 'config-catalogo' | 'config-analisis';
+export type PanelTabId =
+  | 'ordenes'
+  | 'inventario-insumos'
+  | 'inventario-mermas'
+  | 'compras-sugerencias'
+  | 'compras-proveedores'
+  | 'compras-ordenes-pedido'
+  | 'reportes'
+  | 'historial'
+  | 'config-catalogo'
+  | 'config-analisis';
 
 export type PanelNavId =
   | 'ordenes-lista'
   | 'ordenes-nueva'
   | 'ordenes-cobros'
-  | 'inventario'
+  | 'inventario-insumos'
+  | 'inventario-mermas'
+  | 'compras-sugerencias'
+  | 'compras-proveedores'
+  | 'compras-ordenes-pedido'
   | 'reportes-stats'
   | 'reportes-paciente'
   | 'config-catalogo'

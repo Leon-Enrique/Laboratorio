@@ -1,0 +1,87 @@
+<div class="inventory-dashboard fade-in">
+  <div class="section-title-bar">
+    <h3>Órdenes de Pedido</h3>
+    <button type="button" class="btn-action" (click)="cargarDatos()">Actualizar</button>
+  </div>
+  <p class="subtitle">
+    Registro de compras a proveedores generadas desde sugerencias MRP o manualmente. Cree pedidos desde <strong>Sugerencias de Compra</strong>.
+  </p>
+
+  <div class="inventory-table-card glass">
+    @if (cargando()) {
+      <p class="loading-lotes">Cargando pedidos…</p>
+    } @else {
+      <div class="table-wrapper">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Insumo</th>
+              <th>Cantidad</th>
+              <th>Proveedor</th>
+              <th>Estado</th>
+              <th>Esperada</th>
+              <th>Notas</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (o of ordenes(); track o.id) {
+              <tr>
+                <td>{{ o.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</td>
+                <td class="font-bold">{{ o.reactivo_nombre || ('#' + o.reactivo_id) }}</td>
+                <td>{{ o.cantidad_pedida }}</td>
+                <td>{{ o.proveedor_nombre || '—' }}</td>
+                <td><span class="pill" [ngClass]="claseEstadoPedido(o.estado)">{{ o.estado }}</span></td>
+                <td>{{ o.fecha_esperada ? (o.fecha_esperada | date:'dd/MM/yyyy') : '—' }}</td>
+                <td class="mov-desc">{{ o.notas || '—' }}</td>
+                <td class="actions-cell">
+                  @if (o.estado === 'BORRADOR') {
+                    <button type="button" class="btn-action" (click)="iniciarEnvio(o)">Enviar</button>
+                  }
+                  @if (o.estado === 'ENVIADA') {
+                    <button type="button" class="btn-action btn-add-stock" (click)="cambiarEstado(o, 'RECIBIDA')">Recibida</button>
+                  }
+                  @if (o.estado !== 'CANCELADA' && o.estado !== 'RECIBIDA') {
+                    <button type="button" class="btn-action btn-baja-lote" (click)="cambiarEstado(o, 'CANCELADA')">Cancelar</button>
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="8" class="empty-row">No hay órdenes de pedido registradas.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>
+
+@if (mostrarWhatsappModal() && ordenWhatsapp(); as ord) {
+  <div class="modal-overlay" (click)="cerrarWhatsappModal()">
+    <div class="modal-card glass modal-whatsapp" (click)="$event.stopPropagation()">
+      <h3>Enviar pedido por WhatsApp</h3>
+      @if (telefonoDestino(ord); as tel) {
+        <p class="whatsapp-hint">Se enviará al WhatsApp del proveedor: <strong>{{ ord.proveedor_nombre || 'Proveedor' }}</strong> ({{ ord.proveedor_telefono || tel }})</p>
+      } @else {
+        <p class="whatsapp-hint whatsapp-hint-warn">
+          El proveedor no tiene teléfono registrado. Agregue el número en <strong>Catálogo de Proveedores</strong> antes de enviar.
+        </p>
+      }
+      <div class="whatsapp-preview">{{ mensajeWhatsappPedido(ord) }}</div>
+      <div class="modal-actions">
+        <button type="button" class="btn-modal-cancel" (click)="cerrarWhatsappModal()">Cancelar</button>
+        <button
+          type="button"
+          class="btn-modal-submit btn-whatsapp"
+          [disabled]="!telefonoDestino(ord)"
+          (click)="confirmarEnvioWhatsapp(ord)"
+        >
+          Abrir WhatsApp y marcar enviado
+        </button>
+      </div>
+    </div>
+  </div>
+}

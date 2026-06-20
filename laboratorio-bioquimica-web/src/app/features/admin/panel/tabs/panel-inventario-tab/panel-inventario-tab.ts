@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, inject, signal, OnInit, Input } from '@angular/core';
+import { Component, ViewEncapsulation, inject, signal, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../../core/services/api.service';
@@ -24,6 +24,9 @@ export class PanelInventarioTabComponent implements OnInit {
   private notify = inject(PanelNotifyService);
 
   @Input() rolUsuario = '';
+  @Output() irSugerenciaCompra = new EventEmitter<number>();
+
+  readonly motivosBaja = ['Vencimiento', 'Calibración', 'Desecho manual'] as const;
 
   reactivos = signal<Reactivo[]>([]);
   alertasInventario = signal<{ id: number; nombre: string; stock_actual: number; stock_minimo: number; unidad_medida: string; lotes_afectados?: number; alertas: string[] }[]>([]);
@@ -54,7 +57,13 @@ export class PanelInventarioTabComponent implements OnInit {
 
   mostrarBajaLoteModal = signal(false);
   loteBajaTarget = signal<{ lote: Lote; reactivoId: number } | null>(null);
-  motivoBajaLote = signal('Retiro por vencimiento');
+  motivoBajaLote = signal<'Vencimiento' | 'Calibración' | 'Desecho manual'>('Vencimiento');
+
+  mostrarEditarProveedorModal = signal(false);
+  reactivoEditarProveedor = signal<Reactivo | null>(null);
+  editarProveedorId = signal<number | null>(null);
+
+  insumoResaltado = signal<number | null>(null);
 
   ngOnInit() {
     this.cargarDatosInventario();
@@ -73,6 +82,36 @@ export class PanelInventarioTabComponent implements OnInit {
     this.api.get<Proveedor[]>('/inventario/proveedores').subscribe(data => this.proveedores.set(data));
   }
 
+  nombreProveedor(re: Reactivo): string {
+    if (re.proveedor?.nombre) return re.proveedor.nombre;
+    if (re.proveedor_id) {
+      const p = this.proveedores().find(x => x.id === re.proveedor_id);
+      if (p) return p.nombre;
+    }
+    return '—';
+  }
+
+  abrirEditarProveedor(re: Reactivo) {
+    this.reactivoEditarProveedor.set(re);
+    this.editarProveedorId.set(re.proveedor_id ?? null);
+    this.mostrarEditarProveedorModal.set(true);
+  }
+
+  guardarProveedorReactivo() {
+    const re = this.reactivoEditarProveedor();
+    if (!re) return;
+    const provId = this.editarProveedorId();
+    this.api.patch<Reactivo>(`/inventario/reactivos/${re.id}`, { proveedor_id: provId ?? 0 }).subscribe({
+      next: () => {
+        this.notify.mostrarToast('Proveedor del insumo actualizado.', 'success');
+        this.mostrarEditarProveedorModal.set(false);
+        this.reactivoEditarProveedor.set(null);
+        this.cargarDatosInventario();
+      },
+      error: (err) => this.notify.mostrarError(err, 'Error al actualizar proveedor')
+    });
+  }
+
   toggleExpandirReactivo(reactivo: Reactivo) {
     if (this.reactivoExpandido() === reactivo.id) {
       this.reactivoExpandido.set(null);
@@ -80,6 +119,18 @@ export class PanelInventarioTabComponent implements OnInit {
     }
     this.reactivoExpandido.set(reactivo.id);
     this.cargarLotesReactivo(reactivo.id);
+  }
+
+  irAlInsumo(reactivoId: number) {
+    this.reactivoExpandido.set(reactivoId);
+    this.cargarLotesReactivo(reactivoId);
+    this.insumoResaltado.set(reactivoId);
+
+    setTimeout(() => {
+      document.getElementById(`insumo-row-${reactivoId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 80);
+
+    setTimeout(() => this.insumoResaltado.set(null), 2800);
   }
 
   cargarLotesReactivo(reactivoId: number) {
@@ -95,13 +146,14 @@ export class PanelInventarioTabComponent implements OnInit {
 
   estadoLotePill(estado: string, dias?: number): string {
     if (estado === 'VENCIDO') return 'pill-danger';
-    if (estado === 'BLOQUEADO' || estado === 'AGOTADO') return 'pill-warning';
+    if (estado === 'Dado_de_Baja' || estado === 'BLOQUEADO' || estado === 'AGOTADO') return 'pill-warning';
     if (dias !== undefined && dias <= 90) return 'pill-warning';
     return 'pill-success';
   }
 
   etiquetaEstadoLote(lote: Lote): string {
     if (lote.estado === 'VENCIDO') return 'Vencido';
+    if (lote.estado === 'Dado_de_Baja') return 'Dado de baja';
     if (lote.estado === 'BLOQUEADO') return 'Bloqueado';
     if (lote.estado === 'AGOTADO') return 'Agotado';
     if (lote.dias_para_vencer !== undefined && lote.dias_para_vencer <= 90) return 'Próximo a vencer';
@@ -110,23 +162,19 @@ export class PanelInventarioTabComponent implements OnInit {
 
   abrirModalBajaLote(lote: Lote, reactivoId: number) {
     this.loteBajaTarget.set({ lote, reactivoId });
-    this.motivoBajaLote.set('Retiro por vencimiento');
+    this.motivoBajaLote.set(lote.estado === 'VENCIDO' ? 'Vencimiento' : 'Desecho manual');
     this.mostrarBajaLoteModal.set(true);
   }
 
   confirmarBajaLote() {
     const target = this.loteBajaTarget();
     if (!target) return;
-    const motivo = this.motivoBajaLote().trim();
-    if (!motivo) {
-      this.notify.mostrarToast('Indique el motivo de baja del lote.', 'error');
-      return;
-    }
+    const motivo = this.motivoBajaLote();
     this.api.post(`/inventario/lotes/${target.lote.id}/baja`, { motivo }).subscribe({
       next: () => {
         this.mostrarBajaLoteModal.set(false);
         this.loteBajaTarget.set(null);
-        this.notify.mostrarToast('Lote dado de baja correctamente.', 'success');
+        this.notify.mostrarToast('Lote dado de baja y registrado en historial de mermas.', 'success');
         this.cargarLotesReactivo(target.reactivoId);
         this.cargarDatosInventario();
       },
