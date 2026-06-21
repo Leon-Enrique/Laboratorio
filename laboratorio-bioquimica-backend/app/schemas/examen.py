@@ -25,6 +25,10 @@ class ExamenBase(BaseModel):
     tiempo_entrega_horas: int = 24
     visible: Optional[bool] = True
     destacado: Optional[bool] = False
+    titulo_destacado: Optional[str] = None
+    subtitulo_destacado: Optional[str] = None
+    descripcion_destacado: Optional[str] = None
+    orden_destacado: Optional[int] = None
     tipo: Optional[str] = "Laboratorio"
     grupo: Optional[str] = None
     grupo_impresion: Optional[str] = None
@@ -47,3 +51,11 @@ class ExamenResponse(ExamenBase):
 
     class Config:
         from_attributes = True
+
+
+class DestacadoInicioUpdate(BaseModel):
+    destacado: bool
+    titulo_destacado: Optional[str] = None
+    subtitulo_destacado: Optional[str] = None
+    descripcion_destacado: Optional[str] = None
+    orden_destacado: Optional[int] = None

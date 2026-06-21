@@ -193,6 +193,10 @@ export interface Examen {
   tiempo_entrega_horas: number;
   visible: boolean;
   destacado?: boolean;
+  titulo_destacado?: string | null;
+  subtitulo_destacado?: string | null;
+  descripcion_destacado?: string | null;
+  orden_destacado?: number | null;
   tipo?: string;
   grupo?: string | null;
   grupo_impresion?: string | null;
@@ -251,7 +255,8 @@ export type PanelTabId =
   | 'reportes'
   | 'historial'
   | 'config-catalogo'
-  | 'config-analisis';
+  | 'config-analisis'
+  | 'config-destacados';
 
 export type PanelNavId =
   | 'ordenes-lista'
@@ -265,4 +270,5 @@ export type PanelNavId =
   | 'reportes-stats'
   | 'reportes-paciente'
   | 'config-catalogo'
-  | 'config-catalogo-nuevo';
+  | 'config-catalogo-nuevo'
+  | 'config-destacados';

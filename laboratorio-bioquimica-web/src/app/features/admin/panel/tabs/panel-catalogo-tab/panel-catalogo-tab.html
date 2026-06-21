@@ -8,9 +8,11 @@
 
   <p class="subtitle">
 
-    Administra qué pruebas se muestran en la web y cuáles aparecen destacadas en el inicio (máx. {{ maxDestacados }}).
+    Administra qué pruebas se muestran en la web pública.
 
     Los nombres se agregan automáticamente al registrar una prueba en <strong>Nueva prueba</strong>.
+
+    Para la sección destacada del inicio, usa <strong>Examen → Destacados inicio</strong>.
 
   </p>
 
@@ -19,8 +21,6 @@
   <div class="catalog-public-stats">
 
     <span class="catalog-count">{{ examenesFiltrados().length }} pruebas registradas</span>
-
-    <span class="catalog-count">{{ cantidadDestacados() }} / {{ maxDestacados }} destacadas en inicio</span>
 
   </div>
 
@@ -64,8 +64,6 @@
 
           <th>Visible en web</th>
 
-          <th>Destacado inicio</th>
-
         </tr>
 
       </thead>
@@ -83,6 +81,12 @@
               @if (!ex.visible) {
 
                 <small class="text-muted d-block">Oculto del sitio público</small>
+
+              }
+
+              @if (ex.destacado) {
+
+                <small class="text-muted d-block">★ Destacado en inicio</small>
 
               }
 
@@ -112,37 +116,13 @@
 
             </td>
 
-            <td>
-
-              <button
-
-                type="button"
-
-                class="toggle-switch"
-
-                [class.is-on]="ex.destacado"
-
-                (click)="toggleDestacadoExamen(ex)"
-
-                [disabled]="!ex.visible"
-
-                role="switch"
-
-                [attr.aria-label]="'Destacado de ' + ex.nombre"
-
-                title="{{ ex.visible ? 'Mostrar en página de inicio' : 'Debe estar visible en web' }}"
-
-              ></button>
-
-            </td>
-
           </tr>
 
         } @empty {
 
           <tr>
 
-            <td colspan="5" class="empty-hint">
+            <td colspan="4" class="empty-hint">
 
               No hay pruebas registradas. Créalas en <strong>Examen → Nueva prueba</strong>.
 
@@ -159,4 +139,3 @@
   </div>
 
 </div>
-

@@ -10,7 +10,10 @@ import { MONEDA_CODIGO } from '../../../core/constants/moneda';
 import { obtenerArticulosDestacados, BlogArticulo } from '../blog/blog-articles.data';
 import {
   MAX_DESTACADOS_INICIO,
-  ExamenPublico
+  ExamenPublico,
+  tituloDestacado,
+  subtituloDestacado,
+  descripcionDestacado
 } from '../exam-catalog.utils';
 
 interface Examen extends ExamenPublico {}
@@ -40,12 +43,18 @@ interface TecnologiaItem {
   destacado?: boolean;
 }
 
+interface TechProcesoVisual {
+  titulo: string;
+  descripcion: string;
+  imagen: string;
+  etiqueta: string;
+}
+
 interface GaleriaItem {
   titulo: string;
   subtitulo: string;
-  tema: 'central' | 'molecular' | 'equipo' | 'atencion';
-  /** Ruta en public/, ej: 'imagenes/laboratorio/central.jpg' — vacío = placeholder */
-  imagen?: string;
+  imagen: string;
+  etiqueta: string;
 }
 
 interface HorarioItem {
@@ -54,7 +63,7 @@ interface HorarioItem {
   destacado?: boolean;
 }
 
-interface InstagramPost {
+interface RedesPost {
   titulo: string;
   etiqueta: string;
   tema: 'adn' | 'lab' | 'salud';
@@ -79,11 +88,19 @@ export class InicioComponent implements OnInit {
   readonly mapsUrl = 'https://maps.app.goo.gl/VkYj2TjRARZuUaFE7';
   readonly instagramUrl = 'https://www.instagram.com/genotipia';
   readonly instagramHandle = '@genotipia';
+  readonly tiktokUrl = 'https://www.tiktok.com/@genotipia.lab';
+  readonly tiktokHandle = '@genotipia.lab';
 
-  readonly instagramPosts: InstagramPost[] = [
+  readonly instagramPosts: RedesPost[] = [
     { titulo: 'Precisión en cada análisis', etiqueta: 'Laboratorio', tema: 'lab' },
     { titulo: 'Biología molecular y genética', etiqueta: 'Tecnología', tema: 'adn' },
     { titulo: 'Cuida tu salud con chequeos', etiqueta: 'Prevención', tema: 'salud' },
+  ];
+
+  readonly tiktokPosts: RedesPost[] = [
+    { titulo: 'Detrás del laboratorio', etiqueta: 'Genotipia', tema: 'lab' },
+    { titulo: 'Tips de salud en 60 segundos', etiqueta: 'Consejos', tema: 'salud' },
+    { titulo: 'Pruebas de ADN explicadas', etiqueta: 'ADN', tema: 'adn' },
   ];
 
   readonly blogDestacados: BlogArticulo[] = obtenerArticulosDestacados(3);
@@ -131,16 +148,17 @@ export class InicioComponent implements OnInit {
   readonly tecnologias: TecnologiaItem[] = [
     {
       num: '01',
-      titulo: 'Bioquímica automatizada',
-      descripcion: 'Analizadores de alta precisión para química clínica, electrolitos y perfiles metabólicos con control de calidad continuo.',
-      tags: ['Química clínica', 'Perfiles', 'Electrolitos'],
+      titulo: 'Bioquímica clínica',
+      descripcion: 'Perfiles metabólicos, electrolitos y química sanguínea con analizadores automatizados y control de calidad en cada corrida.',
+      tags: ['Perfiles', 'Electrolitos', 'Glucosa'],
       icono: '⚗️',
       accent: 'green',
+      destacado: true,
     },
     {
       num: '02',
-      titulo: 'Hematología e inmunología',
-      descripcion: 'Hemogramas completos, coagulación y marcadores inmunológicos procesados con tecnología automatizada y validación experta.',
+      titulo: 'Hematología',
+      descripcion: 'Hemogramas, coagulación e inmunología con validación por personal especializado antes de liberar el informe.',
       tags: ['Hemograma', 'Coagulación', 'Inmunología'],
       icono: '🔬',
       accent: 'blue',
@@ -148,17 +166,16 @@ export class InicioComponent implements OnInit {
     {
       num: '03',
       titulo: 'Biología molecular',
-      descripcion: 'Detección de patógenos y estudios genéticos con técnicas moleculares de alta sensibilidad y especificidad.',
-      tags: ['PCR', 'Genética', 'Molecular'],
+      descripcion: 'PCR, genética y detección de patógenos con protocolos de alta sensibilidad para estudios especializados.',
+      tags: ['PCR', 'Genética', 'ADN'],
       icono: '🧬',
       accent: 'teal',
-      destacado: true,
     },
     {
       num: '04',
-      titulo: 'Resultados digitales',
-      descripcion: 'Portal seguro para pacientes y acceso profesional para médicos. Informes firmados electrónicamente por bioquímico regente.',
-      tags: ['Online', 'Seguro', 'Trazabilidad'],
+      titulo: 'Informes digitales',
+      descripcion: 'Portal seguro para pacientes y médicos. Resultados firmados por bioquímico regente, disponibles cuando estén validados.',
+      tags: ['Online', 'Seguro', 'Firma digital'],
       icono: '📲',
       accent: 'violet',
     },
@@ -171,6 +188,32 @@ export class InicioComponent implements OnInit {
     { valor: 'ISO', etiqueta: '15189 en proceso' },
   ];
 
+  /** Stock clínico (Unsplash, guardado en public/) — reemplazable por fotos propias */
+  readonly techHeroImagen = '/imagenes/laboratorio/stock/hero-lab.jpg';
+
+  readonly techProcesos: TechProcesoVisual[] = [
+    {
+      titulo: 'Automatización analítica',
+      descripcion: 'Analizadores de última generación para química clínica con control en cada corrida.',
+      imagen: '/imagenes/laboratorio/stock/automatizacion.jpg',
+      etiqueta: 'Precisión',
+    },
+    {
+      titulo: 'Control de calidad',
+      descripcion: 'Verificación continua y trazabilidad LIS en todo el flujo de muestras.',
+      imagen: '/imagenes/laboratorio/stock/control-calidad.jpg',
+      etiqueta: 'Confianza',
+    },
+    {
+      titulo: 'Biología molecular',
+      descripcion: 'PCR y genética con protocolos de alta sensibilidad para estudios especializados.',
+      imagen: '/imagenes/laboratorio/stock/molecular.jpg',
+      etiqueta: 'Genética',
+    },
+  ];
+
+  readonly techAdnImagen = '/imagenes/laboratorio/stock/adn-banner.jpg';
+
   /**
    * Galería de instalaciones.
    * Cuando tengas fotos, guárdalas en public/imagenes/laboratorio/
@@ -180,26 +223,20 @@ export class InicioComponent implements OnInit {
     {
       titulo: 'Entrada principal',
       subtitulo: 'Fachada de Genotipia — Laboratorio Clínico',
-      tema: 'central',
-      imagen: 'imagenes/laboratorio/fachada.png',
-    },
-    {
-      titulo: 'Unidad Molecular',
-      subtitulo: 'Biología molecular y estudios genéticos',
-      tema: 'molecular',
-      // imagen: 'imagenes/laboratorio/molecular.jpg',
+      imagen: '/imagenes/laboratorio/fachada.png',
+      etiqueta: 'Instalaciones',
     },
     {
       titulo: 'Toma de muestras',
       subtitulo: 'Área de extracción con bioseguridad y atención al paciente',
-      tema: 'equipo',
-      imagen: 'imagenes/laboratorio/toma_muestras.png',
+      imagen: '/imagenes/laboratorio/toma_muestras.png',
+      etiqueta: 'Extracción',
     },
     {
       titulo: 'Atención al paciente',
       subtitulo: 'Recepción y orientación en toma de muestras',
-      tema: 'atencion',
-      imagen: 'imagenes/laboratorio/recepcion.png',
+      imagen: '/imagenes/laboratorio/recepcion.png',
+      etiqueta: 'Recepción',
     },
   ];
 
@@ -252,6 +289,10 @@ export class InicioComponent implements OnInit {
   reclamoError = signal<string | null>(null);
   enviandoReclamo = signal(false);
 
+  readonly tituloDestacado = tituloDestacado;
+  readonly subtituloDestacado = subtituloDestacado;
+  readonly descripcionDestacado = descripcionDestacado;
+
   examenes = signal<Examen[]>([]);
   examenesDestacados = signal<Examen[]>([]);
   cargandoDestacados = signal<boolean>(true);
@@ -267,12 +308,19 @@ export class InicioComponent implements OnInit {
     this.api.get<Examen[]>('/examenes').subscribe({
       next: data => {
         this.examenes.set(data);
-        const marcados = data.filter(ex => ex.destacado);
-        const lista =
-          marcados.length > 0
-            ? marcados.slice(0, MAX_DESTACADOS_INICIO)
-            : data.slice(0, MAX_DESTACADOS_INICIO);
-        this.examenesDestacados.set(lista);
+        this.cargarDestacados();
+      },
+      error: () => {
+        this.errorDestacados.set('No se pudieron cargar los exámenes destacados.');
+        this.cargandoDestacados.set(false);
+      }
+    });
+  }
+
+  cargarDestacados() {
+    this.api.get<Examen[]>('/examenes?destacados=true').subscribe({
+      next: data => {
+        this.examenesDestacados.set(data.slice(0, MAX_DESTACADOS_INICIO));
         this.cargandoDestacados.set(false);
       },
       error: () => {
@@ -285,7 +333,7 @@ export class InicioComponent implements OnInit {
   reintentarDestacados() {
     this.errorDestacados.set(null);
     this.cargandoDestacados.set(true);
-    this.cargarCatalogo();
+    this.cargarDestacados();
   }
 
   enviarReclamo() {

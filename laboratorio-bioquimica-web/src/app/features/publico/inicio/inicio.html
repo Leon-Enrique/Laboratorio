@@ -2,12 +2,15 @@
 <app-public-navbar [anchorMode]="true" />
 
 <!-- Hero -->
-<section id="inicio" class="hero">
-  <div class="hero-bg" aria-hidden="true">
-    <div class="hero-orb hero-orb--1"></div>
-    <div class="hero-orb hero-orb--2"></div>
-    <div class="hero-orb hero-orb--3"></div>
-    <div class="hero-grid-pattern"></div>
+<section id="inicio" class="hero hero--photo">
+  <div class="hero-photo" aria-hidden="true">
+    <img
+      src="/imagenes/laboratorio/hero-portada.jpg"
+      alt=""
+      class="hero-photo__img"
+      fetchpriority="high"
+    />
+    <div class="hero-photo__overlay"></div>
   </div>
 
   <div class="hero-inner">
@@ -17,8 +20,8 @@
         Genotipia · Laboratorio Clínico · Santa Cruz
       </span>
       <h1>
-        Tecnología de precisión que transforma
-        <em>resultados</em> clínicos.
+        <span class="hero-title-accent">Precisión y Cuidado en Cada Análisis:</span>
+        <span class="hero-title-main">Su Salud, Nuestra Prioridad.</span>
       </h1>
       <p class="hero-lead">
         Análisis clínicos y bioquímicos de alta precisión. Resultados confiables,
@@ -44,8 +47,7 @@
     </div>
   </div>
 
-  <!-- Estadísticas -->
-  <div class="stats-bar">
+  <div class="stats-bar stats-bar--hero">
     <div class="stat-item">
       <span class="stat-value">{{ totalExamenes() || '—' }}</span>
       <span class="stat-label">Exámenes disponibles</span>
@@ -98,16 +100,26 @@
       </div>
     } @else {
       @for (ex of examenesDestacados(); track ex.id) {
-        <div class="exam-card exam-card--compact">
+        <a
+          [routerLink]="['/examenes']"
+          [queryParams]="{ examen: ex.id }"
+          class="exam-card exam-card--compact exam-card--destacado"
+        >
           <span class="exam-badge">Destacado</span>
-          <div class="exam-header">
-            <h3>{{ ex.nombre }}</h3>
+          <div class="exam-header exam-header--destacado">
+            @if (subtituloDestacado(ex); as subtitulo) {
+              <span class="destacado-eyebrow">{{ subtitulo }}</span>
+            }
+            <h3 class="destacado-title">{{ tituloDestacado(ex) }}</h3>
           </div>
-          <p class="description">{{ ex.descripcion }}</p>
+          <p class="description">{{ descripcionDestacado(ex) }}</p>
           <div class="exam-footer">
             <span class="time-badge">{{ ex.tiempo_entrega_horas }} h · {{ ex.preparacion }}</span>
+            @if (ex.grupo) {
+              <span class="destacado-grupo">{{ ex.grupo }}</span>
+            }
           </div>
-        </div>
+        </a>
       } @empty {
         <div class="empty-state col-span-full">
           <p class="empty-text">Aún no hay exámenes marcados como destacados.</p>
@@ -180,66 +192,69 @@
 
 <!-- Tecnología -->
 <section id="tecnologia" class="tecnologia-section">
-  <div class="tecnologia-bg" aria-hidden="true">
-    <div class="tecnologia-orb tecnologia-orb--1"></div>
-    <div class="tecnologia-orb tecnologia-orb--2"></div>
-    <div class="tecnologia-grid-pattern"></div>
-  </div>
-
   <div class="tecnologia-inner">
-    <div class="tecnologia-header">
-      <div class="tecnologia-header-text">
-        <span class="section-eyebrow">Tecnología molecular</span>
-        <h2>Precisión científica en <em>cada análisis</em></h2>
+    <div class="tech-hero">
+      <div class="tech-hero__copy">
+        <span class="section-eyebrow section-eyebrow--dark">Nuestro laboratorio</span>
+        <h2>Equipamiento y procesos al servicio de tu <em>diagnóstico</em></h2>
         <p>
-          Infraestructura de laboratorio con equipamiento automatizado para análisis clínicos,
-          bioquímicos y moleculares bajo estrictos protocolos de calidad.
+          Infraestructura clínica con analizadores automatizados, trazabilidad de muestras
+          e informes validados por bioquímico regente en cada resultado.
         </p>
+        <div class="tech-trust-row tech-trust-row--inline">
+          @for (m of techMetricas; track m.valor) {
+            <div class="tech-trust-pill">
+              <strong>{{ m.valor }}</strong>
+              <span>{{ m.etiqueta }}</span>
+            </div>
+          }
+        </div>
       </div>
-
-      <div class="tech-metrics">
-        @for (m of techMetricas; track m.valor) {
-          <div class="tech-metric">
-            <span class="tech-metric-value">{{ m.valor }}</span>
-            <span class="tech-metric-label">{{ m.etiqueta }}</span>
+      <div class="tech-hero__visual">
+        <img
+          [src]="techHeroImagen"
+          alt="Equipamiento de laboratorio clínico"
+          class="tech-hero__img"
+          loading="lazy"
+        />
+        <div class="tech-hero__float">
+          <span class="tech-hero__float-icon" aria-hidden="true">🔬</span>
+          <div>
+            <strong>Calidad certificada</strong>
+            <span>Control en cada etapa del análisis</span>
           </div>
-        }
+        </div>
       </div>
     </div>
 
-    <div class="tecnologia-bento">
-      @for (tech of tecnologias; track tech.num) {
-        <article
-          class="tech-card tech-card--{{ tech.accent }}"
-          [class.tech-card--featured]="tech.destacado"
-        >
-          <div class="tech-card-glow" aria-hidden="true"></div>
-          <div class="tech-card-top">
-            <span class="tech-icon-wrap">{{ tech.icono }}</span>
-            <span class="tech-num">{{ tech.num }}</span>
-          </div>
-          <h3>{{ tech.titulo }}</h3>
-          <p>{{ tech.descripcion }}</p>
-          <div class="tech-tags">
-            @for (tag of tech.tags; track tag) {
-              <span class="tech-tag">{{ tag }}</span>
-            }
+    <div class="tech-proceso-grid">
+      @for (proceso of techProcesos; track proceso.titulo) {
+        <article class="tech-proceso-card">
+          <img [src]="proceso.imagen" [alt]="proceso.titulo" loading="lazy" />
+          <div class="tech-proceso-card__overlay">
+            <span class="tech-proceso-card__tag">{{ proceso.etiqueta }}</span>
+            <h3>{{ proceso.titulo }}</h3>
+            <p>{{ proceso.descripcion }}</p>
           </div>
         </article>
       }
     </div>
 
     <div class="tecnologia-adn-banner">
-      <div class="adn-banner-glow" aria-hidden="true"></div>
-      <div class="adn-banner-content">
-        <span class="section-eyebrow">Genética y filiación</span>
+      <img
+        [src]="techAdnImagen"
+        alt=""
+        class="tecnologia-adn-banner__bg"
+        loading="lazy"
+        aria-hidden="true"
+      />
+      <div class="tecnologia-adn-banner__overlay"></div>
+      <div class="tecnologia-adn-banner__content">
+        <span class="tecnologia-adn-banner__eyebrow">Genética y filiación</span>
         <h3>Pruebas de paternidad y parentesco por <em>ADN</em></h3>
         <p>Estudios de filiación con tecnología STR, confidencialidad total y resultados en 3 a 5 días.</p>
+        <a routerLink="/adn" class="btn-tecnologia-adn">Conocer pruebas de ADN →</a>
       </div>
-      <a routerLink="/adn" class="btn-tecnologia-adn">
-        <span>Conocer pruebas de ADN</span>
-        <span class="btn-arrow" aria-hidden="true">→</span>
-      </a>
     </div>
   </div>
 </section>
@@ -249,36 +264,24 @@
   <div class="galeria-inner">
     <div class="section-eyebrow section-eyebrow--dark">Nuestras instalaciones</div>
     <div class="section-header section-header--left">
-      <h2>Tecnología de punta al servicio de tu <em>diagnóstico</em></h2>
-      <p>Espacios diseñados para garantizar precisión, seguridad y confort en cada etapa del análisis.</p>
+      <h2>Conoce nuestras <em>instalaciones</em></h2>
+      <p>Fotos reales del laboratorio: recepción, toma de muestras y áreas de trabajo.</p>
     </div>
 
-    <div class="galeria-grid">
+    <div class="tech-proceso-grid galeria-grid">
       @for (item of galeria; track item.titulo) {
-        <figure class="galeria-card galeria-card--{{ item.tema }}">
-          <div class="galeria-visual">
-            @if (item.imagen) {
-              <img
-                [src]="'/' + item.imagen"
-                [alt]="item.titulo + ' — Genotipia Laboratorio Clínico'"
-                class="galeria-photo"
-                loading="lazy"
-              />
-            } @else {
-              <div class="galeria-slot" aria-hidden="true">
-                <svg class="galeria-slot-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="8" y="14" width="48" height="36" rx="4" stroke="currentColor" stroke-width="2.5"/>
-                  <circle cx="22" cy="28" r="5" stroke="currentColor" stroke-width="2"/>
-                  <path d="M8 42 L24 30 L38 38 L56 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-            }
-          </div>
-          <figcaption>
+        <article class="tech-proceso-card">
+          <img
+            [src]="item.imagen"
+            [alt]="item.titulo + ' — Genotipia Laboratorio Clínico'"
+            loading="lazy"
+          />
+          <div class="tech-proceso-card__overlay">
+            <span class="tech-proceso-card__tag">{{ item.etiqueta }}</span>
             <h3>{{ item.titulo }}</h3>
             <p>{{ item.subtitulo }}</p>
-          </figcaption>
-        </figure>
+          </div>
+        </article>
       }
     </div>
   </div>
@@ -336,18 +339,22 @@
   <div class="about-bg" aria-hidden="true">
     <div class="about-orb about-orb--1"></div>
     <div class="about-orb about-orb--2"></div>
+    <div class="about-grid-pattern"></div>
   </div>
 
   <div class="about-inner">
     <div class="about-intro">
-      <span class="section-eyebrow section-eyebrow--dark">Por qué Genotipia</span>
+      <div class="about-intro-badge">
+        <span class="about-intro-line" aria-hidden="true"></span>
+        Por qué Genotipia
+      </div>
       <h2>Más que un laboratorio: un compromiso con tu <em>salud</em></h2>
-      <p>
+      <p class="about-intro-lead">
         Combinamos tecnología analítica de última generación con un equipo humano que te acompaña
         en cada paso. Cada resultado refleja rigor científico, trazabilidad y cuidado genuino.
       </p>
 
-      <ul class="about-destacados">
+      <ul class="about-trust-list">
         @for (item of aboutDestacados; track item) {
           <li>{{ item }}</li>
         }
@@ -361,11 +368,18 @@
 
     <div class="about-pilares">
       @for (pilar of pilares; track pilar.num) {
-        <article class="pilar-card pilar-card--{{ pilar.accent }}">
-          <span class="pilar-num" aria-hidden="true">{{ pilar.num }}</span>
-          <span class="pilar-icon">{{ pilar.icono }}</span>
-          <h3>{{ pilar.titulo }}</h3>
-          <p>{{ pilar.descripcion }}</p>
+        <article class="why-card why-card--{{ pilar.accent }}">
+          <div class="why-card__rail" aria-hidden="true">
+            <span class="why-card__num">{{ pilar.num }}</span>
+            <span class="why-card__dot"></span>
+          </div>
+          <div class="why-card__content">
+            <span class="why-card__icon" aria-hidden="true">{{ pilar.icono }}</span>
+            <div class="why-card__copy">
+              <h3>{{ pilar.titulo }}</h3>
+              <p>{{ pilar.descripcion }}</p>
+            </div>
+          </div>
         </article>
       }
     </div>
@@ -379,6 +393,61 @@
         y confianza que mereces — aquí, en Santa Cruz.
       </p>
       <span class="about-mission-firma">Genotipia · Laboratorio Clínico</span>
+    </div>
+  </div>
+</section>
+
+<!-- Áreas especializadas -->
+<section id="areas-especializadas" class="areas-especializadas-section">
+  <div class="areas-especializadas-bg" aria-hidden="true">
+    <div class="areas-orb areas-orb--1"></div>
+    <div class="areas-orb areas-orb--2"></div>
+    <div class="areas-grid-pattern"></div>
+  </div>
+
+  <div class="areas-especializadas-inner">
+    <div class="areas-especializadas-head">
+      <div class="areas-especializadas-head__copy">
+        <span class="areas-especializadas-eyebrow">Catálogo clínico</span>
+        <h2>Áreas <em>especializadas</em></h2>
+        <p>
+          Cuatro disciplinas integradas en un solo flujo: desde la muestra hasta el informe
+          validado por bioquímico regente.
+        </p>
+      </div>
+      <div class="areas-especializadas-head__stat">
+        <strong>4</strong>
+        <span>disciplinas<br />en un solo LIS</span>
+      </div>
+    </div>
+
+    <div class="areas-bento">
+      @for (tech of tecnologias; track tech.num) {
+        <article
+          class="area-card area-card--{{ tech.accent }}"
+          [class.area-card--featured]="tech.destacado"
+        >
+          <span class="area-card__watermark" aria-hidden="true">{{ tech.num }}</span>
+          <div class="area-card__top">
+            <span class="area-card__icon" aria-hidden="true">{{ tech.icono }}</span>
+            <span class="area-card__num">{{ tech.num }}</span>
+          </div>
+          <h3>{{ tech.titulo }}</h3>
+          <p>{{ tech.descripcion }}</p>
+          <ul class="area-card__tags">
+            @for (tag of tech.tags; track tag) {
+              <li>{{ tag }}</li>
+            }
+          </ul>
+          <span class="area-card__accent-line" aria-hidden="true"></span>
+        </article>
+      }
+    </div>
+
+    <div class="areas-especializadas-foot">
+      <a [routerLink]="['/examenes']" class="areas-especializadas-cta">
+        Explorar exámenes por área →
+      </a>
     </div>
   </div>
 </section>
@@ -476,31 +545,71 @@
   </div>
 </section>
 
-<!-- Instagram -->
-<section id="redes" class="instagram-section">
-  <div class="instagram-inner">
-    <div class="instagram-header">
+<!-- Redes sociales -->
+<section id="redes" class="redes-section">
+  <div class="redes-inner">
+    <div class="redes-header">
       <div>
         <span class="section-eyebrow section-eyebrow--dark">Redes sociales</span>
-        <h2>Genotipia en <em>Instagram</em></h2>
-        <p>Síguenos para consejos de salud, novedades del laboratorio y más.</p>
+        <h2>Genotipia en <em>Instagram</em> y <em>TikTok</em></h2>
+        <p>Síguenos para consejos de salud, novedades del laboratorio y contenido en video.</p>
       </div>
-      <a [href]="instagramUrl" target="_blank" rel="noopener" class="btn-instagram">
-        Seguir {{ instagramHandle }}
-      </a>
     </div>
 
-    <div class="instagram-grid">
-      @for (post of instagramPosts; track post.titulo) {
-        <a [href]="instagramUrl" target="_blank" rel="noopener" class="instagram-card instagram-card--{{ post.tema }}">
-          <span class="instagram-play" aria-hidden="true">▶</span>
-          <div class="instagram-card-body">
-            <span class="instagram-tag">{{ post.etiqueta }}</span>
-            <h3>{{ post.titulo }}</h3>
-            <span class="instagram-handle">{{ instagramHandle }}</span>
+    <div class="redes-columns">
+      <div class="redes-col redes-col--instagram">
+        <div class="redes-col-head">
+          <div class="redes-col-brand">
+            <span class="redes-col-icon redes-col-icon--instagram" aria-hidden="true">📷</span>
+            <div>
+              <h3>Instagram</h3>
+              <span class="redes-col-handle">{{ instagramHandle }}</span>
+            </div>
           </div>
-        </a>
-      }
+          <a [href]="instagramUrl" target="_blank" rel="noopener" class="btn-redes btn-redes--instagram">
+            Seguir en Instagram
+          </a>
+        </div>
+        <div class="redes-grid">
+          @for (post of instagramPosts; track post.titulo) {
+            <a [href]="instagramUrl" target="_blank" rel="noopener" class="redes-card redes-card--{{ post.tema }}">
+              <span class="redes-card-play" aria-hidden="true">▶</span>
+              <div class="redes-card-body">
+                <span class="redes-card-tag">{{ post.etiqueta }}</span>
+                <h4>{{ post.titulo }}</h4>
+                <span class="redes-card-handle">{{ instagramHandle }}</span>
+              </div>
+            </a>
+          }
+        </div>
+      </div>
+
+      <div class="redes-col redes-col--tiktok">
+        <div class="redes-col-head">
+          <div class="redes-col-brand">
+            <span class="redes-col-icon redes-col-icon--tiktok" aria-hidden="true">♪</span>
+            <div>
+              <h3>TikTok</h3>
+              <span class="redes-col-handle">{{ tiktokHandle }}</span>
+            </div>
+          </div>
+          <a [href]="tiktokUrl" target="_blank" rel="noopener" class="btn-redes btn-redes--tiktok">
+            Seguir en TikTok
+          </a>
+        </div>
+        <div class="redes-grid">
+          @for (post of tiktokPosts; track post.titulo) {
+            <a [href]="tiktokUrl" target="_blank" rel="noopener" class="redes-card redes-card--tiktok redes-card--{{ post.tema }}">
+              <span class="redes-card-play" aria-hidden="true">▶</span>
+              <div class="redes-card-body">
+                <span class="redes-card-tag">{{ post.etiqueta }}</span>
+                <h4>{{ post.titulo }}</h4>
+                <span class="redes-card-handle">{{ tiktokHandle }}</span>
+              </div>
+            </a>
+          }
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -627,6 +736,7 @@
       <a [routerLink]="['/blog']">Blog de salud</a>
       <a href="#reclamos">Reclamos y contacto</a>
       <a [href]="instagramUrl" target="_blank" rel="noopener">Instagram</a>
+      <a [href]="tiktokUrl" target="_blank" rel="noopener">TikTok</a>
     </div>
 
     <div class="footer-col footer-contact">

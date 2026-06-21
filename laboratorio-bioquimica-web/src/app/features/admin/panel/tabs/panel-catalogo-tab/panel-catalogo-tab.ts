@@ -19,7 +19,6 @@ export class PanelCatalogoTabComponent implements OnInit {
   private notify = inject(PanelNotifyService);
 
   readonly moneda = MONEDA_CODIGO;
-  readonly maxDestacados = 6;
 
   examenesCatalogo = signal<Examen[]>([]);
   busquedaCatalogo = signal('');
@@ -41,10 +40,6 @@ export class PanelCatalogoTabComponent implements OnInit {
     );
   }
 
-  cantidadDestacados(): number {
-    return this.examenesCatalogo().filter(ex => ex.destacado && ex.visible).length;
-  }
-
   toggleVisibilidadExamen(examen: Examen) {
     const listaActualizada = this.examenesCatalogo().map(ex =>
       ex.id === examen.id ? { ...ex, visible: !ex.visible, destacado: ex.visible ? false : ex.destacado } : ex
@@ -56,27 +51,6 @@ export class PanelCatalogoTabComponent implements OnInit {
       error: (err) => {
         this.cargarExamenesCatalogo();
         this.notify.mostrarError(err, 'Error al cambiar visibilidad');
-      }
-    });
-  }
-
-  toggleDestacadoExamen(examen: Examen) {
-    if (!examen.visible) return;
-    if (!examen.destacado && this.cantidadDestacados() >= this.maxDestacados) {
-      this.notify.mostrarToast(`Máximo ${this.maxDestacados} pruebas destacadas en el inicio.`, 'error');
-      return;
-    }
-
-    const listaActualizada = this.examenesCatalogo().map(ex =>
-      ex.id === examen.id ? { ...ex, destacado: !ex.destacado } : ex
-    );
-    this.examenesCatalogo.set(listaActualizada);
-
-    this.api.put<Examen>(`/examenes/${examen.id}/destacado`, {}).subscribe({
-      next: () => this.cargarExamenesCatalogo(),
-      error: (err) => {
-        this.cargarExamenesCatalogo();
-        this.notify.mostrarError(err, 'Error al cambiar destacado');
       }
     });
   }

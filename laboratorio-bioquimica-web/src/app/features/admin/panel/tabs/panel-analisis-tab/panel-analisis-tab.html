@@ -70,6 +70,13 @@
             <h4>{{ exSel.nombre }}</h4>
             <p class="orden-detalle-fecha">Id: {{ exSel.id }} · Configura cada sección por separado</p>
           </div>
+          <button
+            type="button"
+            class="btn-danger-outline"
+            (click)="pedirEliminarExamen()"
+          >
+            Eliminar prueba
+          </button>
         </div>
 
         <div class="analisis-acciones" role="tablist">

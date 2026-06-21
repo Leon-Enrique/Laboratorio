@@ -15,6 +15,7 @@ import { PanelProveedoresTabComponent } from './tabs/panel-proveedores-tab/panel
 import { PanelReportesTabComponent } from './tabs/panel-reportes-tab/panel-reportes-tab';
 import { PanelHistorialTabComponent } from './tabs/panel-historial-tab/panel-historial-tab';
 import { PanelCatalogoTabComponent } from './tabs/panel-catalogo-tab/panel-catalogo-tab';
+import { PanelDestacadosTabComponent } from './tabs/panel-destacados-tab/panel-destacados-tab';
 import { PanelAnalisisTabComponent } from './tabs/panel-analisis-tab/panel-analisis-tab';
 
 interface BreadcrumbItem {
@@ -38,6 +39,7 @@ interface BreadcrumbItem {
     PanelReportesTabComponent,
     PanelHistorialTabComponent,
     PanelCatalogoTabComponent,
+    PanelDestacadosTabComponent,
     PanelAnalisisTabComponent
   ],
   providers: [PanelNotifyService],
@@ -77,6 +79,7 @@ export class PanelAdminComponent {
   ordenesPedidoTab = viewChild(PanelOrdenesPedidoTabComponent);
   proveedoresTab = viewChild(PanelProveedoresTabComponent);
   catalogoTab = viewChild(PanelCatalogoTabComponent);
+  destacadosTab = viewChild(PanelDestacadosTabComponent);
   analisisTab = viewChild(PanelAnalisisTabComponent);
 
   readonly vistaOrdenes = computed<'lista' | 'nueva' | 'cobros_pendiente'>(() => {
@@ -99,7 +102,8 @@ export class PanelAdminComponent {
       'reportes-stats': 'Reportes y estadísticas',
       'reportes-paciente': 'Historial por paciente',
       'config-catalogo': 'Catálogo de pruebas',
-      'config-catalogo-nuevo': 'Nueva prueba'
+      'config-catalogo-nuevo': 'Nueva prueba',
+      'config-destacados': 'Destacados del inicio'
     };
     return map[this.navActivo()] ?? 'Panel';
   });
@@ -120,7 +124,7 @@ export class PanelAdminComponent {
     if (nav.startsWith('reportes')) {
       return [...base, { label: 'Reportes' }, { label: this.tituloPagina() }];
     }
-    if (nav.startsWith('config-catalogo')) {
+    if (nav.startsWith('config-catalogo') || nav === 'config-destacados') {
       return [...base, { label: 'Examen' }, { label: this.tituloPagina() }];
     }
     return base;
@@ -143,7 +147,7 @@ export class PanelAdminComponent {
     if (nav.startsWith('reportes')) {
       this.gruposExpandidos.update(g => ({ ...g, reportes: true }));
     }
-    if (nav.startsWith('config-catalogo')) {
+    if (nav.startsWith('config-catalogo') || nav === 'config-destacados') {
       this.gruposExpandidos.update(g => ({ ...g, config: true }));
     }
 
@@ -194,7 +198,7 @@ export class PanelAdminComponent {
     if (grupo === 'inventario') return nav.startsWith('inventario');
     if (grupo === 'compras') return nav.startsWith('compras');
     if (grupo === 'reportes') return nav.startsWith('reportes');
-    if (grupo === 'config') return nav.startsWith('config-catalogo');
+    if (grupo === 'config') return nav.startsWith('config-catalogo') || nav === 'config-destacados';
     return false;
   }
 
@@ -219,6 +223,7 @@ export class PanelAdminComponent {
     if (nav === 'reportes-paciente') return 'historial';
     if (nav === 'config-catalogo') return 'config-catalogo';
     if (nav === 'config-catalogo-nuevo') return 'config-analisis';
+    if (nav === 'config-destacados') return 'config-destacados';
     return 'inventario-insumos';
   }
 
@@ -247,6 +252,10 @@ export class PanelAdminComponent {
     }
     if (nav === 'config-catalogo') {
       this.catalogoTab()?.cargarExamenesCatalogo();
+    }
+    if (nav === 'config-destacados') {
+      this.destacadosTab()?.cargarExamenes();
+      this.destacadosTab()?.cargarMasBuscados();
     }
     if (nav === 'config-catalogo-nuevo') {
       this.analisisTab()?.refresh();

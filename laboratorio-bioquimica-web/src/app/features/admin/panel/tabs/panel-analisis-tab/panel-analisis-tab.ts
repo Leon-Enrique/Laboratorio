@@ -147,6 +147,29 @@ export class PanelAnalisisTabComponent implements OnInit {
     this.cargarFormularioDesdeExamen(examen);
   }
 
+  pedirEliminarExamen() {
+    const examen = this.examenSeleccionado();
+    if (!examen) return;
+
+    this.notify.pedirConfirmacion(
+      'Eliminar prueba',
+      `¿Eliminar "${examen.nombre}"? Esta acción no se puede deshacer. Si la prueba ya tiene órdenes o resultados, no se podrá eliminar.`,
+      () => this.eliminarExamen(examen.id)
+    );
+  }
+
+  private eliminarExamen(examenId: number) {
+    this.api.delete(`/examenes/${examenId}`).subscribe({
+      next: () => {
+        this.notify.mostrarToast('Prueba eliminada correctamente.', 'success');
+        this.examenSeleccionadoId.set(null);
+        this.panelAbierto.set(null);
+        this.cargarExamenes();
+      },
+      error: (err) => this.notify.mostrarError(err, 'No se pudo eliminar la prueba')
+    });
+  }
+
   abrirPanel(panel: PanelAnalisis) {
     if (!this.examenSeleccionadoId()) {
       this.notify.mostrarToast('Selecciona una prueba de la lista.', 'error');

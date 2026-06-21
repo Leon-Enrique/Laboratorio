@@ -203,6 +203,14 @@
               <button
                 type="button"
                 class="nav-child-btn"
+                [class.active]="esNavActivo('config-destacados')"
+                (click)="navegar('config-destacados')"
+              >
+                Destacados inicio
+              </button>
+              <button
+                type="button"
+                class="nav-child-btn"
                 [class.active]="esNavActivo('config-catalogo-nuevo')"
                 (click)="navegar('config-catalogo-nuevo')"
               >
@@ -314,6 +322,10 @@
 
       @if (tabActiva() === 'config-catalogo' && rolUsuario() === 'admin') {
         <app-panel-catalogo-tab />
+      }
+
+      @if (tabActiva() === 'config-destacados' && rolUsuario() === 'admin') {
+        <app-panel-destacados-tab />
       }
 
       @if (tabActiva() === 'config-analisis' && rolUsuario() === 'admin') {

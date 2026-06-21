@@ -6,7 +6,48 @@ export interface ExamenPublico {
   precio_bob: number;
   tiempo_entrega_horas: number;
   destacado?: boolean;
+  titulo_destacado?: string | null;
+  subtitulo_destacado?: string | null;
+  descripcion_destacado?: string | null;
+  orden_destacado?: number | null;
+  grupo?: string | null;
+  material_muestra?: string | null;
+  codigo_abrev?: string | null;
+  tipo?: string | null;
 }
+
+/** Áreas del sidebar — estilo catálogo clínico */
+export const AREAS_DIAGNOSTICAS: CategoriaFiltro[] = [
+  { id: 'todos', label: 'Todas las áreas', keywords: [] },
+  { id: 'quimica', label: 'Bioquímica Clínica', keywords: [] },
+  { id: 'genetica', label: 'Genética Molecular (Genética)', keywords: [] },
+  { id: 'hematologia', label: 'Hematología', keywords: [] },
+  { id: 'serologia', label: 'Inmunología', keywords: [] },
+  { id: 'micro', label: 'Microbiología', keywords: [] },
+  { id: 'especiales', label: 'Toxicología', keywords: [] },
+  { id: 'hormonas', label: 'Chequeos Preventivos', keywords: [] }
+];
+
+export const TIPOS_MUESTRA_FILTRO = [
+  { id: 'sangre', label: 'Sangre', keywords: ['sangre', 'suero', 'plasma', 'tubo'] },
+  { id: 'saliva', label: 'Saliva', keywords: ['saliva'] },
+  { id: 'orina', label: 'Orina', keywords: ['orina', 'uro'] },
+  { id: 'heces', label: 'Heces / copro', keywords: ['heces', 'copro', 'parasit'] },
+  { id: 'otros', label: 'Otros', keywords: ['hisopado', 'esputo', 'lcr', 'otros'] }
+] as const;
+
+const ICONOS_AREA: Record<string, string> = {
+  quimica: '⚗️',
+  genetica: '🧬',
+  hematologia: '🔬',
+  serologia: '🛡️',
+  micro: '🦠',
+  molecular: '🧬',
+  uro: '💧',
+  hormonas: '❤️',
+  especiales: '⚠️',
+  todos: '🧪'
+};
 
 export interface CategoriaFiltro {
   id: string;
@@ -73,6 +114,21 @@ export const CATEGORIAS_EXAMEN: CategoriaFiltro[] = [
 
 export const MAX_DESTACADOS_INICIO = 6;
 
+export function tituloDestacado(ex: ExamenPublico): string {
+  const custom = ex.titulo_destacado?.trim();
+  return custom || ex.nombre;
+}
+
+export function subtituloDestacado(ex: ExamenPublico): string | null {
+  const custom = ex.subtitulo_destacado?.trim();
+  return custom || null;
+}
+
+export function descripcionDestacado(ex: ExamenPublico): string {
+  const custom = ex.descripcion_destacado?.trim();
+  return custom || ex.descripcion || '';
+}
+
 export interface GrupoCatalogo {
   id: string;
   label: string;
@@ -99,15 +155,61 @@ export function filtrarExamenesPorTexto(examenes: ExamenPublico[], query: string
   let lista = [...examenes];
 
   if (q) {
-    lista = lista.filter(
-      ex =>
-        ex.nombre.toLowerCase().includes(q) ||
-        ex.descripcion.toLowerCase().includes(q) ||
-        ex.preparacion.toLowerCase().includes(q)
-    );
+    lista = lista.filter(ex => textoBusquedaExamen(ex).includes(q));
   }
 
   return lista.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
+}
+
+function textoBusquedaExamen(ex: ExamenPublico): string {
+  return [
+    ex.nombre,
+    ex.descripcion,
+    ex.preparacion,
+    ex.grupo,
+    ex.material_muestra,
+    ex.codigo_abrev,
+    codigoExamen(ex)
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+}
+
+export function codigoExamen(ex: ExamenPublico): string {
+  if (ex.codigo_abrev?.trim()) return ex.codigo_abrev.trim().toUpperCase();
+  const area = categoriaDeExamen(ex).slice(0, 3).toUpperCase();
+  return `${area}-${String(ex.id).padStart(3, '0')}`;
+}
+
+export function iconoAreaExamen(ex: ExamenPublico): string {
+  return ICONOS_AREA[categoriaDeExamen(ex)] || ICONOS_AREA['todos'];
+}
+
+function coincideMaterial(ex: ExamenPublico, materialIds: string[]): boolean {
+  if (!materialIds.length) return true;
+  const texto = `${ex.material_muestra || ''} ${ex.preparacion} ${ex.nombre} ${ex.descripcion}`.toLowerCase();
+  return materialIds.some(id => {
+    const filtro = TIPOS_MUESTRA_FILTRO.find(m => m.id === id);
+    return filtro?.keywords.some(kw => texto.includes(kw)) ?? false;
+  });
+}
+
+/** Lista plana para grid de tarjetas */
+export function filtrarCatalogoGrid(
+  examenes: ExamenPublico[],
+  query: string,
+  categoriaId: string,
+  materiales: string[]
+): ExamenPublico[] {
+  let lista = filtrarExamenesPorTexto(examenes, query);
+  if (categoriaId !== 'todos') {
+    lista = lista.filter(ex => categoriaDeExamen(ex) === categoriaId);
+  }
+  if (materiales.length) {
+    lista = lista.filter(ex => coincideMaterial(ex, materiales));
+  }
+  return lista;
 }
 
 /** @deprecated Usar filtrarExamenesPorTexto + agruparExamenes */

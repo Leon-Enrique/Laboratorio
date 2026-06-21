@@ -1,13 +1,18 @@
 from typing import List, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import case
 from app.db.session import get_db
 from app.models.examen import Examen, FormulaConsumo
-from app.schemas.examen import ExamenResponse, ExamenCreate
+from app.models.orden import Resultado
+from app.schemas.examen import ExamenResponse, ExamenCreate, DestacadoInicioUpdate
+from app.schemas.catalogo_analytics import BusquedaCatalogoEvent, ClicCatalogoEvent, MasBuscadoResponse
 from app.api.v1.endpoints.auth import RoleChecker
 from app.services import parametros_service as param_svc
+from app.services import catalogo_analytics_service as analytics_svc
 
 router = APIRouter()
+MAX_DESTACADOS_INICIO = 6
 
 def _examenes_query(db: Session):
     return db.query(Examen).options(
@@ -24,6 +29,10 @@ def listar_examenes(
     q = _examenes_query(db).filter(Examen.visible == True)
     if destacados:
         q = q.filter(Examen.destacado == True)
+        return q.order_by(
+            case((Examen.orden_destacado.is_(None), 999), else_=Examen.orden_destacado),
+            Examen.nombre,
+        ).limit(MAX_DESTACADOS_INICIO).all()
     return q.order_by(Examen.nombre).all()
 
 # Catálogo administrativo: muestra todos los exámenes, visibles o no (solo admin/bioquímico)
@@ -33,6 +42,32 @@ def listar_examenes_admin(
     current_user: Any = Depends(RoleChecker(["admin", "bioquimico"]))
 ) -> Any:
     return _examenes_query(db).order_by(Examen.id).all()
+
+# Analytics del catálogo público (sin autenticación)
+@router.post("/analytics/busqueda", status_code=status.HTTP_204_NO_CONTENT)
+def registrar_busqueda_catalogo(
+    body: BusquedaCatalogoEvent,
+    db: Session = Depends(get_db),
+) -> None:
+    analytics_svc.registrar_busqueda_catalogo(db, body.termino.strip().lower(), body.examen_ids)
+
+
+@router.post("/analytics/clic", status_code=status.HTTP_204_NO_CONTENT)
+def registrar_clic_catalogo(
+    body: ClicCatalogoEvent,
+    db: Session = Depends(get_db),
+) -> None:
+    if not analytics_svc.registrar_clic_catalogo(db, body.examen_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Examen no encontrado")
+
+
+@router.get("/analytics/mas-buscados", response_model=List[MasBuscadoResponse])
+def listar_mas_buscados_catalogo(
+    limite: int = Query(10, ge=1, le=30),
+    db: Session = Depends(get_db),
+    current_user: Any = Depends(RoleChecker(["admin"])),
+) -> Any:
+    return analytics_svc.listar_mas_buscados(db, limite=limite)
 
 # Cambiar visibilidad del examen (solo admin)
 @router.put("/{examen_id}/visibilidad", response_model=ExamenResponse)
@@ -49,6 +84,12 @@ def toggle_visibilidad_examen(
         )
     # Alternar visibilidad
     examen.visible = not examen.visible
+    if not examen.visible:
+        examen.destacado = False
+        examen.titulo_destacado = None
+        examen.subtitulo_destacado = None
+        examen.descripcion_destacado = None
+        examen.orden_destacado = None
     db.add(examen)
     db.commit()
     return _examenes_query(db).filter(Examen.id == examen_id).first()
@@ -67,6 +108,59 @@ def toggle_destacado_examen(
             detail="Examen no encontrado"
         )
     examen.destacado = not examen.destacado
+    if not examen.destacado:
+        examen.titulo_destacado = None
+        examen.subtitulo_destacado = None
+        examen.descripcion_destacado = None
+        examen.orden_destacado = None
+    db.add(examen)
+    db.commit()
+    return _examenes_query(db).filter(Examen.id == examen_id).first()
+
+# Configurar texto y orden de un destacado en inicio (solo admin)
+@router.put("/{examen_id}/destacado-config", response_model=ExamenResponse)
+def configurar_destacado_inicio(
+    examen_id: int,
+    body: DestacadoInicioUpdate,
+    db: Session = Depends(get_db),
+    current_user: Any = Depends(RoleChecker(["admin"]))
+) -> Any:
+    examen = db.query(Examen).filter(Examen.id == examen_id).first()
+    if not examen:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Examen no encontrado"
+        )
+    if body.destacado and not examen.visible:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La prueba debe estar visible en la web para destacarla"
+        )
+    if body.destacado and not examen.destacado:
+        activos = db.query(Examen).filter(Examen.destacado == True, Examen.visible == True).count()
+        if activos >= MAX_DESTACADOS_INICIO:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Máximo {MAX_DESTACADOS_INICIO} pruebas destacadas en el inicio"
+            )
+    if body.orden_destacado is not None and (body.orden_destacado < 1 or body.orden_destacado > MAX_DESTACADOS_INICIO):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"El orden debe estar entre 1 y {MAX_DESTACADOS_INICIO}"
+        )
+
+    examen.destacado = body.destacado
+    if body.destacado:
+        examen.titulo_destacado = (body.titulo_destacado or "").strip() or None
+        examen.subtitulo_destacado = (body.subtitulo_destacado or "").strip() or None
+        examen.descripcion_destacado = (body.descripcion_destacado or "").strip() or None
+        examen.orden_destacado = body.orden_destacado
+    else:
+        examen.titulo_destacado = None
+        examen.subtitulo_destacado = None
+        examen.descripcion_destacado = None
+        examen.orden_destacado = None
+
     db.add(examen)
     db.commit()
     return _examenes_query(db).filter(Examen.id == examen_id).first()
@@ -186,3 +280,30 @@ def actualizar_examen(
     db.add(examen)
     db.commit()
     return _examenes_query(db).filter(Examen.id == examen_id).first()
+
+
+@router.delete("/{examen_id}", status_code=status.HTTP_204_NO_CONTENT)
+def eliminar_examen(
+    examen_id: int,
+    db: Session = Depends(get_db),
+    current_user: Any = Depends(RoleChecker(["admin"])),
+) -> None:
+    examen = db.query(Examen).filter(Examen.id == examen_id).first()
+    if not examen:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Examen no encontrado",
+        )
+
+    usos = db.query(Resultado).filter(Resultado.examen_id == examen_id).count()
+    if usos > 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"No se puede eliminar: la prueba tiene {usos} resultado(s) en órdenes. "
+                "Ocúltala del catálogo público en su lugar."
+            ),
+        )
+
+    db.delete(examen)
+    db.commit()

@@ -1,0 +1,194 @@
+<div class="catalog-config-section fade-in glass destacados-admin">
+
+  <div class="section-title-bar">
+    <h3>Destacados del inicio</h3>
+    <button
+      type="button"
+      class="btn-primary btn-sm"
+      (click)="abrirNuevo()"
+      [disabled]="mostrarFormulario() || destacadosActuales().length >= maxDestacados"
+    >
+      + Agregar destacado
+    </button>
+  </div>
+
+  <p class="subtitle">
+    Elige hasta {{ maxDestacados }} pruebas para la sección <strong>Exámenes destacados</strong> del sitio público.
+    Personaliza título y texto corto; si los dejas vacíos se usa el nombre del catálogo.
+    Las sugerencias se basan en búsquedas y clics reales en <strong>/examenes</strong>.
+  </p>
+
+  <section class="destacados-sugerencias">
+    <div class="destacados-sugerencias__head">
+      <h4>Más buscados en el catálogo</h4>
+      <button type="button" class="btn-secondary btn-sm" (click)="cargarMasBuscados()" [disabled]="cargandoSugerencias()">
+        {{ cargandoSugerencias() ? 'Actualizando…' : 'Actualizar' }}
+      </button>
+    </div>
+
+    @if (cargandoSugerencias()) {
+      <p class="form-hint">Cargando tendencias de búsqueda…</p>
+    } @else if (masBuscados().length === 0) {
+      <p class="form-hint">
+        Aún no hay datos. Cuando los visitantes busquen en el catálogo público, aparecerán aquí las pruebas más consultadas.
+      </p>
+    } @else {
+      <div class="destacados-sugerencias__grid">
+        @for (item of masBuscados(); track item.examen_id) {
+          <article class="sugerencia-card" [class.sugerencia-card--destacado]="item.ya_destacado">
+            <div class="sugerencia-card__rank">#{{ $index + 1 }}</div>
+            <div class="sugerencia-card__body">
+              <strong>{{ item.nombre }}</strong>
+              <small class="text-muted">{{ item.grupo || 'Sin grupo' }}</small>
+              <div class="sugerencia-card__stats">
+                <span>{{ item.contador_busquedas }} búsquedas</span>
+                <span>{{ item.contador_clics }} clics</span>
+              </div>
+            </div>
+            @if (item.ya_destacado) {
+              <span class="sugerencia-badge">Ya destacado</span>
+            } @else {
+              <button
+                type="button"
+                class="btn-primary btn-sm"
+                (click)="agregarDesdeSugerencia(item)"
+                [disabled]="mostrarFormulario() || destacadosActuales().length >= maxDestacados"
+              >
+                Agregar
+              </button>
+            }
+          </article>
+        }
+      </div>
+    }
+  </section>
+
+  <div class="catalog-public-stats">
+    <span class="catalog-count">{{ destacadosActuales().length }} / {{ maxDestacados }} en inicio</span>
+  </div>
+
+  @if (mostrarFormulario()) {
+    <form class="destacados-form glass-inner" (ngSubmit)="guardar()">
+      <h4>{{ editandoId() ? 'Editar destacado' : 'Nuevo destacado' }}</h4>
+
+      @if (!editandoId()) {
+        <label class="form-field">
+          <span>Prueba del catálogo *</span>
+          <select
+            [ngModel]="formulario().examen_id"
+            (ngModelChange)="onExamenSeleccionado($event); formulario.update(f => ({ ...f, examen_id: $event }))"
+            name="examen_id"
+            required
+          >
+            <option [ngValue]="null">— Seleccionar —</option>
+            @for (ex of examenesDisponibles(); track ex.id) {
+              <option [ngValue]="ex.id">{{ ex.nombre }} · {{ ex.grupo || 'Sin grupo' }}</option>
+            }
+          </select>
+        </label>
+      } @else if (examenEditando(); as examen) {
+        <p class="form-hint">
+          Editando: <strong>{{ examen.nombre }}</strong>
+        </p>
+      }
+
+      <label class="form-field">
+        <span>Subtítulo (etiqueta pequeña arriba del título)</span>
+        <input
+          type="text"
+          maxlength="60"
+          placeholder="Ej: Más solicitado · Bioquímica"
+          [ngModel]="formulario().subtitulo_destacado"
+          (ngModelChange)="formulario.update(f => ({ ...f, subtitulo_destacado: $event }))"
+          name="subtitulo_destacado"
+        />
+      </label>
+
+      <label class="form-field">
+        <span>Título personalizado *</span>
+        <input
+          type="text"
+          maxlength="80"
+          placeholder="Ej: Perfil lipídico completo"
+          [ngModel]="formulario().titulo_destacado"
+          (ngModelChange)="formulario.update(f => ({ ...f, titulo_destacado: $event }))"
+          name="titulo_destacado"
+          required
+        />
+        <small class="form-hint">Se muestra grande en la tarjeta del inicio. Si está vacío, usa el nombre del catálogo.</small>
+      </label>
+
+      <label class="form-field">
+        <span>Descripción corta</span>
+        <textarea
+          rows="3"
+          maxlength="200"
+          placeholder="Texto breve para la tarjeta (máx. 200 caracteres)"
+          [ngModel]="formulario().descripcion_destacado"
+          (ngModelChange)="formulario.update(f => ({ ...f, descripcion_destacado: $event }))"
+          name="descripcion_destacado"
+        ></textarea>
+      </label>
+
+      <label class="form-field form-field--narrow">
+        <span>Orden en inicio (1–{{ maxDestacados }})</span>
+        <input
+          type="number"
+          min="1"
+          [max]="maxDestacados"
+          [ngModel]="formulario().orden_destacado"
+          (ngModelChange)="formulario.update(f => ({ ...f, orden_destacado: $event ? +$event : null }))"
+          name="orden_destacado"
+        />
+      </label>
+
+      <div class="destacados-form-preview">
+        <span class="preview-label">Vista previa</span>
+        <article class="destacado-preview-card">
+          @if (formulario().subtitulo_destacado.trim()) {
+            <span class="destacado-preview-eyebrow">{{ formulario().subtitulo_destacado }}</span>
+          }
+          <h5 class="destacado-preview-title">
+            {{ formulario().titulo_destacado.trim() || 'Título del examen' }}
+          </h5>
+          <p class="destacado-preview-desc">
+            {{ formulario().descripcion_destacado.trim() || 'Descripción breve del examen.' }}
+          </p>
+        </article>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn-secondary" (click)="cancelarFormulario()" [disabled]="guardando()">
+          Cancelar
+        </button>
+        <button type="submit" class="btn-primary" [disabled]="guardando()">
+          {{ guardando() ? 'Guardando…' : 'Guardar destacado' }}
+        </button>
+      </div>
+    </form>
+  }
+
+  <div class="destacados-list">
+    @for (ex of destacadosActuales(); track ex.id) {
+      <article class="destacado-admin-card">
+        <div class="destacado-admin-card__orden">{{ ex.orden_destacado ?? '—' }}</div>
+        <div class="destacado-admin-card__body">
+          @if (ex.subtitulo_destacado) {
+            <span class="destacado-preview-eyebrow">{{ ex.subtitulo_destacado }}</span>
+          }
+          <h4>{{ tituloDestacado(ex) }}</h4>
+          <p class="text-muted">{{ descripcionDestacado(ex) }}</p>
+          <small class="text-muted">Catálogo: {{ ex.nombre }} · {{ ex.precio_bob | currency:moneda:'symbol-narrow':'1.2-2' }}</small>
+        </div>
+        <div class="destacado-admin-card__actions">
+          <button type="button" class="btn-secondary btn-sm" (click)="abrirEditar(ex)">Editar</button>
+          <button type="button" class="btn-danger-outline btn-sm" (click)="quitar(ex)">Quitar</button>
+        </div>
+      </article>
+    } @empty {
+      <p class="empty-hint">
+        Aún no hay destacados. Usa <strong>Agregar destacado</strong> para elegir pruebas del catálogo.
+      </p>
+    }
+  </div>
+</div>

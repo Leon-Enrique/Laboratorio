@@ -1,6 +1,7 @@
 from app.db.session import Base
 from app.models.usuario import Usuario, Paciente
 from app.models.examen import Examen, FormulaConsumo
+from app.models.examen_busqueda_stat import ExamenBusquedaStat
 from app.models.parametro_examen import ParametroExamen
 from app.models.inventario import Proveedor, Reactivo, MovimientoStock, Lote, MermaInventario, OrdenPedido
 from app.models.orden import Orden, Resultado
@@ -13,6 +14,7 @@ __all__ = [
     "Paciente",
     "Examen",
     "FormulaConsumo",
+    "ExamenBusquedaStat",
     "ParametroExamen",
     "Proveedor",
     "Reactivo",

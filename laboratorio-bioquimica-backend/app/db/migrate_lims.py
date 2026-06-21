@@ -40,6 +40,8 @@ def _rename_column_if_exists(conn, inspector, table: str, old: str, new: str) ->
 
 def apply_legacy_schema_patches() -> None:
     """Parches idempotentes para BDs creadas antes de Alembic."""
+    import app.models  # noqa: F401 — registrar todos los modelos en metadata
+
     Base.metadata.create_all(bind=engine)
     inspector = inspect(engine)
     fecha_ddl = _datetime_column_ddl(engine, "fecha_completado")
@@ -79,6 +81,10 @@ def apply_legacy_schema_patches() -> None:
             _add_column_if_missing(conn, inspector, "examenes", "codigo_abrev", "codigo_abrev VARCHAR")
             _add_column_if_missing(conn, inspector, "examenes", "precio_derivacion", "precio_derivacion FLOAT DEFAULT 0")
             _add_column_if_missing(conn, inspector, "examenes", "etiqueta", "etiqueta VARCHAR")
+            _add_column_if_missing(conn, inspector, "examenes", "titulo_destacado", "titulo_destacado VARCHAR")
+            _add_column_if_missing(conn, inspector, "examenes", "subtitulo_destacado", "subtitulo_destacado VARCHAR")
+            _add_column_if_missing(conn, inspector, "examenes", "descripcion_destacado", "descripcion_destacado VARCHAR")
+            _add_column_if_missing(conn, inspector, "examenes", "orden_destacado", "orden_destacado INTEGER")
 
         if _table_exists(inspector, "parametros_examen"):
             _add_column_if_missing(conn, inspector, "parametros_examen", "tipo", "tipo VARCHAR DEFAULT 'Numero'")

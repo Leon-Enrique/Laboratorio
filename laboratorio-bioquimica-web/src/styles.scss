@@ -8,7 +8,10 @@
   --geno-blue-soft: #3b82f6;
   --geno-slate: #0f172a;
   --geno-muted: #64748b;
-  --geno-surface: #f8fafc;
+  --geno-surface: #f0fdfa;
+  --geno-surface-alt: #eff6ff;
+  --geno-mint: #ecfdf5;
+  --geno-sky: #f0f9ff;
   --geno-radius: 16px;
   --geno-radius-lg: 24px;
   --geno-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
@@ -29,7 +32,7 @@ body {
   font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--geno-surface);
+  background: linear-gradient(180deg, #f8fafc 0%, #f0fdfa 40%, #f8fafc 100%);
   color: #0f172a;
   line-height: 1.5;
 }
