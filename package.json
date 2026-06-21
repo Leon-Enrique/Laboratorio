@@ -1,0 +1,8 @@
+{
+  "name": "genotipia-laboratorio",
+  "private": true,
+  "scripts": {
+    "build": "npm run build --prefix laboratorio-bioquimica-web -- --configuration=production",
+    "postinstall": "npm install --prefix laboratorio-bioquimica-web"
+  }
+}
