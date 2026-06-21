@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "cd laboratorio-bioquimica-web && npm install",
+  "buildCommand": "cd laboratorio-bioquimica-web && npm run build -- --configuration=production",
+  "outputDirectory": "laboratorio-bioquimica-web/dist/laboratorio-bioquimica-web/browser",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
