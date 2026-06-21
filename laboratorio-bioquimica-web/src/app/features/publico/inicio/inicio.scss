@@ -2452,18 +2452,47 @@ footer {
   .stats-bar { grid-template-columns: repeat(2, 1fr); }
   .servicios-grid { grid-template-columns: 1fr; }
   .tecnologia-header { grid-template-columns: 1fr; gap: 1.5rem; }
-  .tecnologia-bento { grid-template-columns: 1fr; }
-  .tech-card,
-  .tech-card--featured,
-  .tech-card:not(.tech-card--featured),
-  .tech-card:not(.tech-card--featured):nth-child(2),
-  .tech-card:not(.tech-card--featured):nth-child(4) {
-    grid-column: 1 / -1;
-    grid-row: auto;
+  .tecnologia-bento {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
   }
-  .tech-card:nth-child(4) {
-    display: block;
-    grid-template-columns: unset;
+  .tech-card {
+    grid-column: unset !important;
+    grid-row: unset !important;
+    display: flex !important;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+
+    &--featured {
+      padding: 1.75rem;
+
+      h3 { font-size: 1.12rem; }
+      p { font-size: 0.9rem; }
+      .tech-num { font-size: 3.5rem; }
+      .tech-icon-wrap { width: 48px; height: 48px; font-size: 1.5rem; }
+    }
+
+    &:nth-child(1),
+    &:nth-child(2),
+    &:nth-child(3),
+    &:nth-child(4) {
+      grid-column: unset !important;
+      grid-row: unset !important;
+      grid-template-columns: unset;
+      grid-template-rows: unset;
+    }
+
+    &:nth-child(4) {
+      .tech-card-top,
+      h3,
+      p,
+      .tech-tags {
+        grid-column: unset;
+        grid-row: unset;
+      }
+    }
   }
   .tecnologia-adn-banner { flex-direction: column; align-items: flex-start; }
   .galeria-grid { grid-template-columns: repeat(2, 1fr); }
@@ -2554,6 +2583,32 @@ footer {
   .destacados-grid { grid-template-columns: 1fr; }
   .proceso-grid { grid-template-columns: 1fr; }
   .tech-metrics { grid-template-columns: 1fr 1fr; }
+  .tech-card {
+    padding: 1.35rem;
+
+    h3 {
+      font-size: 1.05rem;
+      word-wrap: break-word;
+      overflow-wrap: anywhere;
+    }
+
+    p {
+      font-size: 0.88rem;
+    }
+
+    .tech-num {
+      font-size: 2.75rem;
+    }
+  }
+  .tech-tags {
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+  .tech-tag {
+    font-size: 0.72rem;
+    white-space: normal;
+    text-align: center;
+  }
   .btn-tecnologia-adn { width: 100%; justify-content: center; }
   .resultados-banner-actions { width: 100%; min-width: 0; }
 
