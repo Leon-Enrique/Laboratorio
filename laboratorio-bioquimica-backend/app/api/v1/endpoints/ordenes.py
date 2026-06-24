@@ -275,7 +275,6 @@ def listar_comprobantes(
     query = db.query(Orden).options(
         joinedload(Orden.paciente),
         joinedload(Orden.recepcionista),
-        joinedload(Orden.resultados).joinedload(Resultado.examen),
     )
     if estado_pago in ("PENDIENTE", "PAGADO"):
         query = query.filter(Orden.estado_pago == estado_pago)

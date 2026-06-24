@@ -38,9 +38,17 @@ def listar_examenes(
 # Catálogo administrativo: muestra todos los exámenes, visibles o no (solo admin/bioquímico)
 @router.get("/admin-lista", response_model=List[ExamenResponse])
 def listar_examenes_admin(
+    ligero: bool = Query(False, description="Sin fórmulas MRP — más rápido para cola de órdenes"),
     db: Session = Depends(get_db),
-    current_user: Any = Depends(RoleChecker(["admin", "bioquimico"]))
+    current_user: Any = Depends(RoleChecker(["admin", "bioquimico"])),
 ) -> Any:
+    if ligero:
+        return (
+            db.query(Examen)
+            .options(joinedload(Examen.parametros))
+            .order_by(Examen.id)
+            .all()
+        )
     return _examenes_query(db).order_by(Examen.id).all()
 
 # Analytics del catálogo público (sin autenticación)

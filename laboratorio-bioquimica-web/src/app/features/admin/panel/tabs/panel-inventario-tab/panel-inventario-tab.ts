@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, inject, signal, OnInit, Input, Output, EventEmitter } from '@angular/core';
+import { Component, ViewEncapsulation, inject, signal, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../../core/services/api.service';
@@ -10,6 +10,7 @@ import {
   Proveedor
 } from '../../panel.models';
 import { PanelNotifyService } from '../../panel-notify.service';
+import { PanelCacheService } from '../../panel-cache.service';
 
 @Component({
   selector: 'app-panel-inventario-tab',
@@ -19,9 +20,10 @@ import { PanelNotifyService } from '../../panel-notify.service';
   styleUrl: '../../panel.scss',
   encapsulation: ViewEncapsulation.None
 })
-export class PanelInventarioTabComponent implements OnInit {
+export class PanelInventarioTabComponent {
   private api = inject(ApiService);
   private notify = inject(PanelNotifyService);
+  private cache = inject(PanelCacheService);
 
   @Input() rolUsuario = '';
   @Output() irSugerenciaCompra = new EventEmitter<number>();
@@ -65,12 +67,8 @@ export class PanelInventarioTabComponent implements OnInit {
 
   insumoResaltado = signal<number | null>(null);
 
-  ngOnInit() {
-    this.cargarDatosInventario();
-    this.cargarProveedores();
-  }
-
   cargarDatosInventario() {
+    this.cargarProveedores();
     this.api.get<Reactivo[]>('/inventario/reactivos').subscribe(data => this.reactivos.set(data));
     this.api.get<{ id: number; nombre: string; stock_actual: number; stock_minimo: number; unidad_medida: string; lotes_afectados?: number; alertas: string[] }[]>('/inventario/alertas').subscribe(data => this.alertasInventario.set(data));
     if (this.mostrarAuditoriaInventario()) {
@@ -79,7 +77,7 @@ export class PanelInventarioTabComponent implements OnInit {
   }
 
   cargarProveedores() {
-    this.api.get<Proveedor[]>('/inventario/proveedores').subscribe(data => this.proveedores.set(data));
+    this.cache.proveedoresLista().subscribe(data => this.proveedores.set(data));
   }
 
   nombreProveedor(re: Reactivo): string {

@@ -1,9 +1,10 @@
-import { Component, ViewEncapsulation, inject, signal, OnInit } from '@angular/core';
+import { Component, ViewEncapsulation, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../../core/services/api.service';
 import { OrdenPedido, Reactivo, Proveedor } from '../../panel.models';
 import { PanelNotifyService } from '../../panel-notify.service';
+import { PanelCacheService } from '../../panel-cache.service';
 
 @Component({
   selector: 'app-panel-ordenes-pedido-tab',
@@ -13,9 +14,10 @@ import { PanelNotifyService } from '../../panel-notify.service';
   styleUrl: '../../panel.scss',
   encapsulation: ViewEncapsulation.None
 })
-export class PanelOrdenesPedidoTabComponent implements OnInit {
+export class PanelOrdenesPedidoTabComponent {
   private api = inject(ApiService);
   private notify = inject(PanelNotifyService);
+  private cache = inject(PanelCacheService);
 
   readonly labNombre = "Laboratorio Genotipia";
   readonly whatsappLaboratorio = '59175548529';
@@ -28,10 +30,6 @@ export class PanelOrdenesPedidoTabComponent implements OnInit {
   mostrarWhatsappModal = signal(false);
   ordenWhatsapp = signal<OrdenPedido | null>(null);
 
-  ngOnInit() {
-    this.cargarDatos();
-  }
-
   cargarDatos() {
     this.cargando.set(true);
     this.api.get<OrdenPedido[]>('/inventario/ordenes-pedido').subscribe({
@@ -42,7 +40,7 @@ export class PanelOrdenesPedidoTabComponent implements OnInit {
       error: () => this.cargando.set(false)
     });
     this.api.get<Reactivo[]>('/inventario/reactivos').subscribe(data => this.reactivos.set(data));
-    this.api.get<Proveedor[]>('/inventario/proveedores').subscribe(data => this.proveedores.set(data));
+    this.cache.proveedoresLista().subscribe(data => this.proveedores.set(data));
   }
 
   iniciarEnvio(orden: OrdenPedido) {

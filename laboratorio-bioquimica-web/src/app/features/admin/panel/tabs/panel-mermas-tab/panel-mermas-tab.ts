@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, inject, signal, OnInit } from '@angular/core';
+import { Component, ViewEncapsulation, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApiService } from '../../../../../core/services/api.service';
 import { MermaInventario } from '../../panel.models';
@@ -11,15 +11,11 @@ import { MermaInventario } from '../../panel.models';
   styleUrl: '../../panel.scss',
   encapsulation: ViewEncapsulation.None
 })
-export class PanelMermasTabComponent implements OnInit {
+export class PanelMermasTabComponent {
   private api = inject(ApiService);
 
   mermas = signal<MermaInventario[]>([]);
   cargando = signal(false);
-
-  ngOnInit() {
-    this.cargarMermas();
-  }
 
   cargarMermas() {
     this.cargando.set(true);

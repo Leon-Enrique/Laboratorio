@@ -1,5 +1,5 @@
 from datetime import date, timedelta, datetime, timezone
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
@@ -299,18 +299,31 @@ def dar_baja_lote(
 
 
 def consumo_diario_promedio(db: Session, reactivo_id: int, dias: int = DIAS_CONSUMO_PROMEDIO) -> float:
+    return consumo_diario_promedio_batch(db, [reactivo_id], dias).get(reactivo_id, 0.0)
+
+
+def consumo_diario_promedio_batch(
+    db: Session, reactivo_ids: List[int], dias: int = DIAS_CONSUMO_PROMEDIO
+) -> Dict[int, float]:
+    if not reactivo_ids:
+        return {}
     desde = datetime.now(timezone.utc) - timedelta(days=dias)
-    total = (
-        db.query(func.coalesce(func.sum(func.abs(MovimientoStock.cantidad)), 0.0))
+    rows = (
+        db.query(
+            MovimientoStock.reactivo_id,
+            func.coalesce(func.sum(func.abs(MovimientoStock.cantidad)), 0.0),
+        )
         .filter(
-            MovimientoStock.reactivo_id == reactivo_id,
+            MovimientoStock.reactivo_id.in_(reactivo_ids),
             MovimientoStock.fecha >= desde,
             MovimientoStock.cantidad < 0,
             MovimientoStock.tipo.in_(("CONSUMO_AUTO", "AJUSTE", "BAJA_VENCIDO")),
         )
-        .scalar()
+        .group_by(MovimientoStock.reactivo_id)
+        .all()
     )
-    return round(float(total or 0) / max(dias, 1), 4)
+    divisor = max(dias, 1)
+    return {int(rid): round(float(total or 0) / divisor, 4) for rid, total in rows}
 
 
 def calcular_punto_reorden(reactivo: Reactivo, consumo_diario: float) -> float:
@@ -381,20 +394,23 @@ def listar_mermas(db: Session, limit: int = 200) -> List[MermaInventario]:
 
 
 def obtener_alertas(db: Session) -> list:
+    from sqlalchemy.orm import selectinload
+
     sincronizar_lotes_vencidos(db)
     hoy = date.today()
     limite = hoy + timedelta(days=90)
+    reactivos = db.query(Reactivo).options(selectinload(Reactivo.lotes)).all()
+    consumos = consumo_diario_promedio_batch(db, [r.id for r in reactivos])
     alertas = []
-    reactivos = db.query(Reactivo).all()
 
     for r in reactivos:
         motivos = []
-        lotes = db.query(Lote).filter(Lote.reactivo_id == r.id, Lote.cantidad_disponible > 0).all()
+        lotes = [l for l in (r.lotes or []) if l.cantidad_disponible > 0]
 
         if r.stock_actual <= r.stock_minimo:
             motivos.append("Bajo stock")
 
-        consumo = consumo_diario_promedio(db, r.id)
+        consumo = consumos.get(r.id, 0.0)
         punto = calcular_punto_reorden(r, consumo)
         if r.stock_actual < punto and "Bajo stock" not in motivos:
             motivos.append("Bajo punto de reorden")
@@ -408,10 +424,7 @@ def obtener_alertas(db: Session) -> list:
                     motivos.append("Próximo a vencer")
 
         if motivos:
-            lote_critico = sorted(
-                [l for l in lotes if l.cantidad_disponible > 0],
-                key=lambda x: x.fecha_vencimiento,
-            )
+            lote_critico = sorted(lotes, key=lambda x: x.fecha_vencimiento)
             ref = lote_critico[0] if lote_critico else None
             alertas.append(
                 {

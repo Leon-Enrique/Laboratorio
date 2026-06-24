@@ -1,10 +1,11 @@
-import { Component, ViewEncapsulation, inject, signal, OnInit } from '@angular/core';
+import { Component, ViewEncapsulation, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../../core/services/api.service';
 import { MONEDA_CODIGO } from '../../../../../core/constants/moneda';
 import { Examen } from '../../panel.models';
 import { PanelNotifyService } from '../../panel-notify.service';
+import { PanelCacheService } from '../../panel-cache.service';
 
 @Component({
   selector: 'app-panel-catalogo-tab',
@@ -14,21 +15,18 @@ import { PanelNotifyService } from '../../panel-notify.service';
   styleUrl: '../../panel.scss',
   encapsulation: ViewEncapsulation.None
 })
-export class PanelCatalogoTabComponent implements OnInit {
+export class PanelCatalogoTabComponent {
   private api = inject(ApiService);
   private notify = inject(PanelNotifyService);
+  private cache = inject(PanelCacheService);
 
   readonly moneda = MONEDA_CODIGO;
 
   examenesCatalogo = signal<Examen[]>([]);
   busquedaCatalogo = signal('');
 
-  ngOnInit() {
-    this.cargarExamenesCatalogo();
-  }
-
   cargarExamenesCatalogo() {
-    this.api.get<Examen[]>('/examenes/admin-lista').subscribe(data => this.examenesCatalogo.set(data));
+    this.cache.examenesParaPanel(true).subscribe(data => this.examenesCatalogo.set(data));
   }
 
   examenesFiltrados(): Examen[] {
@@ -47,7 +45,10 @@ export class PanelCatalogoTabComponent implements OnInit {
     this.examenesCatalogo.set(listaActualizada);
 
     this.api.put<Examen>(`/examenes/${examen.id}/visibilidad`, {}).subscribe({
-      next: () => this.cargarExamenesCatalogo(),
+      next: () => {
+        this.cache.invalidarExamenes();
+        this.cargarExamenesCatalogo();
+      },
       error: (err) => {
         this.cargarExamenesCatalogo();
         this.notify.mostrarError(err, 'Error al cambiar visibilidad');

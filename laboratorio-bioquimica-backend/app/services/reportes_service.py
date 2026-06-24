@@ -4,6 +4,7 @@ from typing import Dict, List, Optional, Tuple
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import or_, and_
 
 from app.models.orden import Orden, Resultado
 from app.models.examen import Examen
@@ -124,6 +125,12 @@ def generar_reporte_dia(
             joinedload(Orden.paciente),
             joinedload(Orden.resultados).joinedload(Resultado.examen),
         )
+        .filter(
+            or_(
+                and_(Orden.fecha_creacion >= start_utc, Orden.fecha_creacion < end_utc),
+                and_(Orden.fecha_completado >= start_utc, Orden.fecha_completado < end_utc),
+            )
+        )
         .all()
     )
 
@@ -227,14 +234,30 @@ def _build_serie_semanal(
 
 
 def generar_dashboard(db: Session, meses_historial: int = 12) -> DashboardReporte:
+    hoy = datetime.now(timezone.utc).date()
+    mes_actual = (hoy.year, hoy.month)
+
+    y, m = mes_actual
+    for _ in range(meses_historial - 1):
+        m -= 1
+        if m == 0:
+            m = 12
+            y -= 1
+    start_local = datetime(y, m, 1, tzinfo=_get_tz())
+    start_utc = start_local.astimezone(timezone.utc)
+
     ordenes = (
         db.query(Orden)
         .options(joinedload(Orden.resultados).joinedload(Resultado.examen))
+        .filter(
+            or_(
+                Orden.fecha_creacion >= start_utc,
+                Orden.fecha_completado >= start_utc,
+                Orden.estado != "COMPLETADO",
+            )
+        )
         .all()
     )
-
-    hoy = datetime.now(timezone.utc).date()
-    mes_actual = (hoy.year, hoy.month)
 
     buckets: Dict[Tuple[int, int], Dict[str, float]] = defaultdict(_empty_bucket)
     day_buckets: Dict[date, Dict[str, float]] = defaultdict(_empty_bucket)

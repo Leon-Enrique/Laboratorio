@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, ViewEncapsulation, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../../core/services/api.service';
@@ -40,7 +40,7 @@ interface TopExamenRanking {
   styleUrl: '../../panel.scss',
   encapsulation: ViewEncapsulation.None
 })
-export class PanelReportesTabComponent implements OnInit {
+export class PanelReportesTabComponent {
   private api = inject(ApiService);
 
   readonly moneda = MONEDA_CODIGO;
@@ -203,10 +203,6 @@ export class PanelReportesTabComponent implements OnInit {
     }
   });
 
-  ngOnInit() {
-    this.cargarReportes();
-  }
-
   cargarReportes() {
     this.reportesCargando.set(true);
     this.reportesError.set(null);
@@ -220,7 +216,6 @@ export class PanelReportesTabComponent implements OnInit {
         this.reportesCargando.set(false);
       }
     });
-    this.cargarReporteDia();
   }
 
   cargarReporteDia() {
@@ -260,7 +255,7 @@ export class PanelReportesTabComponent implements OnInit {
   cambiarVistaReporte(vista: VistaReporte) {
     this.vistaReporte.set(vista);
     if (vista === 'dia') {
-      this.irAHoyReporte();
+      this.cargarReporteDia();
     }
   }
 

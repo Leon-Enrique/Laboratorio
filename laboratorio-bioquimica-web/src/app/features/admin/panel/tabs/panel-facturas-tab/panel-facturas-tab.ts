@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, inject, signal, OnInit } from '@angular/core';
+import { Component, ViewEncapsulation, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../../core/services/api.service';
@@ -15,7 +15,7 @@ import { PanelNotifyService } from '../../panel-notify.service';
   styleUrl: '../../panel.scss',
   encapsulation: ViewEncapsulation.None
 })
-export class PanelFacturasTabComponent implements OnInit {
+export class PanelFacturasTabComponent {
   private api = inject(ApiService);
   private notify = inject(PanelNotifyService);
 
@@ -29,10 +29,6 @@ export class PanelFacturasTabComponent implements OnInit {
   soloFactura = signal(false);
 
   private busquedaDebounce: ReturnType<typeof setTimeout> | null = null;
-
-  ngOnInit() {
-    this.cargarComprobantes();
-  }
 
   cargarComprobantes() {
     this.cargando.set(true);

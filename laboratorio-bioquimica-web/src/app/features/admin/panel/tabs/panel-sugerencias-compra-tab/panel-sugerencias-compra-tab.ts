@@ -1,9 +1,10 @@
-import { Component, ViewEncapsulation, inject, signal, OnInit, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, ViewEncapsulation, inject, signal, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../../core/services/api.service';
 import { SugerenciaCompra, Proveedor } from '../../panel.models';
 import { PanelNotifyService } from '../../panel-notify.service';
+import { PanelCacheService } from '../../panel-cache.service';
 
 @Component({
   selector: 'app-panel-sugerencias-compra-tab',
@@ -13,9 +14,10 @@ import { PanelNotifyService } from '../../panel-notify.service';
   styleUrl: '../../panel.scss',
   encapsulation: ViewEncapsulation.None
 })
-export class PanelSugerenciasCompraTabComponent implements OnInit, OnChanges {
+export class PanelSugerenciasCompraTabComponent implements OnChanges {
   private api = inject(ApiService);
   private notify = inject(PanelNotifyService);
+  private cache = inject(PanelCacheService);
 
   @Input() rolUsuario = '';
   @Input() filtroReactivoId: number | null = null;
@@ -30,11 +32,6 @@ export class PanelSugerenciasCompraTabComponent implements OnInit, OnChanges {
   editStockSeguridad = signal(0);
   editStockMinimo = signal(10);
 
-  ngOnInit() {
-    this.cargarProveedores();
-    this.cargarSugerencias();
-  }
-
   ngOnChanges(changes: SimpleChanges) {
     if (changes['filtroReactivoId'] && !changes['filtroReactivoId'].firstChange) {
       this.cargarSugerencias();
@@ -42,10 +39,11 @@ export class PanelSugerenciasCompraTabComponent implements OnInit, OnChanges {
   }
 
   cargarProveedores() {
-    this.api.get<Proveedor[]>('/inventario/proveedores').subscribe(data => this.proveedores.set(data));
+    this.cache.proveedoresLista().subscribe(data => this.proveedores.set(data));
   }
 
   cargarSugerencias() {
+    this.cargarProveedores();
     this.cargando.set(true);
     const params = this.filtroReactivoId ? `?reactivo_id=${this.filtroReactivoId}` : '';
     this.api.get<SugerenciaCompra[]>(`/inventario/sugerencias-compra${params}`).subscribe({

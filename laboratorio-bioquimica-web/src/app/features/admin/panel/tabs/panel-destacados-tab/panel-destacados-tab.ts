@@ -1,10 +1,11 @@
-import { Component, ViewEncapsulation, computed, inject, signal, OnInit } from '@angular/core';
+import { Component, ViewEncapsulation, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../../core/services/api.service';
 import { MONEDA_CODIGO } from '../../../../../core/constants/moneda';
 import { Examen } from '../../panel.models';
 import { PanelNotifyService } from '../../panel-notify.service';
+import { PanelCacheService } from '../../panel-cache.service';
 import {
   MAX_DESTACADOS_INICIO,
   descripcionDestacado,
@@ -38,9 +39,10 @@ interface MasBuscadoItem {
   styleUrl: '../../panel.scss',
   encapsulation: ViewEncapsulation.None
 })
-export class PanelDestacadosTabComponent implements OnInit {
+export class PanelDestacadosTabComponent {
   private api = inject(ApiService);
   private notify = inject(PanelNotifyService);
+  private cache = inject(PanelCacheService);
 
   readonly moneda = MONEDA_CODIGO;
   readonly maxDestacados = MAX_DESTACADOS_INICIO;
@@ -78,13 +80,8 @@ export class PanelDestacadosTabComponent implements OnInit {
     this.masBuscados().filter(item => item.visible && !item.ya_destacado)
   );
 
-  ngOnInit() {
-    this.cargarExamenes();
-    this.cargarMasBuscados();
-  }
-
   cargarExamenes() {
-    this.api.get<Examen[]>('/examenes/admin-lista').subscribe(data => this.examenesCatalogo.set(data));
+    this.cache.examenesParaPanel(true).subscribe(data => this.examenesCatalogo.set(data));
   }
 
   cargarMasBuscados() {
@@ -184,6 +181,7 @@ export class PanelDestacadosTabComponent implements OnInit {
       .subscribe({
         next: () => {
           this.guardando.set(false);
+          this.cache.invalidarExamenes();
           this.notify.mostrarToast('Destacado guardado.', 'success');
           this.cancelarFormulario();
           this.cargarExamenes();
@@ -203,6 +201,7 @@ export class PanelDestacadosTabComponent implements OnInit {
       .put<Examen>(`/examenes/${examen.id}/destacado-config`, { destacado: false })
       .subscribe({
         next: () => {
+          this.cache.invalidarExamenes();
           this.notify.mostrarToast('Destacado eliminado.', 'success');
           this.cargarExamenes();
           this.cargarMasBuscados();

@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, ViewEncapsulation, computed, inject, signal, viewChild, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -49,7 +49,7 @@ interface BreadcrumbItem {
   styleUrl: './panel.scss',
   encapsulation: ViewEncapsulation.None
 })
-export class PanelAdminComponent {
+export class PanelAdminComponent implements OnInit {
   private auth = inject(AuthService);
   private router = inject(Router);
 
@@ -63,6 +63,8 @@ export class PanelAdminComponent {
 
   navActivo = signal<PanelNavId>('ordenes-lista');
   tabActiva = signal<PanelTabId>('ordenes');
+  /** Pestañas ya montadas en DOM (no se destruyen al cambiar de vista). */
+  tabsMontadas = signal<Set<PanelTabId>>(new Set(['ordenes']));
   sidebarColapsado = signal(false);
   sidebarMovilAbierto = signal(false);
   filtroSugerenciaReactivoId = signal<number | null>(null);
@@ -84,6 +86,12 @@ export class PanelAdminComponent {
   destacadosTab = viewChild(PanelDestacadosTabComponent);
   analisisTab = viewChild(PanelAnalisisTabComponent);
   facturasTab = viewChild(PanelFacturasTabComponent);
+  reportesTab = viewChild(PanelReportesTabComponent);
+  historialTab = viewChild(PanelHistorialTabComponent);
+
+  ngOnInit() {
+    setTimeout(() => this.aplicarVistaNav(this.navActivo()), 0);
+  }
 
   readonly vistaOrdenes = computed<'lista' | 'nueva' | 'cobros_pendiente'>(() => {
     const nav = this.navActivo();
@@ -136,7 +144,9 @@ export class PanelAdminComponent {
 
   navegar(nav: PanelNavId) {
     this.navActivo.set(nav);
-    this.tabActiva.set(this.tabDesdeNav(nav));
+    const tab = this.tabDesdeNav(nav);
+    this.tabActiva.set(tab);
+    this.tabsMontadas.update(s => new Set([...s, tab]));
     this.sidebarMovilAbierto.set(false);
 
     if (nav.startsWith('ordenes')) {
@@ -241,7 +251,11 @@ export class PanelAdminComponent {
       const vista =
         nav === 'ordenes-nueva' ? 'nueva' : nav === 'ordenes-cobros' ? 'cobros_pendiente' : 'lista';
       this.ordenesTab()?.aplicarVista(vista);
-      this.ordenesTab()?.refresh();
+      if (nav === 'ordenes-lista' || nav === 'ordenes-cobros') {
+        this.ordenesTab()?.refresh();
+      } else {
+        this.ordenesTab()?.ensureCatalogo();
+      }
       return;
     }
     if (nav === 'inventario-insumos') {
@@ -258,6 +272,9 @@ export class PanelAdminComponent {
     }
     if (nav === 'compras-ordenes-pedido') {
       this.ordenesPedidoTab()?.cargarDatos();
+    }
+    if (nav === 'reportes-stats') {
+      this.reportesTab()?.cargarReportes();
     }
     if (nav === 'config-catalogo') {
       this.catalogoTab()?.cargarExamenesCatalogo();

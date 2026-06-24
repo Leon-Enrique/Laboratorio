@@ -2,7 +2,7 @@ from typing import List, Any, Optional
 from datetime import date, timedelta, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.db.session import get_db
 from app.models.inventario import Reactivo, Proveedor, MovimientoStock, Lote, MermaInventario, OrdenPedido
@@ -65,13 +65,19 @@ def _enriquecer_movimiento(m: MovimientoStock) -> MovimientoStockResponse:
 @router.get("/reactivos", response_model=List[ReactivoResponse], dependencies=dependencias_seguridad)
 def listar_reactivos(db: Session = Depends(get_db)) -> Any:
     inv.sincronizar_lotes_vencidos(db)
-    reactivos = db.query(Reactivo).options(joinedload(Reactivo.proveedor)).all()
+    reactivos = (
+        db.query(Reactivo)
+        .options(joinedload(Reactivo.proveedor), selectinload(Reactivo.lotes))
+        .all()
+    )
     resultado = []
     for r in reactivos:
-        lotes = db.query(Lote).filter(Lote.reactivo_id == r.id).all()
+        lotes = r.lotes or []
         item = ReactivoResponse.model_validate(r)
         item.total_lotes = len(lotes)
-        item.lotes_activos = len([l for l in lotes if l.estado == "ACTIVO" and l.cantidad_disponible > 0])
+        item.lotes_activos = len(
+            [l for l in lotes if l.estado == "ACTIVO" and l.cantidad_disponible > 0]
+        )
         resultado.append(item)
     return resultado
 

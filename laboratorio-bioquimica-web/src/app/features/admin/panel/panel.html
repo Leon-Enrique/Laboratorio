@@ -285,63 +285,69 @@
     </div>
 
     <main class="admin-content">
-      @if (tabActiva() === 'ordenes') {
+      @if (tabsMontadas().has('ordenes')) {
         <app-panel-ordenes-tab
+          [hidden]="tabActiva() !== 'ordenes'"
           [vista]="vistaOrdenes()"
           (volverLista)="navegar('ordenes-lista')"
           (inventarioChanged)="onInventarioChanged()"
         />
       }
 
-      @if (tabActiva() === 'ordenes-facturas') {
-        <app-panel-facturas-tab />
+      @if (tabsMontadas().has('ordenes-facturas')) {
+        <app-panel-facturas-tab [hidden]="tabActiva() !== 'ordenes-facturas'" />
       }
 
-      @if (tabActiva() === 'inventario-insumos') {
+      @if (tabsMontadas().has('inventario-insumos')) {
         <app-panel-inventario-tab
+          [hidden]="tabActiva() !== 'inventario-insumos'"
           [rolUsuario]="rolUsuario() ?? ''"
           (irSugerenciaCompra)="navegarSugerenciaCompra($event)"
         />
       }
 
-      @if (tabActiva() === 'inventario-mermas') {
-        <app-panel-mermas-tab />
+      @if (tabsMontadas().has('inventario-mermas')) {
+        <app-panel-mermas-tab [hidden]="tabActiva() !== 'inventario-mermas'" />
       }
 
-      @if (tabActiva() === 'compras-sugerencias') {
+      @if (tabsMontadas().has('compras-sugerencias')) {
         <app-panel-sugerencias-compra-tab
+          [hidden]="tabActiva() !== 'compras-sugerencias'"
           [rolUsuario]="rolUsuario() ?? ''"
           [filtroReactivoId]="filtroSugerenciaReactivoId()"
           (limpiarFiltro)="limpiarFiltroSugerencia()"
         />
       }
 
-      @if (tabActiva() === 'compras-proveedores') {
-        <app-panel-proveedores-tab [rolUsuario]="rolUsuario() ?? ''" />
+      @if (tabsMontadas().has('compras-proveedores')) {
+        <app-panel-proveedores-tab
+          [hidden]="tabActiva() !== 'compras-proveedores'"
+          [rolUsuario]="rolUsuario() ?? ''"
+        />
       }
 
-      @if (tabActiva() === 'compras-ordenes-pedido') {
-        <app-panel-ordenes-pedido-tab />
+      @if (tabsMontadas().has('compras-ordenes-pedido')) {
+        <app-panel-ordenes-pedido-tab [hidden]="tabActiva() !== 'compras-ordenes-pedido'" />
       }
 
-      @if (tabActiva() === 'reportes') {
-        <app-panel-reportes-tab />
+      @if (tabsMontadas().has('reportes')) {
+        <app-panel-reportes-tab [hidden]="tabActiva() !== 'reportes'" />
       }
 
-      @if (tabActiva() === 'historial') {
-        <app-panel-historial-tab />
+      @if (tabsMontadas().has('historial')) {
+        <app-panel-historial-tab [hidden]="tabActiva() !== 'historial'" />
       }
 
-      @if (tabActiva() === 'config-catalogo' && rolUsuario() === 'admin') {
-        <app-panel-catalogo-tab />
+      @if (tabsMontadas().has('config-catalogo') && rolUsuario() === 'admin') {
+        <app-panel-catalogo-tab [hidden]="tabActiva() !== 'config-catalogo'" />
       }
 
-      @if (tabActiva() === 'config-destacados' && rolUsuario() === 'admin') {
-        <app-panel-destacados-tab />
+      @if (tabsMontadas().has('config-destacados') && rolUsuario() === 'admin') {
+        <app-panel-destacados-tab [hidden]="tabActiva() !== 'config-destacados'" />
       }
 
-      @if (tabActiva() === 'config-analisis' && rolUsuario() === 'admin') {
-        <app-panel-analisis-tab />
+      @if (tabsMontadas().has('config-analisis') && rolUsuario() === 'admin') {
+        <app-panel-analisis-tab [hidden]="tabActiva() !== 'config-analisis'" />
       }
     </main>
   </div>

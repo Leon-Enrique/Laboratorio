@@ -1,7 +1,6 @@
 import {
   Component,
   ViewEncapsulation,
-  OnInit,
   inject,
   signal,
   computed,
@@ -21,6 +20,7 @@ import {
   objectKeys
 } from '../../panel.utils';
 import { PanelNotifyService } from '../../panel-notify.service';
+import { PanelCacheService } from '../../panel-cache.service';
 import { normalizarTipoResultado, stepDecimales, esParametroResultadoVisible, examenFaltaCrearResultados } from '../../catalogo-examen.options';
 
 type ExamenOrdenItem = {
@@ -44,9 +44,10 @@ type CampoResultadoForm = {
   styleUrl: '../../panel.scss',
   encapsulation: ViewEncapsulation.None
 })
-export class PanelOrdenesTabComponent implements OnInit {
+export class PanelOrdenesTabComponent {
   private api = inject(ApiService);
   private notify = inject(PanelNotifyService);
+  private cache = inject(PanelCacheService);
 
   /** Emite cuando la firma de resultados descuenta stock (el padre puede refrescar inventario). */
   inventarioChanged = output<void>();
@@ -211,26 +212,29 @@ export class PanelOrdenesTabComponent implements OnInit {
     }
   });
 
-  ngOnInit() {
-    this.refreshCompleto();
-  }
-
   /** Recarga la cola de órdenes (p. ej. al activar la pestaña desde el padre). */
   aplicarVista(_vista: 'lista' | 'nueva' | 'cobros_pendiente') {
     // La vista la controla el input `vista`; los filtros se sincronizan en el effect.
   }
 
   refresh() {
+    this.ensureCatalogo();
     this.api.get<Orden[]>('/ordenes/').subscribe(data => this.ordenes.set(data));
   }
 
-  refreshCompleto() {
-    this.refresh();
-    this.cargarExamenesCatalogo();
+  ensureCatalogo(onLoaded?: (data: Examen[]) => void) {
+    if (this.examenesCatalogo().length) {
+      onLoaded?.(this.examenesCatalogo());
+      return;
+    }
+    this.cache.examenesParaPanel().subscribe(data => {
+      this.examenesCatalogo.set(data);
+      onLoaded?.(data);
+    });
   }
 
   cargarExamenesCatalogo(onLoaded?: (data: Examen[]) => void) {
-    this.api.get<Examen[]>('/examenes/admin-lista').subscribe(data => {
+    this.cache.examenesParaPanel(true).subscribe(data => {
       this.examenesCatalogo.set(data);
       onLoaded?.(data);
     });

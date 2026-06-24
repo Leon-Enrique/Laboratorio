@@ -1,9 +1,10 @@
-import { Component, ViewEncapsulation, inject, signal, OnInit, Input } from '@angular/core';
+import { Component, ViewEncapsulation, inject, signal, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../../core/services/api.service';
 import { Proveedor } from '../../panel.models';
 import { PanelNotifyService } from '../../panel-notify.service';
+import { PanelCacheService } from '../../panel-cache.service';
 
 @Component({
   selector: 'app-panel-proveedores-tab',
@@ -13,9 +14,10 @@ import { PanelNotifyService } from '../../panel-notify.service';
   styleUrl: '../../panel.scss',
   encapsulation: ViewEncapsulation.None
 })
-export class PanelProveedoresTabComponent implements OnInit {
+export class PanelProveedoresTabComponent {
   private api = inject(ApiService);
   private notify = inject(PanelNotifyService);
+  private cache = inject(PanelCacheService);
 
   @Input() rolUsuario = '';
 
@@ -29,13 +31,9 @@ export class PanelProveedoresTabComponent implements OnInit {
   formEmail = signal('');
   formDireccion = signal('');
 
-  ngOnInit() {
-    this.cargarProveedores();
-  }
-
   cargarProveedores() {
     this.cargando.set(true);
-    this.api.get<Proveedor[]>('/inventario/proveedores').subscribe({
+    this.cache.proveedoresLista(true).subscribe({
       next: (data) => {
         this.proveedores.set(data);
         this.cargando.set(false);
@@ -88,6 +86,7 @@ export class PanelProveedoresTabComponent implements OnInit {
 
     req.subscribe({
       next: () => {
+        this.cache.invalidarProveedores();
         this.notify.mostrarToast(edit ? 'Proveedor actualizado.' : 'Proveedor registrado.', 'success');
         this.cerrarModal();
         this.cargarProveedores();
