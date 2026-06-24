@@ -1,4 +1,5 @@
 import { Injectable, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 
 export type ToastType = 'success' | 'error' | 'info';
 
@@ -25,10 +26,20 @@ export class PanelNotifyService {
   }
 
   mostrarError(err: unknown, fallback: string) {
-    const detail = (err as { error?: { detail?: string }; message?: string })?.error?.detail
-      || (err as { message?: string })?.message
-      || fallback;
-    this.mostrarToast(String(detail), 'error');
+    let detail = fallback;
+    if (err instanceof HttpErrorResponse) {
+      if (err.status === 0) {
+        detail =
+          'Sin respuesta del servidor. Si el API está en Render (plan gratis), espere ~30 s tras abrir la página y vuelva a intentar.';
+      } else if (err.error && typeof err.error === 'object' && 'detail' in err.error) {
+        detail = String((err.error as { detail: unknown }).detail);
+      } else if (err.message) {
+        detail = err.message;
+      }
+    } else if (err && typeof err === 'object' && 'message' in err) {
+      detail = String((err as { message: string }).message);
+    }
+    this.mostrarToast(detail, 'error');
   }
 
   pedirConfirmacion(title: string, message: string, onConfirm: () => void) {

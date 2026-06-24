@@ -1,5 +1,6 @@
 import uuid
 import re
+import logging
 from datetime import datetime, timezone, date
 from typing import List, Any, Optional
 
@@ -30,6 +31,7 @@ from app.api.v1.endpoints.auth import RoleChecker, get_current_user, oauth2_sche
 from app.models.usuario import Usuario
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 def _orden_query(db: Session):
@@ -427,44 +429,64 @@ def aprobar_y_emitir_orden(
     if orden.estado == "COMPLETADO":
         raise HTTPException(status_code=400, detail="Esta orden ya se encuentra aprobada y completada")
 
-    # Permitir firmar aunque falten valores parciales (borrador o incompleto)
     for res in orden.resultados:
         if res.valor_resultado is None:
             res.valor_resultado = {}
             db.add(res)
 
-    # -- LOGICA MRP: Descontar reactivos por FEFO (lote más próximo a vencer primero) --
+    if not settings.SKIP_MRP_ON_APROBAR:
+        try:
+            for examen_resultado in orden.resultados:
+                examen_id = examen_resultado.examen_id
+                formulas = db.query(FormulaConsumo).filter(FormulaConsumo.examen_id == examen_id).all()
+
+                for f in formulas:
+                    inv.consumir_por_fefo(
+                        db=db,
+                        reactivo_id=f.reactivo_id,
+                        cantidad=f.cantidad_consumo,
+                        tipo="CONSUMO_AUTO",
+                        usuario_id=current_user.id,
+                        orden_id=orden.id,
+                        descripcion=f"Consumo automático por Aprobación de Orden {orden.codigo_orden}",
+                    )
+        except HTTPException:
+            db.rollback()
+            raise
+
     try:
-        for examen_resultado in orden.resultados:
-            examen_id = examen_resultado.examen_id
-            formulas = db.query(FormulaConsumo).filter(FormulaConsumo.examen_id == examen_id).all()
+        orden.estado = "COMPLETADO"
+        orden.bioquimico_id = current_user.id
+        orden.fecha_completado = datetime.now(timezone.utc)
+        db.add(orden)
+        db.flush()
 
-            for f in formulas:
-                inv.consumir_por_fefo(
-                    db=db,
-                    reactivo_id=f.reactivo_id,
-                    cantidad=f.cantidad_consumo,
-                    tipo="CONSUMO_AUTO",
-                    usuario_id=current_user.id,
-                    orden_id=orden.id,
-                    descripcion=f"Consumo automático por Aprobación de Orden {orden.codigo_orden}",
-                )
-    except HTTPException as e:
+        try:
+            pdf_service.generar_informe_orden(orden, current_user.nombre)
+        except Exception as exc:
+            db.rollback()
+            logger.exception("Error generando PDF para orden %s", orden.codigo_orden)
+            raise HTTPException(
+                status_code=500,
+                detail=f"No se pudo generar el informe PDF: {exc}",
+            ) from exc
+
+        pdf_url = _informe_pdf_url(orden.codigo_orden)
+        for res in orden.resultados:
+            res.pdf_url = pdf_url
+            db.add(res)
+
+        db.commit()
+    except HTTPException:
+        raise
+    except Exception as exc:
         db.rollback()
-        raise e
+        logger.exception("Error al aprobar orden %s", orden_id)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al firmar la orden: {exc}",
+        ) from exc
 
-    orden.estado = "COMPLETADO"
-    orden.bioquimico_id = current_user.id
-    orden.fecha_completado = datetime.now(timezone.utc)
-
-    pdf_service.generar_informe_orden(orden, current_user.nombre)
-    pdf_url = _informe_pdf_url(orden.codigo_orden)
-    for res in orden.resultados:
-        res.pdf_url = pdf_url
-        db.add(res)
-
-    db.add(orden)
-    db.commit()
     return _orden_query(db).filter(Orden.id == orden_id).first()
 
 

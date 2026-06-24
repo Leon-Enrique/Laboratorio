@@ -689,8 +689,13 @@
               <button type="button" class="btn-action" (click)="guardarBorradorResultados()">
                 Guardar borrador
               </button>
-              <button type="button" class="btn-modal-submit btn-firmar" (click)="firmarYAprobarResultados()">
-                Firmar y emitir PDF
+              <button
+                type="button"
+                class="btn-modal-submit btn-firmar"
+                [disabled]="firmandoResultados()"
+                (click)="firmarYAprobarResultados()"
+              >
+                {{ firmandoResultados() ? 'Firmando…' : 'Firmar y emitir PDF' }}
               </button>
             } @else {
               <button type="button" class="btn-action btn-corregir-resultados" (click)="reabrirResultadosParaEdicion(ordRes)">

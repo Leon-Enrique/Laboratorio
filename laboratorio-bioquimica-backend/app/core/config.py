@@ -38,6 +38,8 @@ class Settings:
     API_PUBLIC_URL: str = os.getenv("API_PUBLIC_URL", "http://localhost:8000")
     # Sitio público para QR/enlaces en PDF (dominio real aunque el API corra en local)
     PUBLIC_SITE_URL: str = os.getenv("PUBLIC_SITE_URL", "").strip()
+    # Demo/cloud: omitir descuento MRP al firmar si no hay inventario cargado
+    SKIP_MRP_ON_APROBAR: bool = _env_bool("SKIP_MRP_ON_APROBAR", False)
 
     CORS_ORIGINS: list[str] = _parse_cors_origins()
 

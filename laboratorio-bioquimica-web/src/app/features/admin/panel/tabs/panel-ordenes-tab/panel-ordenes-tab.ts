@@ -100,6 +100,7 @@ export class PanelOrdenesTabComponent implements OnInit {
   ticketOrden = signal<Orden | null>(null);
 
   ordenSeleccionadaResultados = signal<Orden | null>(null);
+  firmandoResultados = signal(false);
   valoresResultados = signal<Record<string, string>>({});
   referenciasResultados = signal<Record<string, string>>({});
   camposResultadoForm = signal<CampoResultadoForm[]>([]);
@@ -712,12 +713,14 @@ export class PanelOrdenesTabComponent implements OnInit {
 
   firmarYAprobarResultados() {
     const orden = this.ordenSeleccionadaResultados();
-    if (!orden) return;
+    if (!orden || this.firmandoResultados()) return;
 
+    this.firmandoResultados.set(true);
     this.api.post(`/ordenes/${orden.id}/valores`, this.buildPayloadResultados(orden)).subscribe({
       next: () => {
         this.api.post<Orden>(`/ordenes/${orden.id}/aprobar`, {}).subscribe({
           next: (updated) => {
+            this.firmandoResultados.set(false);
             this.notify.mostrarToast('Resultados firmados e informe PDF generado correctamente.', 'success');
             this.ordenSeleccionadaResultados.set(null);
             this.ordenFirmadaWhatsapp.set(updated);
@@ -726,10 +729,16 @@ export class PanelOrdenesTabComponent implements OnInit {
             this.refresh();
             this.inventarioChanged.emit();
           },
-          error: (err) => this.notify.mostrarError(err, 'Error al firmar')
+          error: (err) => {
+            this.firmandoResultados.set(false);
+            this.notify.mostrarError(err, 'Error al firmar');
+          }
         });
       },
-      error: (err) => this.notify.mostrarError(err, 'Error al guardar valores preliminares')
+      error: (err) => {
+        this.firmandoResultados.set(false);
+        this.notify.mostrarError(err, 'Error al guardar valores preliminares');
+      }
     });
   }
 

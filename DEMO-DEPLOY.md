@@ -68,6 +68,8 @@ Use la plantilla `laboratorio-bioquimica-backend/.env.render.example`:
 | `FRONTEND_URL` | `https://genotipia-lab.vercel.app` |
 | `API_PUBLIC_URL` | `https://genotipia-api.onrender.com` |
 | `CORS_ORIGINS` | `https://genotipia-lab.vercel.app` |
+| `PUBLIC_SITE_URL` | `https://genotipia-lab.vercel.app` |
+| `SKIP_MRP_ON_APROBAR` | `true` *(demo sin inventario cargado)* |
 | `AUTO_MIGRATE` | `true` |
 | `RUN_LEGACY_SCHEMA_PATCHES` | `true` |
 | `RUN_DATA_BACKFILL` | `false` |

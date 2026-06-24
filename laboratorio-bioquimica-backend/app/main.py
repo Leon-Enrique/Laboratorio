@@ -1,11 +1,15 @@
 from contextlib import asynccontextmanager
+import logging
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.api.v1.api import api_router
 from app.core.config import settings
 from app.db.migrations import run_startup_migrations
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -28,6 +32,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    if isinstance(exc, HTTPException):
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+    logger.exception("Error no controlado en %s", request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Error interno del servidor. Intente de nuevo en unos segundos."},
+    )
 
 
 @app.get("/health", tags=["Salud"])
