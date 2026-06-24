@@ -6,6 +6,7 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
 import { BrandLogoComponent } from '../../../shared/components/brand-logo/brand-logo';
 import { PublicNavbarComponent } from '../../../shared/components/public-navbar/public-navbar';
+import { HERO_REVEAL } from '../../../shared/animations/hero-animation.util';
 import { MONEDA_CODIGO } from '../../../core/constants/moneda';
 import { obtenerArticulosDestacados, BlogArticulo } from '../blog/blog-articles.data';
 import {
@@ -80,6 +81,7 @@ export class InicioComponent implements OnInit {
   private api = inject(ApiService);
 
   readonly moneda = MONEDA_CODIGO;
+  readonly heroReveal = HERO_REVEAL;
   readonly whatsappUrl = 'https://wa.me/59175548529';
   readonly telefono = '755 48529';
   readonly telefonoTel = '+59175548529';

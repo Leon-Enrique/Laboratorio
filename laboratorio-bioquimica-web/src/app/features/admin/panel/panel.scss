@@ -3018,6 +3018,356 @@ h3 {
   margin: 0;
 }
 
+// ─── Dashboard reportes (estilo panel ejecutivo) ───────────
+.dash-panel-principal {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.dash-panel-label {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.dash-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.dash-stat-card {
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+
+  &__body {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1.1rem 1.15rem 1rem;
+    min-height: 96px;
+  }
+
+  &__info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+  }
+
+  &__value {
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+
+  &__label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    opacity: 0.95;
+  }
+
+  &__sub {
+    font-size: 0.78rem;
+    opacity: 0.85;
+  }
+
+  &__icon {
+    font-size: 2.75rem;
+    line-height: 1;
+    opacity: 0.35;
+    flex-shrink: 0;
+  }
+
+  &__footer {
+    width: 100%;
+    border: none;
+    background: rgba(0, 0, 0, 0.14);
+    color: inherit;
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 0.55rem 1rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.2s;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.22);
+    }
+  }
+
+  &--blue { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+  &--green { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); }
+  &--yellow { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: #1e293b; }
+  &--red { background: linear-gradient(135deg, #f87171 0%, #ef4444 100%); }
+  &--navy { background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); }
+  &--purple { background: linear-gradient(135deg, #c026d3 0%, #a21caf 100%); }
+}
+
+.dash-secondary-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.75rem;
+}
+
+.dash-mini-stat {
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+
+  span {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #868e96;
+  }
+
+  strong {
+    font-size: 1.15rem;
+    color: #1e293b;
+  }
+}
+
+.dash-ranking-card {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+
+  &__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+    border-bottom: 1px solid #d1fae5;
+
+    h4 {
+      margin: 0 0 0.2rem;
+      font-size: 1.05rem;
+      color: #14532d;
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.85rem;
+      color: #4b5563;
+    }
+  }
+}
+
+.btn-action--sm {
+  padding: 0.45rem 0.85rem;
+  font-size: 0.82rem;
+}
+
+.dash-ranking-list {
+  padding: 1rem 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.dash-ranking-item {
+  &__top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.75rem;
+    margin-bottom: 0.4rem;
+  }
+
+  &__name {
+    font-weight: 700;
+    color: #1e293b;
+    font-size: 0.92rem;
+  }
+
+  &__meta {
+    font-size: 0.8rem;
+    color: #64748b;
+    white-space: nowrap;
+  }
+
+  &__pct {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    margin-top: 0.25rem;
+    display: block;
+  }
+}
+
+.dash-progress {
+  height: 10px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+
+  &__bar {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+    transition: width 0.4s ease;
+  }
+}
+
+.dash-period-tabs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+
+  &__label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #64748b;
+    margin-right: 0.25rem;
+  }
+}
+
+.dash-period-tab {
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &.active,
+  &:hover {
+    background: #1e3a8a;
+    border-color: #1e3a8a;
+    color: #fff;
+  }
+}
+
+.dash-charts-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.dash-chart-panel {
+  border-radius: 8px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #1e3a8a 0%, #172554 100%);
+  color: #e2e8f0;
+  box-shadow: 0 8px 24px rgba(30, 58, 138, 0.25);
+
+  &__head {
+    padding: 0.9rem 1rem 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+    h4 {
+      margin: 0 0 0.2rem;
+      font-size: 0.95rem;
+      color: #fff;
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.75rem;
+      color: rgba(226, 232, 240, 0.75);
+    }
+  }
+
+  &__body {
+    padding: 0.75rem 1rem 0.35rem;
+    min-height: 170px;
+  }
+
+  &__foot {
+    padding: 0.65rem 1rem;
+    background: rgba(0, 0, 0, 0.18);
+    font-size: 0.8rem;
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+
+    strong {
+      color: #fff;
+    }
+
+    &--split {
+      justify-content: space-between;
+    }
+  }
+}
+
+.dash-line-chart {
+  width: 100%;
+  height: 140px;
+  display: block;
+
+  &__area {
+    opacity: 0.2;
+
+    &--a { fill: #60a5fa; }
+    &--green { fill: #4ade80; }
+  }
+
+  &__line {
+    fill: none;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+
+    &--a { stroke: #60a5fa; }
+    &--b { stroke: #fbbf24; }
+    &--green { stroke: #4ade80; }
+    &--red { stroke: #f87171; }
+  }
+}
+
+.dash-chart-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.25rem;
+  margin-top: 0.35rem;
+  font-size: 0.65rem;
+  color: rgba(226, 232, 240, 0.7);
+
+  span {
+    flex: 1;
+    text-align: center;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+
+  &--blue { background: #60a5fa; }
+  &--green { background: #4ade80; }
+  &--red { background: #f87171; }
+}
+
 .form-grid-2col {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -3550,6 +3900,14 @@ h3 {
     grid-template-columns: 1fr;
   }
 
+  .dash-stat-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .dash-charts-row {
+    grid-template-columns: 1fr;
+  }
+
   .form-grid-2col {
     grid-template-columns: 1fr;
   }
@@ -3905,5 +4263,218 @@ h3 {
     display: flex;
     flex-direction: column;
     gap: 0.85rem;
+  }
+}
+
+.facturas-section {
+  .search-card .subtitle {
+    margin-bottom: 1.25rem;
+  }
+
+  .facturas-filtros {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  .facturas-busqueda {
+    max-width: 100%;
+  }
+
+  .facturas-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 1rem 1.25rem;
+    padding: 1rem 1.15rem;
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+  }
+
+  .facturas-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 11rem;
+
+    &__label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #64748b;
+    }
+  }
+
+  .facturas-select {
+    appearance: none;
+    min-width: 11rem;
+    padding: 0.55rem 2.2rem 0.55rem 0.75rem;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1e293b;
+    background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2364748b' d='M1 1l5 5 5-5'/%3E%3C/svg%3E") no-repeat right 0.75rem center;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+      box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.12);
+    }
+  }
+
+  .facturas-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin: 0;
+    padding: 0.55rem 0.85rem;
+    background: white;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #334155;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color 0.2s, background 0.2s;
+
+    &:hover {
+      border-color: #94a3b8;
+      background: #fafbfc;
+    }
+
+    input[type='checkbox'] {
+      width: 1rem;
+      height: 1rem;
+      margin: 0;
+      accent-color: $primary-color;
+      cursor: pointer;
+    }
+  }
+
+  .btn-facturas-refresh {
+    margin-left: auto;
+    padding: 0.6rem 1.25rem;
+    font-family: inherit;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: white;
+    background: $primary-color;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+    box-shadow: 0 2px 6px rgba(13, 110, 253, 0.25);
+
+    &:hover {
+      background: darken($primary-color, 7%);
+    }
+
+    &:active {
+      transform: translateY(1px);
+    }
+  }
+
+  .facturas-panel {
+    margin-top: 1.25rem;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .facturas-table {
+    min-width: 960px;
+
+    th {
+      white-space: nowrap;
+      font-size: 0.78rem;
+    }
+
+    td {
+      vertical-align: middle;
+    }
+
+    .col-num { width: 7rem; }
+    .col-fecha { width: 9rem; white-space: nowrap; }
+    .col-paciente { min-width: 11rem; }
+    .col-tipo { width: 8rem; }
+    .col-monto { width: 7rem; white-space: nowrap; }
+    .col-pago { width: 8rem; }
+    .col-user { width: 8rem; }
+    .col-acciones { width: 9rem; text-align: right; }
+
+    .factura-num {
+      display: block;
+      font-weight: 800;
+      font-size: 1rem;
+      color: #1e3a8a;
+    }
+
+    .factura-codigo {
+      display: block;
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-top: 0.15rem;
+    }
+
+    .factura-paciente {
+      display: block;
+      font-weight: 600;
+      color: #212529;
+    }
+
+    .factura-ci,
+    .factura-nit,
+    .factura-metodo {
+      display: block;
+      font-size: 0.78rem;
+      color: #64748b;
+      margin-top: 0.2rem;
+    }
+
+    .badge-factura {
+      display: inline-block;
+      background: #dbeafe;
+      color: #1e40af;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    .badge-orden {
+      display: inline-block;
+      background: #d1fae5;
+      color: #047857;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    .badge-pagado {
+      display: inline-block;
+      background: #dcfce7;
+      color: #166534;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    .badge-pendiente {
+      display: inline-block;
+      background: #fef3c7;
+      color: #92400e;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
   }
 }

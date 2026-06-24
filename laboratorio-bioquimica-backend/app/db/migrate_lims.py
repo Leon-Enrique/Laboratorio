@@ -68,6 +68,8 @@ def apply_legacy_schema_patches() -> None:
             _add_column_if_missing(conn, inspector, "ordenes", "requiere_factura", "requiere_factura BOOLEAN DEFAULT false")
             _add_column_if_missing(conn, inspector, "ordenes", "nit_factura", "nit_factura VARCHAR")
             _add_column_if_missing(conn, inspector, "ordenes", "razon_social_factura", "razon_social_factura VARCHAR")
+            _add_column_if_missing(conn, inspector, "ordenes", "numero_comprobante", "numero_comprobante INTEGER")
+            _add_column_if_missing(conn, inspector, "ordenes", "recepcionista_id", "recepcionista_id INTEGER")
 
         if _table_exists(inspector, "examenes"):
             _rename_column_if_exists(conn, inspector, "examenes", "precio_usd", "precio_bob")
@@ -110,6 +112,7 @@ def run_data_backfills() -> None:
     try:
         _migrar_reactivos_a_lotes(db)
         _backfill_fecha_completado(db)
+        _backfill_numero_comprobante(db)
         _backfill_catalogo_examenes_comunes(db)
         _fix_fechas_nacimiento_invalidas(db)
     finally:
@@ -215,3 +218,17 @@ def _backfill_fecha_completado(db) -> None:
         o.fecha_completado = o.fecha_creacion
     if ordenes:
         db.commit()
+
+
+def _backfill_numero_comprobante(db) -> None:
+    sin_numero = db.query(Orden).filter(Orden.numero_comprobante.is_(None)).order_by(Orden.id).all()
+    if not sin_numero:
+        return
+    max_num = db.query(Orden.numero_comprobante).filter(Orden.numero_comprobante.isnot(None)).order_by(
+        Orden.numero_comprobante.desc()
+    ).first()
+    siguiente = (max_num[0] if max_num and max_num[0] else 0) + 1
+    for orden in sin_numero:
+        orden.numero_comprobante = siguiente
+        siguiente += 1
+    db.commit()

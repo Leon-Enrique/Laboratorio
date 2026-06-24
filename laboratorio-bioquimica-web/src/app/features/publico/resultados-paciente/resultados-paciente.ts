@@ -71,10 +71,12 @@ export class ResultadosPacienteComponent implements OnInit {
   orden = signal<Orden | null>(null);
   cargando = signal<boolean>(false);
   error = signal<string | null>(null);
+  desdeQr = signal(false);
 
   ngOnInit() {
     const codigo = this.route.snapshot.queryParamMap.get('codigo');
     if (codigo) {
+      this.desdeQr.set(true);
       this.codigoBusqueda.set(codigo.toUpperCase());
       this.verificarCodigo();
     }

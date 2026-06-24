@@ -17,6 +17,7 @@ import { PanelHistorialTabComponent } from './tabs/panel-historial-tab/panel-his
 import { PanelCatalogoTabComponent } from './tabs/panel-catalogo-tab/panel-catalogo-tab';
 import { PanelDestacadosTabComponent } from './tabs/panel-destacados-tab/panel-destacados-tab';
 import { PanelAnalisisTabComponent } from './tabs/panel-analisis-tab/panel-analisis-tab';
+import { PanelFacturasTabComponent } from './tabs/panel-facturas-tab/panel-facturas-tab';
 
 interface BreadcrumbItem {
   label: string;
@@ -40,7 +41,8 @@ interface BreadcrumbItem {
     PanelHistorialTabComponent,
     PanelCatalogoTabComponent,
     PanelDestacadosTabComponent,
-    PanelAnalisisTabComponent
+    PanelAnalisisTabComponent,
+    PanelFacturasTabComponent
   ],
   providers: [PanelNotifyService],
   templateUrl: './panel.html',
@@ -81,6 +83,7 @@ export class PanelAdminComponent {
   catalogoTab = viewChild(PanelCatalogoTabComponent);
   destacadosTab = viewChild(PanelDestacadosTabComponent);
   analisisTab = viewChild(PanelAnalisisTabComponent);
+  facturasTab = viewChild(PanelFacturasTabComponent);
 
   readonly vistaOrdenes = computed<'lista' | 'nueva' | 'cobros_pendiente'>(() => {
     const nav = this.navActivo();
@@ -94,6 +97,7 @@ export class PanelAdminComponent {
       'ordenes-lista': 'Cola de trabajo',
       'ordenes-nueva': 'Nueva orden',
       'ordenes-cobros': 'Cobros pendientes',
+      'ordenes-facturas': 'Facturas y comprobantes',
       'inventario-insumos': 'Control de insumos',
       'inventario-mermas': 'Historial de mermas',
       'compras-sugerencias': 'Sugerencias de compra',
@@ -213,6 +217,7 @@ export class PanelAdminComponent {
   }
 
   private tabDesdeNav(nav: PanelNavId): PanelTabId {
+    if (nav === 'ordenes-facturas') return 'ordenes-facturas';
     if (nav.startsWith('ordenes')) return 'ordenes';
     if (nav === 'inventario-insumos') return 'inventario-insumos';
     if (nav === 'inventario-mermas') return 'inventario-mermas';
@@ -228,6 +233,10 @@ export class PanelAdminComponent {
   }
 
   private aplicarVistaNav(nav: PanelNavId) {
+    if (nav === 'ordenes-facturas') {
+      this.facturasTab()?.cargarComprobantes();
+      return;
+    }
     if (nav.startsWith('ordenes')) {
       const vista =
         nav === 'ordenes-nueva' ? 'nueva' : nav === 'ordenes-cobros' ? 'cobros_pendiente' : 'lista';

@@ -96,9 +96,28 @@ class OrdenPagoUpdate(BaseModel):
     metodo_pago: Optional[str] = None
 
 
+class ComprobanteResumen(BaseModel):
+    id: int
+    numero_comprobante: Optional[int] = None
+    codigo_orden: str
+    fecha_creacion: datetime
+    fecha_pago: Optional[datetime] = None
+    estado_pago: str
+    metodo_pago: Optional[str] = None
+    precio_total: float
+    requiere_factura: bool = False
+    nit_factura: Optional[str] = None
+    razon_social_factura: Optional[str] = None
+    paciente_nombre: str
+    paciente_apellido: str
+    paciente_dni: str
+    recepcionista_nombre: Optional[str] = None
+
+
 class OrdenResponse(BaseModel):
     id: int
     codigo_orden: str
+    numero_comprobante: Optional[int] = None
     fecha_creacion: datetime
     estado: str
     estado_pago: str = "PENDIENTE"
@@ -113,6 +132,7 @@ class OrdenResponse(BaseModel):
     precio_total: float
     paciente: PacienteResponse
     bioquimico: Optional[UsuarioResponse] = None
+    recepcionista: Optional[UsuarioResponse] = None
     resultados: List[ResultadoResponse] = []
 
     class Config:

@@ -1,0 +1,125 @@
+<div class="facturas-section fade-in">
+  <div class="search-card glass">
+    <h3>Historial de facturas y comprobantes</h3>
+    <p class="subtitle">
+      Consulta, reimprime o descarga en PDF las órdenes de cobro y facturas con NIT emitidas en recepción.
+    </p>
+
+    <div class="facturas-filtros">
+      <div class="exam-search-container facturas-busqueda">
+        <div class="search-input-row">
+          <span class="search-icon">🔍</span>
+          <input
+            type="text"
+            class="exam-search-input"
+            [value]="busqueda()"
+            (input)="onBusquedaInput($any($event.target).value)"
+            placeholder="Buscar por Nº, código, paciente o CI..."
+            autocomplete="off"
+          />
+        </div>
+      </div>
+
+      <div class="facturas-toolbar">
+        <label class="facturas-field">
+          <span class="facturas-field__label">Estado de pago</span>
+          <select
+            class="facturas-select"
+            [ngModel]="filtroPago()"
+            (ngModelChange)="filtroPago.set($event); onFiltroChange()"
+          >
+            <option value="TODOS">Todos</option>
+            <option value="PAGADO">Pagados</option>
+            <option value="PENDIENTE">Pendientes</option>
+          </select>
+        </label>
+
+        <label class="facturas-check">
+          <input
+            type="checkbox"
+            [checked]="soloFactura()"
+            (change)="soloFactura.set($any($event.target).checked); onFiltroChange()"
+          />
+          <span>Solo con factura (NIT)</span>
+        </label>
+
+        <button type="button" class="btn-facturas-refresh" (click)="cargarComprobantes()">
+          Actualizar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  @if (cargando()) {
+    <div class="loading-hint">⏳ Cargando comprobantes...</div>
+  } @else if (comprobantes().length === 0) {
+    <div class="empty-state glass mt-4">
+      <p>No hay comprobantes que coincidan con la búsqueda.</p>
+    </div>
+  } @else {
+    <div class="orders-panel glass facturas-panel">
+      <div class="table-wrapper">
+        <table class="admin-table facturas-table">
+          <thead>
+            <tr>
+              <th class="col-num">Nº</th>
+              <th class="col-fecha">Fecha</th>
+              <th class="col-paciente">Paciente</th>
+              <th class="col-tipo">Tipo</th>
+              <th class="col-monto">Total</th>
+              <th class="col-pago">Pago</th>
+              <th class="col-user">Usuario</th>
+              <th class="col-acciones">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of comprobantes(); track item.id) {
+              <tr>
+                <td class="col-num">
+                  <span class="factura-num">{{ item.numero_comprobante ?? item.id }}</span>
+                  <span class="factura-codigo">{{ item.codigo_orden }}</span>
+                </td>
+                <td class="col-fecha">{{ item.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</td>
+                <td class="col-paciente">
+                  <span class="factura-paciente">{{ item.paciente_apellido }} {{ item.paciente_nombre }}</span>
+                  <span class="factura-ci">CI {{ item.paciente_dni }}</span>
+                </td>
+                <td class="col-tipo">
+                  @if (item.requiere_factura) {
+                    <span class="badge badge-factura">Factura</span>
+                    @if (item.nit_factura) {
+                      <span class="factura-nit">NIT {{ item.nit_factura }}</span>
+                    }
+                  } @else {
+                    <span class="badge badge-orden">Orden</span>
+                  }
+                </td>
+                <td class="col-monto">
+                  <strong>{{ item.precio_total | currency:moneda:'symbol-narrow':'1.2-2' }}</strong>
+                </td>
+                <td class="col-pago">
+                  <span
+                    class="badge"
+                    [class.badge-pagado]="item.estado_pago === 'PAGADO'"
+                    [class.badge-pendiente]="item.estado_pago !== 'PAGADO'"
+                  >
+                    {{ item.estado_pago === 'PAGADO' ? 'Pagado' : 'Pendiente' }}
+                  </span>
+                  @if (item.metodo_pago) {
+                    <span class="factura-metodo">{{ labelMetodoPago(item.metodo_pago) }}</span>
+                  }
+                </td>
+                <td class="col-user">{{ item.recepcionista_nombre || '—' }}</td>
+                <td class="col-acciones">
+                  <button type="button" class="btn-action btn-orden-pdf" (click)="descargarPdf(item)">
+                    Descargar PDF
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</div>

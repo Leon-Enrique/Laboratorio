@@ -7,11 +7,14 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.models.orden import Orden, Resultado
 from app.models.examen import Examen
+from app.models.inventario import Reactivo
+from app.models.usuario import Paciente
 from app.schemas.reportes import (
     DashboardReporte,
     MesDestacado,
     MesReporte,
     MovimientoDia,
+    PuntoSerie,
     ReporteDiario,
     ResumenDia,
     ResumenMesActual,
@@ -189,6 +192,40 @@ def generar_reporte_dia(
     return ReporteDiario(moneda="BOB", resumen=resumen, movimientos=movimientos)
 
 
+def _punto_desde_bucket(etiqueta: str, b: Dict[str, float]) -> PuntoSerie:
+    return PuntoSerie(
+        etiqueta=etiqueta,
+        ordenes_entradas=int(b["ordenes_entradas"]),
+        ordenes_completadas=int(b["ordenes_completadas"]),
+        ingresos_entradas=round(b["ingresos_entradas"], 2),
+        ingresos_completadas=round(b["ingresos_completadas"], 2),
+    )
+
+
+def _build_serie_diaria(day_buckets: Dict[date, Dict[str, float]], hoy: date, dias: int = 7) -> List[PuntoSerie]:
+    serie: List[PuntoSerie] = []
+    for offset in range(dias - 1, -1, -1):
+        d = hoy - timedelta(days=offset)
+        b = day_buckets.get(d, _empty_bucket())
+        serie.append(_punto_desde_bucket(d.strftime("%d/%m"), b))
+    return serie
+
+
+def _build_serie_semanal(
+    week_buckets: Dict[Tuple[int, int], Dict[str, float]], hoy: date, semanas: int = 8
+) -> List[PuntoSerie]:
+    tz = _get_tz()
+    base = datetime.combine(hoy, time.min, tzinfo=tz)
+    serie: List[PuntoSerie] = []
+    for offset in range(semanas - 1, -1, -1):
+        dt = base - timedelta(weeks=offset)
+        iso = dt.isocalendar()
+        key = (iso.year, iso.week)
+        b = week_buckets.get(key, _empty_bucket())
+        serie.append(_punto_desde_bucket(f"Sem {iso.week}", b))
+    return serie
+
+
 def generar_dashboard(db: Session, meses_historial: int = 12) -> DashboardReporte:
     ordenes = (
         db.query(Orden)
@@ -200,6 +237,8 @@ def generar_dashboard(db: Session, meses_historial: int = 12) -> DashboardReport
     mes_actual = (hoy.year, hoy.month)
 
     buckets: Dict[Tuple[int, int], Dict[str, float]] = defaultdict(_empty_bucket)
+    day_buckets: Dict[date, Dict[str, float]] = defaultdict(_empty_bucket)
+    week_buckets: Dict[Tuple[int, int], Dict[str, float]] = defaultdict(_empty_bucket)
     resumen_hoy = ResumenPeriodo()
     examenes_mes: Dict[int, Dict] = defaultdict(lambda: {"cantidad": 0, "ingresos": 0.0, "nombre": ""})
     pendientes_total = 0
@@ -213,6 +252,14 @@ def generar_dashboard(db: Session, meses_historial: int = 12) -> DashboardReport
         if key_entrada:
             buckets[key_entrada]["ordenes_entradas"] += 1
             buckets[key_entrada]["ingresos_entradas"] += precio
+
+        if fc:
+            local_day = fc.astimezone(_get_tz()).date()
+            day_buckets[local_day]["ordenes_entradas"] += 1
+            day_buckets[local_day]["ingresos_entradas"] += precio
+            iso = fc.astimezone(_get_tz()).isocalendar()
+            week_buckets[(iso.year, iso.week)]["ordenes_entradas"] += 1
+            week_buckets[(iso.year, iso.week)]["ingresos_entradas"] += precio
 
         if fc and fc.date() == hoy:
             resumen_hoy.ordenes_entradas += 1
@@ -229,6 +276,14 @@ def generar_dashboard(db: Session, meses_historial: int = 12) -> DashboardReport
         if key_salida:
             buckets[key_salida]["ordenes_completadas"] += 1
             buckets[key_salida]["ingresos_completadas"] += precio
+
+        if fcomp:
+            local_day = fcomp.astimezone(_get_tz()).date()
+            day_buckets[local_day]["ordenes_completadas"] += 1
+            day_buckets[local_day]["ingresos_completadas"] += precio
+            iso = fcomp.astimezone(_get_tz()).isocalendar()
+            week_buckets[(iso.year, iso.week)]["ordenes_completadas"] += 1
+            week_buckets[(iso.year, iso.week)]["ingresos_completadas"] += precio
 
         if fcomp and fcomp.date() == hoy:
             resumen_hoy.ordenes_completadas += 1
@@ -341,7 +396,12 @@ def generar_dashboard(db: Session, meses_historial: int = 12) -> DashboardReport
         ),
         resumen_mes_actual=resumen_mes,
         pendientes_total=pendientes_total,
+        total_examenes=db.query(Examen).filter(Examen.visible == True).count(),
+        total_pacientes=db.query(Paciente).count(),
+        total_reactivos=db.query(Reactivo).count(),
         meses=meses_reporte,
+        serie_diaria=_build_serie_diaria(day_buckets, hoy),
+        serie_semanal=_build_serie_semanal(week_buckets, hoy),
         top_examenes_mes=top_examenes,
         mejor_mes=mejor,
         peor_mes=peor,

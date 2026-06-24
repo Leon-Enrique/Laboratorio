@@ -15,25 +15,29 @@
 
   <div class="hero-inner">
     <div class="hero-content">
-      <span class="hero-badge">
+      <span class="hero-badge hero-enter" [style.--hero-delay]="heroReveal.badge + 'ms'">
         <span class="hero-badge-dot"></span>
         Genotipia · Laboratorio Clínico · Santa Cruz
       </span>
-      <h1>
-        <span class="hero-title-accent">Precisión y Cuidado en Cada Análisis:</span>
-        <span class="hero-title-main">Su Salud, Nuestra Prioridad.</span>
+      <h1 aria-label="Precisión y Cuidado en Cada Análisis: Su Salud, Nuestra Prioridad.">
+        <span class="hero-line-reveal hero-title-accent" [style.--hero-delay]="heroReveal.line1 + 'ms'">
+          <span class="hero-line-reveal__inner">Precisión y Cuidado en Cada Análisis:</span>
+        </span>
+        <span class="hero-line-reveal hero-title-main" [style.--hero-delay]="heroReveal.line2 + 'ms'">
+          <span class="hero-line-reveal__inner">Su Salud, Nuestra Prioridad.</span>
+        </span>
       </h1>
-      <p class="hero-lead">
+      <p class="hero-lead hero-enter" [style.--hero-delay]="heroReveal.lead + 'ms'">
         Análisis clínicos y bioquímicos de alta precisión. Resultados confiables,
         portal online seguro y atención orientada al paciente y al médico tratante.
       </p>
-      <div class="hero-actions">
+      <div class="hero-actions hero-enter hero-enter--stagger" [style.--hero-delay]="heroReveal.actions + 'ms'">
         <a [routerLink]="['/examenes']" class="btn-hero-primary">Ver catálogo completo</a>
         <a [routerLink]="['/resultados']" class="btn-hero-secondary">Ver mis resultados</a>
       </div>
     </div>
 
-    <div class="hero-panel">
+    <div class="hero-panel hero-enter" [style.--hero-delay]="heroReveal.panel + 'ms'">
       <div class="hero-panel-card">
         <span class="panel-label">Calidad certificada</span>
         <h3>Excelencia en cada análisis</h3>
@@ -81,10 +85,12 @@
 
 <!-- Exámenes destacados -->
 <section id="catalogo" class="catalogo-section catalogo-section--destacados">
+  <div class="section-intro">
   <div class="section-eyebrow">Destacados · {{ totalExamenes() }} exámenes en catálogo</div>
   <div class="section-header">
     <h2>Exámenes <em>destacados</em></h2>
     <p>Los más solicitados del laboratorio. Para ver preparación y detalles de todo el catálogo, usa el buscador completo.</p>
+  </div>
   </div>
 
   <div class="destacados-grid">
@@ -139,10 +145,12 @@
 
 <!-- Servicios -->
 <section id="servicios" class="servicios-section">
+  <div class="section-intro">
   <div class="section-eyebrow section-eyebrow--dark">Servicios de laboratorio</div>
   <div class="section-header section-header--left">
     <h2>Soluciones para <em>pacientes, médicos y empresas</em></h2>
     <p>Tecnología de vanguardia para garantizar resultados precisos y confiables en cada análisis.</p>
+  </div>
   </div>
 
   <div class="servicios-grid">
@@ -262,10 +270,12 @@
 <!-- Galería / Instalaciones -->
 <section id="instalaciones" class="galeria-section">
   <div class="galeria-inner">
+    <div class="section-intro">
     <div class="section-eyebrow section-eyebrow--dark">Nuestras instalaciones</div>
     <div class="section-header section-header--left">
       <h2>Conoce nuestras <em>instalaciones</em></h2>
       <p>Fotos reales del laboratorio: recepción, toma de muestras y áreas de trabajo.</p>
+    </div>
     </div>
 
     <div class="tech-proceso-grid galeria-grid">
@@ -290,6 +300,7 @@
 <!-- Cómo funciona + Resultados online -->
 <section id="proceso" class="proceso-section">
   <div class="proceso-inner">
+    <div class="section-intro">
     <div class="section-eyebrow section-eyebrow--dark">Tu visita al laboratorio</div>
     <div class="section-header section-header--left">
       <h2>Así funciona tu <em>experiencia</em> en Genotipia</h2>
@@ -297,6 +308,7 @@
         Desde la coordinación hasta la entrega del informe, cada paso está pensado para que sea
         claro, seguro y sin complicaciones.
       </p>
+    </div>
     </div>
 
     <div class="proceso-grid">

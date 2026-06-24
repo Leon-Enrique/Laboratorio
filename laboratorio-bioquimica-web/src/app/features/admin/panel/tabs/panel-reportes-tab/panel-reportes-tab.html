@@ -1,298 +1,467 @@
-    <div class="reportes-section fade-in">
-      <div class="reportes-header">
-        <div>
-          <h3>Panel de gestión — Reportes</h3>
-          <p class="subtitle">Consulta por día con hora exacta o resumen mensual comparativo.</p>
-          <div class="reporte-vista-tabs">
-            <button
-              type="button"
-              class="reporte-vista-tab"
-              [class.active]="vistaReporte() === 'dia'"
-              (click)="cambiarVistaReporte('dia')"
-            >
-              Consulta por día
-            </button>
-            <button
-              type="button"
-              class="reporte-vista-tab"
-              [class.active]="vistaReporte() === 'mes'"
-              (click)="cambiarVistaReporte('mes')"
-            >
-              Resumen mensual
-            </button>
-          </div>
-        </div>
-        <button type="button" class="btn-action" (click)="cargarReportes()">Actualizar</button>
+<div class="reportes-section fade-in">
+  <div class="reportes-header">
+    <div>
+      <h3>Panel de gestión — Reportes</h3>
+      <p class="subtitle">Resumen ejecutivo del laboratorio, consulta diaria y detalle mensual.</p>
+      <div class="reporte-vista-tabs">
+        <button
+          type="button"
+          class="reporte-vista-tab"
+          [class.active]="vistaReporte() === 'panel'"
+          (click)="cambiarVistaReporte('panel')"
+        >
+          Panel principal
+        </button>
+        <button
+          type="button"
+          class="reporte-vista-tab"
+          [class.active]="vistaReporte() === 'dia'"
+          (click)="cambiarVistaReporte('dia')"
+        >
+          Consulta por día
+        </button>
+        <button
+          type="button"
+          class="reporte-vista-tab"
+          [class.active]="vistaReporte() === 'mes'"
+          (click)="cambiarVistaReporte('mes')"
+        >
+          Detalle mensual
+        </button>
       </div>
+    </div>
+    <button type="button" class="btn-action" (click)="cargarReportes()">Actualizar</button>
+  </div>
 
-      @if (vistaReporte() === 'dia') {
-      <div class="reporte-dia-card glass">
-          <div class="reporte-dia-toolbar">
+  @if (vistaReporte() === 'panel') {
+    @if (reportesCargando()) {
+      <div class="reportes-loading glass">Cargando panel de reportes…</div>
+    } @else if (reportesError()) {
+      <div class="reportes-error glass">{{ reportesError() }}</div>
+    } @else if (reportes(); as rep) {
+      <div class="dash-panel-principal">
+        <p class="dash-panel-label">Panel principal</p>
+
+        <div class="dash-stat-grid">
+          @for (card of statCards(); track card.id) {
+            <article class="dash-stat-card dash-stat-card--{{ card.color }}">
+              <div class="dash-stat-card__body">
+                <div class="dash-stat-card__info">
+                  <span class="dash-stat-card__value">{{ card.value }}</span>
+                  <span class="dash-stat-card__label">{{ card.label }}</span>
+                  @if (card.sub) {
+                    <small class="dash-stat-card__sub">{{ card.sub }}</small>
+                  }
+                </div>
+                <span class="dash-stat-card__icon" aria-hidden="true">{{ card.icon }}</span>
+              </div>
+              <button type="button" class="dash-stat-card__footer" (click)="irADetalleStat(card)">
+                Más detalles <span aria-hidden="true">→</span>
+              </button>
+            </article>
+          }
+        </div>
+
+        <div class="dash-secondary-stats">
+          <div class="dash-mini-stat glass">
+            <span>Ticket promedio</span>
+            <strong>{{ rep.resumen_mes_actual.ticket_promedio | currency:moneda:'symbol':'1.2-2' }}</strong>
+          </div>
+          <div class="dash-mini-stat glass">
+            <span>Reactivos en inventario</span>
+            <strong>{{ rep.total_reactivos ?? 0 }}</strong>
+          </div>
+          <div class="dash-mini-stat glass">
+            <span>Completadas este mes</span>
+            <strong>{{ rep.resumen_mes_actual.ordenes_completadas }}</strong>
+          </div>
+          @if (rep.resumen_mes_actual.variacion_ingresos_pct !== null && rep.resumen_mes_actual.variacion_ingresos_pct !== undefined) {
+            <div class="dash-mini-stat glass">
+              <span>Variación ingresos</span>
+              <strong
+                [class.trend-up]="rep.resumen_mes_actual.variacion_ingresos_pct >= 0"
+                [class.trend-down]="rep.resumen_mes_actual.variacion_ingresos_pct < 0"
+              >
+                {{ formatearVariacion(rep.resumen_mes_actual.variacion_ingresos_pct) }}
+              </strong>
+            </div>
+          }
+        </div>
+
+        <section class="dash-ranking-card glass">
+          <header class="dash-ranking-card__head">
             <div>
-              <h4>Consulta por día</h4>
-              <p class="subtitle">Elige cualquier fecha para ver entradas y salidas con hora exacta (hora local Bolivia).</p>
+              <h4>🏆 Top exámenes del mes</h4>
+              <p>{{ rep.resumen_mes_actual.etiqueta }} — ranking por volumen</p>
             </div>
-            <div class="reporte-dia-controls">
-              <button type="button" class="btn-dia-nav" (click)="irADiaRelativo(-1)">← Anterior</button>
-              <button type="button" class="btn-dia-nav" (click)="irAHoyReporte()">Hoy</button>
-              <input
-                type="date"
-                class="input-fecha-dia"
-                [ngModel]="fechaConsultaReporte()"
-                (ngModelChange)="fechaConsultaReporte.set($event); cargarReporteDia()"
-                name="fechaConsultaReporte"
-              />
-              <button type="button" class="btn-dia-nav" (click)="irADiaRelativo(1)">Siguiente →</button>
+            <button type="button" class="btn-action btn-action--sm" (click)="cambiarVistaReporte('mes')">
+              Ver más
+            </button>
+          </header>
+          @if (topExamenesRanking().length) {
+            <div class="dash-ranking-list">
+              @for (ex of topExamenesRanking(); track ex.examen_id) {
+                <div class="dash-ranking-item">
+                  <div class="dash-ranking-item__top">
+                    <span class="dash-ranking-item__name">{{ ex.nombre }}</span>
+                    <span class="dash-ranking-item__meta">
+                      {{ ex.cantidad }}× · {{ ex.ingresos | currency:moneda:'symbol':'1.0-0' }}
+                    </span>
+                  </div>
+                  <div class="dash-progress">
+                    <div class="dash-progress__bar" [style.width.%]="ex.pct"></div>
+                  </div>
+                  <span class="dash-ranking-item__pct">{{ ex.pct }}% del líder</span>
+                </div>
+              }
             </div>
-          </div>
-
-          <div class="filtro-tipo-dia">
-            <button
-              type="button"
-              class="btn-filtro-dia"
-              [class.active]="filtroTipoDia() === 'todos'"
-              (click)="cambiarFiltroDia('todos')"
-            >Todo</button>
-            <button
-              type="button"
-              class="btn-filtro-dia"
-              [class.active]="filtroTipoDia() === 'entradas'"
-              (click)="cambiarFiltroDia('entradas')"
-            >Solo entradas</button>
-            <button
-              type="button"
-              class="btn-filtro-dia"
-              [class.active]="filtroTipoDia() === 'salidas'"
-              (click)="cambiarFiltroDia('salidas')"
-            >Solo salidas</button>
-          </div>
-
-          @if (reporteDiaCargando()) {
-            <div class="reportes-loading">Cargando movimientos del día…</div>
-          } @else if (reporteDiaError()) {
-            <div class="reportes-error">{{ reporteDiaError() }}</div>
-          } @else if (reporteDia(); as dia) {
-            <div class="reporte-dia-resumen">
-              <div class="kpi-card glass kpi-dia">
-                <span class="kpi-label">{{ dia.resumen.etiqueta_fecha }}</span>
-                <strong class="kpi-value-sm">{{ dia.resumen.entradas }} entradas</strong>
-                <small>{{ dia.resumen.ingresos_entradas | currency:moneda:'symbol':'1.2-2' }}</small>
-              </div>
-              <div class="kpi-card glass kpi-dia">
-                <span class="kpi-label">Salidas (firmadas)</span>
-                <strong class="kpi-value-sm">{{ dia.resumen.salidas }} completadas</strong>
-                <small>{{ dia.resumen.ingresos_salidas | currency:moneda:'symbol':'1.2-2' }}</small>
-              </div>
-              <div class="kpi-card glass kpi-dia">
-                <span class="kpi-label">Cobrado ese día</span>
-                <strong class="kpi-value-sm">{{ dia.resumen.cobrado_dia | currency:moneda:'symbol':'1.2-2' }}</strong>
-                <small>Pendiente: {{ dia.resumen.pendiente_dia | currency:moneda:'symbol':'1.2-2' }}</small>
-              </div>
-            </div>
-
-            <div class="table-wrapper">
-              <table class="admin-table reporte-dia-table">
-                <thead>
-                  <tr>
-                    <th>Hora</th>
-                    <th>Tipo</th>
-                    <th>Código</th>
-                    <th>Paciente</th>
-                    <th>Exámenes</th>
-                    <th>Monto</th>
-                    <th>Pago</th>
-                    <th>Estado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (mov of dia.movimientos; track mov.tipo + mov.orden_id + mov.hora) {
-                    <tr [class.row-entrada]="mov.tipo === 'ENTRADA'" [class.row-salida]="mov.tipo === 'SALIDA'">
-                      <td class="font-bold hora-cell">{{ mov.hora_texto }}</td>
-                      <td>
-                        @if (mov.tipo === 'ENTRADA') {
-                          <span class="pill pill-info">↓ Entrada</span>
-                        } @else {
-                          <span class="pill pill-success">↑ Salida</span>
-                        }
-                      </td>
-                      <td class="font-bold text-primary">{{ mov.codigo_orden }}</td>
-                      <td>{{ mov.paciente }}</td>
-                      <td class="examenes-cell">{{ mov.examenes.join(', ') }}</td>
-                      <td class="font-bold">{{ mov.monto | currency:moneda:'symbol-narrow':'1.2-2' }}</td>
-                      <td>
-                        @if (mov.estado_pago === 'PAGADO') {
-                          <span class="pill pill-success">Pagado</span>
-                          @if (mov.metodo_pago) {
-                            <small class="metodo-pago-label">{{ labelMetodoPago(mov.metodo_pago) }}</small>
-                          }
-                        } @else {
-                          <span class="pill pill-danger">Pendiente</span>
-                        }
-                      </td>
-                      <td>
-                        @if (mov.estado_orden === 'COMPLETADO') {
-                          <span class="pill pill-success">Firmado</span>
-                        } @else {
-                          <span class="pill pill-warning">En proceso</span>
-                        }
-                      </td>
-                    </tr>
-                  } @empty {
-                    <tr>
-                      <td colspan="8" class="empty-row">No hay movimientos registrados para esta fecha con el filtro seleccionado.</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
+          } @else {
+            <p class="empty-hint">Sin exámenes completados este mes todavía.</p>
           }
+        </section>
+
+        <div class="dash-period-tabs">
+          <span class="dash-period-tabs__label">Período de gráficos:</span>
+          <button
+            type="button"
+            class="dash-period-tab"
+            [class.active]="periodoGrafico() === 'diario'"
+            (click)="cambiarPeriodoGrafico('diario')"
+          >Diario</button>
+          <button
+            type="button"
+            class="dash-period-tab"
+            [class.active]="periodoGrafico() === 'semanal'"
+            (click)="cambiarPeriodoGrafico('semanal')"
+          >Semanal</button>
+          <button
+            type="button"
+            class="dash-period-tab"
+            [class.active]="periodoGrafico() === 'mensual'"
+            (click)="cambiarPeriodoGrafico('mensual')"
+          >Mensual</button>
+        </div>
+
+        <div class="dash-charts-row">
+          <article class="dash-chart-panel">
+            <header class="dash-chart-panel__head">
+              <div>
+                <h4>Gráfico de órdenes</h4>
+                <p>Órdenes que entraron vs completadas — {{ etiquetaPeriodoGrafico() }}</p>
+              </div>
+            </header>
+            <div class="dash-chart-panel__body">
+              @if (serieActiva().length) {
+                <svg class="dash-line-chart" viewBox="0 0 320 140" preserveAspectRatio="none" aria-hidden="true">
+                  <path class="dash-line-chart__area dash-line-chart__area--a" [attr.d]="chartOrdenes().areaA"></path>
+                  <path class="dash-line-chart__line dash-line-chart__line--b" [attr.d]="chartOrdenes().lineB"></path>
+                  <path class="dash-line-chart__line dash-line-chart__line--a" [attr.d]="chartOrdenes().lineA"></path>
+                </svg>
+                <div class="dash-chart-labels">
+                  @for (label of chartOrdenes().labels; track label) {
+                    <span>{{ label }}</span>
+                  }
+                </div>
+              } @else {
+                <p class="empty-hint">Sin datos para este período.</p>
+              }
+            </div>
+            <footer class="dash-chart-panel__foot">
+              <span><i class="dot dot--blue"></i> Entraron: <strong>{{ totalOrdenesSerie() }}</strong></span>
+            </footer>
+          </article>
+
+          <article class="dash-chart-panel">
+            <header class="dash-chart-panel__head">
+              <div>
+                <h4>Ingresos recibidos vs facturados</h4>
+                <p>Valor de órdenes ingresadas vs completadas — {{ etiquetaPeriodoGrafico() }}</p>
+              </div>
+            </header>
+            <div class="dash-chart-panel__body">
+              @if (serieActiva().length) {
+                <svg class="dash-line-chart" viewBox="0 0 320 140" preserveAspectRatio="none" aria-hidden="true">
+                  <path class="dash-line-chart__area dash-line-chart__area--green" [attr.d]="chartIngresos().areaA"></path>
+                  <path class="dash-line-chart__line dash-line-chart__line--red" [attr.d]="chartIngresos().lineB"></path>
+                  <path class="dash-line-chart__line dash-line-chart__line--green" [attr.d]="chartIngresos().lineA"></path>
+                </svg>
+                <div class="dash-chart-labels">
+                  @for (label of chartIngresos().labels; track label) {
+                    <span>{{ label }}</span>
+                  }
+                </div>
+              } @else {
+                <p class="empty-hint">Sin datos para este período.</p>
+              }
+            </div>
+            <footer class="dash-chart-panel__foot dash-chart-panel__foot--split">
+              <span><i class="dot dot--green"></i> Ingresos: <strong>{{ totalesIngresosSerie().entradas | currency:moneda:'symbol':'1.2-2' }}</strong></span>
+              <span><i class="dot dot--red"></i> Facturados: <strong>{{ totalesIngresosSerie().completadas | currency:moneda:'symbol':'1.2-2' }}</strong></span>
+            </footer>
+          </article>
+        </div>
       </div>
-      }
+    }
+  }
 
-      @if (vistaReporte() === 'mes') {
-      @if (reportesCargando()) {
-        <div class="reportes-loading glass">Cargando resumen mensual…</div>
-      } @else if (reportesError()) {
-        <div class="reportes-error glass">{{ reportesError() }}</div>
-      } @else if (reportes(); as rep) {
-        <div class="reportes-mensual-divider">
-          <h4>Resumen mensual — {{ rep.resumen_mes_actual.etiqueta }}</h4>
+  @if (vistaReporte() === 'dia') {
+    <div class="reporte-dia-card glass">
+      <div class="reporte-dia-toolbar">
+        <div>
+          <h4>Consulta por día</h4>
+          <p class="subtitle">Elige cualquier fecha para ver entradas y salidas con hora exacta (hora local Bolivia).</p>
+        </div>
+        <div class="reporte-dia-controls">
+          <button type="button" class="btn-dia-nav" (click)="irADiaRelativo(-1)">← Anterior</button>
+          <button type="button" class="btn-dia-nav" (click)="irAHoyReporte()">Hoy</button>
+          <input
+            type="date"
+            class="input-fecha-dia"
+            [ngModel]="fechaConsultaReporte()"
+            (ngModelChange)="fechaConsultaReporte.set($event); cargarReporteDia()"
+            name="fechaConsultaReporte"
+          />
+          <button type="button" class="btn-dia-nav" (click)="irADiaRelativo(1)">Siguiente →</button>
+        </div>
+      </div>
+
+      <div class="filtro-tipo-dia">
+        <button
+          type="button"
+          class="btn-filtro-dia"
+          [class.active]="filtroTipoDia() === 'todos'"
+          (click)="cambiarFiltroDia('todos')"
+        >Todo</button>
+        <button
+          type="button"
+          class="btn-filtro-dia"
+          [class.active]="filtroTipoDia() === 'entradas'"
+          (click)="cambiarFiltroDia('entradas')"
+        >Solo entradas</button>
+        <button
+          type="button"
+          class="btn-filtro-dia"
+          [class.active]="filtroTipoDia() === 'salidas'"
+          (click)="cambiarFiltroDia('salidas')"
+        >Solo salidas</button>
+      </div>
+
+      @if (reporteDiaCargando()) {
+        <div class="reportes-loading">Cargando movimientos del día…</div>
+      } @else if (reporteDiaError()) {
+        <div class="reportes-error">{{ reporteDiaError() }}</div>
+      } @else if (reporteDia(); as dia) {
+        <div class="reporte-dia-resumen">
+          <div class="kpi-card glass kpi-dia">
+            <span class="kpi-label">{{ dia.resumen.etiqueta_fecha }}</span>
+            <strong class="kpi-value-sm">{{ dia.resumen.entradas }} entradas</strong>
+            <small>{{ dia.resumen.ingresos_entradas | currency:moneda:'symbol':'1.2-2' }}</small>
+          </div>
+          <div class="kpi-card glass kpi-dia">
+            <span class="kpi-label">Salidas (firmadas)</span>
+            <strong class="kpi-value-sm">{{ dia.resumen.salidas }} completadas</strong>
+            <small>{{ dia.resumen.ingresos_salidas | currency:moneda:'symbol':'1.2-2' }}</small>
+          </div>
+          <div class="kpi-card glass kpi-dia">
+            <span class="kpi-label">Cobrado ese día</span>
+            <strong class="kpi-value-sm">{{ dia.resumen.cobrado_dia | currency:moneda:'symbol':'1.2-2' }}</strong>
+            <small>Pendiente: {{ dia.resumen.pendiente_dia | currency:moneda:'symbol':'1.2-2' }}</small>
+          </div>
         </div>
 
-        <div class="kpi-grid">
-          <div class="kpi-card glass">
-            <span class="kpi-label">Entraron hoy</span>
-            <strong class="kpi-value">{{ rep.resumen_hoy.ordenes_entradas }}</strong>
-            <small>{{ rep.resumen_hoy.ingresos_entradas | currency:moneda:'symbol':'1.0-0' }}</small>
-          </div>
-          <div class="kpi-card glass">
-            <span class="kpi-label">Completadas hoy</span>
-            <strong class="kpi-value">{{ rep.resumen_hoy.ordenes_completadas }}</strong>
-            <small>{{ rep.resumen_hoy.ingresos_completadas | currency:moneda:'symbol':'1.0-0' }}</small>
-          </div>
-          <div class="kpi-card glass kpi-highlight">
-            <span class="kpi-label">Entraron este mes</span>
-            <strong class="kpi-value">{{ rep.resumen_mes_actual.ordenes_entradas }}</strong>
-            @if (rep.resumen_mes_actual.variacion_ordenes_pct !== null && rep.resumen_mes_actual.variacion_ordenes_pct !== undefined) {
-              <small [class.trend-up]="rep.resumen_mes_actual.variacion_ordenes_pct >= 0" [class.trend-down]="rep.resumen_mes_actual.variacion_ordenes_pct < 0">
-                {{ formatearVariacion(rep.resumen_mes_actual.variacion_ordenes_pct) }} vs mes anterior
-              </small>
-            }
-          </div>
-          <div class="kpi-card glass kpi-highlight">
-            <span class="kpi-label">Ingresos del mes</span>
-            <strong class="kpi-value">{{ rep.resumen_mes_actual.ingresos_entradas | currency:moneda:'symbol':'1.0-0' }}</strong>
-            @if (rep.resumen_mes_actual.variacion_ingresos_pct !== null && rep.resumen_mes_actual.variacion_ingresos_pct !== undefined) {
-              <small [class.trend-up]="rep.resumen_mes_actual.variacion_ingresos_pct >= 0" [class.trend-down]="rep.resumen_mes_actual.variacion_ingresos_pct < 0">
-                {{ formatearVariacion(rep.resumen_mes_actual.variacion_ingresos_pct) }} vs mes anterior
-              </small>
-            }
-          </div>
-          <div class="kpi-card glass">
-            <span class="kpi-label">Completadas este mes</span>
-            <strong class="kpi-value">{{ rep.resumen_mes_actual.ordenes_completadas }}</strong>
-            <small>{{ rep.resumen_mes_actual.ingresos_completadas | currency:moneda:'symbol':'1.0-0' }} facturados</small>
-          </div>
-          <div class="kpi-card glass">
-            <span class="kpi-label">Pendientes (total)</span>
-            <strong class="kpi-value kpi-warn">{{ rep.pendientes_total }}</strong>
-            <small>{{ rep.resumen_mes_actual.pendientes_del_mes }} creadas este mes</small>
-          </div>
-          <div class="kpi-card glass">
-            <span class="kpi-label">Ticket promedio</span>
-            <strong class="kpi-value">{{ rep.resumen_mes_actual.ticket_promedio | currency:moneda:'symbol':'1.2-2' }}</strong>
-            <small>por orden ingresada</small>
-          </div>
-          @if (rep.mejor_mes && rep.peor_mes) {
-            <div class="kpi-card glass kpi-best">
-              <span class="kpi-label">Mejor mes (órdenes)</span>
-              <strong class="kpi-value-sm">{{ rep.mejor_mes.etiqueta }}</strong>
-              <small>{{ rep.mejor_mes.ordenes }} órdenes · {{ rep.mejor_mes.ingresos | currency:moneda:'symbol':'1.0-0' }}</small>
-            </div>
-            <div class="kpi-card glass kpi-worst">
-              <span class="kpi-label">Mes más bajo</span>
-              <strong class="kpi-value-sm">{{ rep.peor_mes.etiqueta }}</strong>
-              <small>{{ rep.peor_mes.ordenes }} órdenes · {{ rep.peor_mes.ingresos | currency:moneda:'symbol':'1.0-0' }}</small>
-            </div>
-          }
-        </div>
-
-        <div class="charts-row">
-          <div class="chart-card glass">
-            <h4>Órdenes que entraron por mes</h4>
-            <div class="bar-chart">
-              @for (m of rep.meses; track m.etiqueta) {
-                <div class="bar-group" [title]="m.etiqueta + ': ' + m.ordenes_entradas + ' órdenes'">
-                  <div class="bar-stack">
-                    <div class="bar bar-entradas" [style.height.%]="alturaBarra(m.ordenes_entradas, maxOrdenesGrafico())"></div>
-                  </div>
-                  <span class="bar-label">{{ m.etiqueta_corta }}</span>
-                  <span class="bar-num">{{ m.ordenes_entradas }}</span>
-                </div>
+        <div class="table-wrapper">
+          <table class="admin-table reporte-dia-table">
+            <thead>
+              <tr>
+                <th>Hora</th>
+                <th>Tipo</th>
+                <th>Código</th>
+                <th>Paciente</th>
+                <th>Exámenes</th>
+                <th>Monto</th>
+                <th>Pago</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (mov of dia.movimientos; track mov.tipo + mov.orden_id + mov.hora) {
+                <tr [class.row-entrada]="mov.tipo === 'ENTRADA'" [class.row-salida]="mov.tipo === 'SALIDA'">
+                  <td class="font-bold hora-cell">{{ mov.hora_texto }}</td>
+                  <td>
+                    @if (mov.tipo === 'ENTRADA') {
+                      <span class="pill pill-info">↓ Entrada</span>
+                    } @else {
+                      <span class="pill pill-success">↑ Salida</span>
+                    }
+                  </td>
+                  <td class="font-bold text-primary">{{ mov.codigo_orden }}</td>
+                  <td>{{ mov.paciente }}</td>
+                  <td class="examenes-cell">{{ mov.examenes.join(', ') }}</td>
+                  <td class="font-bold">{{ mov.monto | currency:moneda:'symbol-narrow':'1.2-2' }}</td>
+                  <td>
+                    @if (mov.estado_pago === 'PAGADO') {
+                      <span class="pill pill-success">Pagado</span>
+                      @if (mov.metodo_pago) {
+                        <small class="metodo-pago-label">{{ labelMetodoPago(mov.metodo_pago) }}</small>
+                      }
+                    } @else {
+                      <span class="pill pill-danger">Pendiente</span>
+                    }
+                  </td>
+                  <td>
+                    @if (mov.estado_orden === 'COMPLETADO') {
+                      <span class="pill pill-success">Firmado</span>
+                    } @else {
+                      <span class="pill pill-warning">En proceso</span>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="8" class="empty-row">No hay movimientos registrados para esta fecha con el filtro seleccionado.</td>
+                </tr>
               }
-            </div>
-          </div>
-          <div class="chart-card glass">
-            <h4>Ingresos por mes (BOB)</h4>
-            <div class="bar-chart">
-              @for (m of rep.meses; track m.etiqueta) {
-                <div class="bar-group" [title]="m.etiqueta + ': $' + m.ingresos_entradas">
-                  <div class="bar-stack">
-                    <div class="bar bar-ingresos" [style.height.%]="alturaBarra(m.ingresos_entradas, maxIngresosGrafico())"></div>
-                  </div>
-                  <span class="bar-label">{{ m.etiqueta_corta }}</span>
-                  <span class="bar-num">{{ m.ingresos_entradas | currency:moneda:'symbol-narrow':'1.0-0' }}</span>
-                </div>
-              }
-            </div>
-          </div>
+            </tbody>
+          </table>
         </div>
-
-        <div class="reportes-lower">
-          <div class="reportes-table-card glass">
-            <h4>Historial mensual detallado</h4>
-            <div class="table-wrapper">
-              <table class="admin-table">
-                <thead>
-                  <tr>
-                    <th>Mes</th>
-                    <th>Entraron</th>
-                    <th>Completadas</th>
-                    <th>Ingresos (entraron)</th>
-                    <th>Ingresos (completadas)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (m of mesesTablaDesc(); track m.etiqueta) {
-                    <tr [class.row-current-month]="m.anio === rep.resumen_mes_actual.anio && m.mes === rep.resumen_mes_actual.mes">
-                      <td class="font-bold">{{ m.etiqueta }}</td>
-                      <td>{{ m.ordenes_entradas }}</td>
-                      <td>{{ m.ordenes_completadas }}</td>
-                      <td>{{ m.ingresos_entradas | currency:moneda:'symbol':'1.2-2' }}</td>
-                      <td>{{ m.ingresos_completadas | currency:moneda:'symbol':'1.2-2' }}</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div class="top-examenes-card glass">
-            <h4>Top exámenes — {{ rep.resumen_mes_actual.etiqueta }}</h4>
-            @if (rep.top_examenes_mes.length) {
-              <ul class="top-examenes-list">
-                @for (ex of rep.top_examenes_mes; track ex.examen_id) {
-                  <li>
-                    <span class="top-name">{{ ex.nombre }}</span>
-                    <span class="top-meta">{{ ex.cantidad }}× · {{ ex.ingresos | currency:moneda:'symbol':'1.0-0' }}</span>
-                  </li>
-                }
-              </ul>
-            } @else {
-              <p class="empty-hint">Sin exámenes completados este mes todavía.</p>
-            }
-          </div>
-        </div>
-      }
       }
     </div>
+  }
+
+  @if (vistaReporte() === 'mes') {
+    @if (reportesCargando()) {
+      <div class="reportes-loading glass">Cargando resumen mensual…</div>
+    } @else if (reportesError()) {
+      <div class="reportes-error glass">{{ reportesError() }}</div>
+    } @else if (reportes(); as rep) {
+      <div class="reportes-mensual-divider">
+        <h4>Resumen mensual — {{ rep.resumen_mes_actual.etiqueta }}</h4>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card glass kpi-highlight">
+          <span class="kpi-label">Entraron este mes</span>
+          <strong class="kpi-value">{{ rep.resumen_mes_actual.ordenes_entradas }}</strong>
+          @if (rep.resumen_mes_actual.variacion_ordenes_pct !== null && rep.resumen_mes_actual.variacion_ordenes_pct !== undefined) {
+            <small [class.trend-up]="rep.resumen_mes_actual.variacion_ordenes_pct >= 0" [class.trend-down]="rep.resumen_mes_actual.variacion_ordenes_pct < 0">
+              {{ formatearVariacion(rep.resumen_mes_actual.variacion_ordenes_pct) }} vs mes anterior
+            </small>
+          }
+        </div>
+        <div class="kpi-card glass kpi-highlight">
+          <span class="kpi-label">Ingresos del mes</span>
+          <strong class="kpi-value">{{ rep.resumen_mes_actual.ingresos_entradas | currency:moneda:'symbol':'1.0-0' }}</strong>
+          @if (rep.resumen_mes_actual.variacion_ingresos_pct !== null && rep.resumen_mes_actual.variacion_ingresos_pct !== undefined) {
+            <small [class.trend-up]="rep.resumen_mes_actual.variacion_ingresos_pct >= 0" [class.trend-down]="rep.resumen_mes_actual.variacion_ingresos_pct < 0">
+              {{ formatearVariacion(rep.resumen_mes_actual.variacion_ingresos_pct) }} vs mes anterior
+            </small>
+          }
+        </div>
+        <div class="kpi-card glass">
+          <span class="kpi-label">Completadas este mes</span>
+          <strong class="kpi-value">{{ rep.resumen_mes_actual.ordenes_completadas }}</strong>
+          <small>{{ rep.resumen_mes_actual.ingresos_completadas | currency:moneda:'symbol':'1.0-0' }} facturados</small>
+        </div>
+        <div class="kpi-card glass">
+          <span class="kpi-label">Pendientes (total)</span>
+          <strong class="kpi-value kpi-warn">{{ rep.pendientes_total }}</strong>
+          <small>{{ rep.resumen_mes_actual.pendientes_del_mes }} creadas este mes</small>
+        </div>
+        <div class="kpi-card glass">
+          <span class="kpi-label">Ticket promedio</span>
+          <strong class="kpi-value">{{ rep.resumen_mes_actual.ticket_promedio | currency:moneda:'symbol':'1.2-2' }}</strong>
+          <small>por orden ingresada</small>
+        </div>
+        @if (rep.mejor_mes && rep.peor_mes) {
+          <div class="kpi-card glass kpi-best">
+            <span class="kpi-label">Mejor mes (órdenes)</span>
+            <strong class="kpi-value-sm">{{ rep.mejor_mes.etiqueta }}</strong>
+            <small>{{ rep.mejor_mes.ordenes }} órdenes · {{ rep.mejor_mes.ingresos | currency:moneda:'symbol':'1.0-0' }}</small>
+          </div>
+          <div class="kpi-card glass kpi-worst">
+            <span class="kpi-label">Mes más bajo</span>
+            <strong class="kpi-value-sm">{{ rep.peor_mes.etiqueta }}</strong>
+            <small>{{ rep.peor_mes.ordenes }} órdenes · {{ rep.peor_mes.ingresos | currency:moneda:'symbol':'1.0-0' }}</small>
+          </div>
+        }
+      </div>
+
+      <div class="charts-row">
+        <div class="chart-card glass">
+          <h4>Órdenes que entraron por mes</h4>
+          <div class="bar-chart">
+            @for (m of rep.meses; track m.etiqueta) {
+              <div class="bar-group" [title]="m.etiqueta + ': ' + m.ordenes_entradas + ' órdenes'">
+                <div class="bar-stack">
+                  <div class="bar bar-entradas" [style.height.%]="alturaBarra(m.ordenes_entradas, maxOrdenesGrafico())"></div>
+                </div>
+                <span class="bar-label">{{ m.etiqueta_corta }}</span>
+                <span class="bar-num">{{ m.ordenes_entradas }}</span>
+              </div>
+            }
+          </div>
+        </div>
+        <div class="chart-card glass">
+          <h4>Ingresos por mes (BOB)</h4>
+          <div class="bar-chart">
+            @for (m of rep.meses; track m.etiqueta) {
+              <div class="bar-group" [title]="m.etiqueta + ': $' + m.ingresos_entradas">
+                <div class="bar-stack">
+                  <div class="bar bar-ingresos" [style.height.%]="alturaBarra(m.ingresos_entradas, maxIngresosGrafico())"></div>
+                </div>
+                <span class="bar-label">{{ m.etiqueta_corta }}</span>
+                <span class="bar-num">{{ m.ingresos_entradas | currency:moneda:'symbol-narrow':'1.0-0' }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="reportes-lower">
+        <div class="reportes-table-card glass">
+          <h4>Historial mensual detallado</h4>
+          <div class="table-wrapper">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Mes</th>
+                  <th>Entraron</th>
+                  <th>Completadas</th>
+                  <th>Ingresos (entraron)</th>
+                  <th>Ingresos (completadas)</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (m of mesesTablaDesc(); track m.etiqueta) {
+                  <tr [class.row-current-month]="m.anio === rep.resumen_mes_actual.anio && m.mes === rep.resumen_mes_actual.mes">
+                    <td class="font-bold">{{ m.etiqueta }}</td>
+                    <td>{{ m.ordenes_entradas }}</td>
+                    <td>{{ m.ordenes_completadas }}</td>
+                    <td>{{ m.ingresos_entradas | currency:moneda:'symbol':'1.2-2' }}</td>
+                    <td>{{ m.ingresos_completadas | currency:moneda:'symbol':'1.2-2' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="top-examenes-card glass">
+          <h4>Top exámenes — {{ rep.resumen_mes_actual.etiqueta }}</h4>
+          @if (rep.top_examenes_mes.length) {
+            <ul class="top-examenes-list">
+              @for (ex of rep.top_examenes_mes; track ex.examen_id) {
+                <li>
+                  <span class="top-name">{{ ex.nombre }}</span>
+                  <span class="top-meta">{{ ex.cantidad }}× · {{ ex.ingresos | currency:moneda:'symbol':'1.0-0' }}</span>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="empty-hint">Sin exámenes completados este mes todavía.</p>
+          }
+        </div>
+      </div>
+    }
+  }
+</div>

@@ -42,12 +42,25 @@ class MesDestacado(BaseModel):
     ingresos: float
 
 
+class PuntoSerie(BaseModel):
+    etiqueta: str
+    ordenes_entradas: int = 0
+    ordenes_completadas: int = 0
+    ingresos_entradas: float = 0.0
+    ingresos_completadas: float = 0.0
+
+
 class DashboardReporte(BaseModel):
     moneda: str = "BOB"
     resumen_hoy: ResumenPeriodo
     resumen_mes_actual: ResumenMesActual
     pendientes_total: int
+    total_examenes: int = 0
+    total_pacientes: int = 0
+    total_reactivos: int = 0
     meses: List[MesReporte]
+    serie_diaria: List[PuntoSerie] = []
+    serie_semanal: List[PuntoSerie] = []
     top_examenes_mes: List[TopExamenMes]
     mejor_mes: Optional[MesDestacado] = None
     peor_mes: Optional[MesDestacado] = None

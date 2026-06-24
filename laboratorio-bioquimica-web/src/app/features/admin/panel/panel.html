@@ -55,6 +55,14 @@
             >
               Cobros pendientes
             </button>
+            <button
+              type="button"
+              class="nav-child-btn"
+              [class.active]="esNavActivo('ordenes-facturas')"
+              (click)="navegar('ordenes-facturas')"
+            >
+              Facturas y comprobantes
+            </button>
           </div>
         }
       </div>
@@ -283,6 +291,10 @@
           (volverLista)="navegar('ordenes-lista')"
           (inventarioChanged)="onInventarioChanged()"
         />
+      }
+
+      @if (tabActiva() === 'ordenes-facturas') {
+        <app-panel-facturas-tab />
       }
 
       @if (tabActiva() === 'inventario-insumos') {

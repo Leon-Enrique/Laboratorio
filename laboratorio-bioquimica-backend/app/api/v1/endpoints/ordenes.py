@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request, Query, H
 from fastapi.responses import FileResponse, Response
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func, or_
 
 from app.core.config import settings
 from app.db.session import get_db
@@ -14,7 +15,7 @@ from app.models.orden import Orden, Resultado
 from app.models.usuario import Paciente
 from app.models.examen import Examen, FormulaConsumo
 from app.services import inventario_service as inv
-from app.services import pdf_service, qr_service, rate_limit_service as rate_limit
+from app.services import pdf_service, qr_service, comprobante_service, rate_limit_service as rate_limit
 from app.schemas.orden import (
     OrdenResponse,
     OrdenCreate,
@@ -23,6 +24,7 @@ from app.schemas.orden import (
     OrdenMetaUpdate,
     ConsultaPacienteRequest,
     CodigoVerificacionResponse,
+    ComprobanteResumen,
 )
 from app.api.v1.endpoints.auth import RoleChecker, get_current_user, oauth2_scheme
 from app.models.usuario import Usuario
@@ -34,7 +36,35 @@ def _orden_query(db: Session):
     return db.query(Orden).options(
         joinedload(Orden.paciente),
         joinedload(Orden.bioquimico),
+        joinedload(Orden.recepcionista),
         joinedload(Orden.resultados).joinedload(Resultado.examen).joinedload(Examen.parametros),
+    )
+
+
+def _siguiente_numero_comprobante(db: Session) -> int:
+    max_num = db.query(func.max(Orden.numero_comprobante)).scalar()
+    return int(max_num or 0) + 1
+
+
+def _comprobante_resumen(orden: Orden) -> ComprobanteResumen:
+    p = orden.paciente
+    recep = orden.recepcionista.nombre if orden.recepcionista else None
+    return ComprobanteResumen(
+        id=orden.id,
+        numero_comprobante=orden.numero_comprobante,
+        codigo_orden=orden.codigo_orden,
+        fecha_creacion=orden.fecha_creacion,
+        fecha_pago=orden.fecha_pago,
+        estado_pago=orden.estado_pago or "PENDIENTE",
+        metodo_pago=orden.metodo_pago,
+        precio_total=orden.precio_total,
+        requiere_factura=bool(orden.requiere_factura),
+        nit_factura=orden.nit_factura,
+        razon_social_factura=orden.razon_social_factura,
+        paciente_nombre=p.nombre,
+        paciente_apellido=p.apellido,
+        paciente_dni=p.dni,
+        recepcionista_nombre=recep,
     )
 
 
@@ -157,6 +187,8 @@ def crear_orden(
     nueva_orden = Orden(
         paciente_id=paciente.id,
         codigo_orden=codigo_unico,
+        numero_comprobante=_siguiente_numero_comprobante(db),
+        recepcionista_id=current_user.id,
         estado="PENDIENTE",
         estado_pago=orden_in.estado_pago if orden_in.estado_pago in ("PENDIENTE", "PAGADO") else "PENDIENTE",
         metodo_pago=orden_in.metodo_pago if orden_in.estado_pago == "PAGADO" else None,
@@ -192,6 +224,61 @@ def listar_ordenes(
     current_user: Any = Depends(RoleChecker(["admin", "bioquimico"]))
 ) -> Any:
     return _orden_query(db).order_by(Orden.fecha_creacion.desc()).all()
+
+
+@router.get("/comprobantes", response_model=List[ComprobanteResumen])
+def listar_comprobantes(
+    q: Optional[str] = Query(None, description="Buscar por paciente, código o Nº comprobante"),
+    estado_pago: Optional[str] = Query(None),
+    solo_factura: bool = Query(False),
+    limit: int = Query(150, ge=1, le=500),
+    db: Session = Depends(get_db),
+    current_user: Any = Depends(RoleChecker(["admin", "bioquimico"])),
+) -> Any:
+    query = db.query(Orden).options(
+        joinedload(Orden.paciente),
+        joinedload(Orden.recepcionista),
+        joinedload(Orden.resultados).joinedload(Resultado.examen),
+    )
+    if estado_pago in ("PENDIENTE", "PAGADO"):
+        query = query.filter(Orden.estado_pago == estado_pago)
+    if solo_factura:
+        query = query.filter(Orden.requiere_factura.is_(True))
+    if q and q.strip():
+        term = f"%{q.strip()}%"
+        filtros = [
+            Orden.codigo_orden.ilike(term),
+            Paciente.nombre.ilike(term),
+            Paciente.apellido.ilike(term),
+            Paciente.dni.ilike(term),
+        ]
+        if q.strip().isdigit():
+            filtros.append(Orden.numero_comprobante == int(q.strip()))
+        query = query.join(Paciente, Orden.paciente_id == Paciente.id).filter(or_(*filtros))
+
+    ordenes = query.order_by(Orden.fecha_creacion.desc()).limit(limit).all()
+    return [_comprobante_resumen(o) for o in ordenes]
+
+
+@router.get("/comprobante/{codigo_orden}/pdf")
+def descargar_comprobante_pdf(
+    codigo_orden: str,
+    db: Session = Depends(get_db),
+    current_user: Any = Depends(RoleChecker(["admin", "bioquimico"])),
+) -> FileResponse:
+    codigo = codigo_orden.strip().upper()
+    orden = _orden_query(db).filter(Orden.codigo_orden == codigo).first()
+    if not orden:
+        raise HTTPException(status_code=404, detail="Orden no encontrada")
+
+    comprobante_service.generar_comprobante_orden(orden, current_user.nombre)
+    numero = orden.numero_comprobante or orden.id
+    titulo = "factura" if orden.requiere_factura else "orden"
+    return FileResponse(
+        comprobante_service.ruta_comprobante(codigo),
+        media_type="application/pdf",
+        filename=f"{titulo}_{numero}_{codigo}.pdf",
+    )
 
 
 # 3a. Buscar Pacientes por DNI o Nombre parcial (solo admin/bioquímico)
@@ -498,6 +585,6 @@ def descargar_informe_pdf(
 @router.get("/qr/{codigo_orden}")
 def qr_codigo_orden(codigo_orden: str) -> Response:
     codigo = codigo_orden.strip().upper()
-    url = f"{settings.FRONTEND_URL}/resultados?codigo={codigo}"
+    url = qr_service.url_resultados_orden(codigo)
     png = qr_service.generar_qr_png(url)
     return Response(content=png, media_type="image/png")

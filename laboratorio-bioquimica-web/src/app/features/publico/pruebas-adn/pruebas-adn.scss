@@ -419,6 +419,11 @@ $text-muted: #64748b;
   font-size: 1.25rem;
   color: $brand-green;
   flex-shrink: 0;
+  transition: transform 0.25s ease;
+}
+
+.faq-item.is-open .faq-chevron {
+  transform: rotate(180deg);
 }
 
 .faq-answer {

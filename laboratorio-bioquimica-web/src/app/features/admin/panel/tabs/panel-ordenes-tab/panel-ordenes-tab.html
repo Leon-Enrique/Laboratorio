@@ -482,6 +482,7 @@
               {{ (ord.prioridad || 'NORMAL') === 'URGENTE' ? 'Quitar urgente' : 'Marcar urgente' }}
             </button>
             <button type="button" class="btn-modal-cancel" (click)="reimprimirTicket(ord)">Reimprimir ticket</button>
+            <button type="button" class="btn-modal-submit btn-orden-pdf" (click)="descargarComprobantePDF(ord)">Descargar PDF</button>
           </div>
         }
       </div>
@@ -558,7 +559,11 @@
       </div>
 
       <div class="modal-actions">
-        <button class="btn-modal-submit" (click)="mostrarTicketModal.set(false)">Imprimir y Cerrar</button>
+        <button type="button" class="btn-modal-cancel" (click)="mostrarTicketModal.set(false)">Cerrar</button>
+        @if (ticketOrden(); as t) {
+          <button type="button" class="btn-modal-submit btn-orden-pdf" (click)="descargarComprobantePDF(t)">Descargar PDF</button>
+        }
+        <button class="btn-modal-submit" (click)="mostrarTicketModal.set(false)">Listo</button>
       </div>
     </div>
   </div>
@@ -597,7 +602,7 @@
               }
             </h4>
             <div class="form-grid-2col form-grid-compact resultado-campos-grid">
-              @for (campo of grupo.campos; track campo.key) {
+              @for (campo of grupo.campos; track campo.examenId + '|' + campo.key) {
                 <div
                   class="form-group"
                   [class.form-group--span2]="tipoCampoResultado(campo.param) === 'Texto Area'"
@@ -616,7 +621,7 @@
                       <input
                         type="number"
                         [(ngModel)]="valoresResultados()[campo.key]"
-                        name="val-{{campo.key}}"
+                        name="val-{{ campo.examenId }}-{{ campo.param.id ?? campo.key }}"
                         [step]="stepCampoNumerico(campo.param)"
                         [readonly]="ordenCompletada(ordRes)"
                         [class.input-readonly]="ordenCompletada(ordRes)"
@@ -626,7 +631,7 @@
                     @case ('Texto Area') {
                       <textarea
                         [(ngModel)]="valoresResultados()[campo.key]"
-                        name="val-{{campo.key}}"
+                        name="val-{{ campo.examenId }}-{{ campo.param.id ?? campo.key }}"
                         rows="3"
                         [readonly]="ordenCompletada(ordRes)"
                         [class.input-readonly]="ordenCompletada(ordRes)"
@@ -637,7 +642,7 @@
                       <input
                         type="date"
                         [(ngModel)]="valoresResultados()[campo.key]"
-                        name="val-{{campo.key}}"
+                        name="val-{{ campo.examenId }}-{{ campo.param.id ?? campo.key }}"
                         [readonly]="ordenCompletada(ordRes)"
                         [class.input-readonly]="ordenCompletada(ordRes)"
                       />
@@ -646,7 +651,7 @@
                       <input
                         type="time"
                         [(ngModel)]="valoresResultados()[campo.key]"
-                        name="val-{{campo.key}}"
+                        name="val-{{ campo.examenId }}-{{ campo.param.id ?? campo.key }}"
                         [readonly]="ordenCompletada(ordRes)"
                         [class.input-readonly]="ordenCompletada(ordRes)"
                       />
@@ -655,7 +660,7 @@
                       <input
                         type="text"
                         [(ngModel)]="valoresResultados()[campo.key]"
-                        name="val-{{campo.key}}"
+                        name="val-{{ campo.examenId }}-{{ campo.param.id ?? campo.key }}"
                         [readonly]="ordenCompletada(ordRes)"
                         [class.input-readonly]="ordenCompletada(ordRes)"
                         [placeholder]="campo.param.valor_referencia || 'Letras y números'"

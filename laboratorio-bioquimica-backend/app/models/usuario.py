@@ -12,8 +12,13 @@ class Usuario(Base):
     rol = Column(String, default="paciente")  # admin, bioquimico, paciente
     activo = Column(Boolean, default=True)
 
-    # Relación con órdenes asignadas (para bioquímicos)
-    ordenes_asignadas = relationship("Orden", back_populates="bioquimico")
+    # Relación con órdenes asignadas (para bioquímicos) y recepción
+    ordenes_asignadas = relationship(
+        "Orden", foreign_keys="Orden.bioquimico_id", back_populates="bioquimico"
+    )
+    ordenes_recepcionadas = relationship(
+        "Orden", foreign_keys="Orden.recepcionista_id", back_populates="recepcionista"
+    )
     
     # Relación con el registro de paciente (opcional si el usuario es un paciente)
     paciente_rel = relationship("Paciente", back_populates="usuario", uselist=False)

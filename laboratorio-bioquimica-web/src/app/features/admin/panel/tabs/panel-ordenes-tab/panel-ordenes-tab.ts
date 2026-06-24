@@ -562,7 +562,7 @@ export class PanelOrdenesTabComponent implements OnInit {
       const examenNombre = examen?.nombre || res.examen?.nombre || `Prueba #${res.examen_id}`;
       this.parametrosDeExamen(examen, res).forEach(p => {
         campos.push({
-          key: this.parametroClave(p),
+          key: this.claveValorResultado(res.examen_id, p),
           param: p,
           examenNombre,
           examenId: res.examen_id
@@ -584,6 +584,11 @@ export class PanelOrdenesTabComponent implements OnInit {
     return p.unidad ? `${p.nombre} (${p.unidad})` : p.nombre;
   }
 
+  /** Clave interna del formulario: evita colisión cuando varios exámenes tienen el mismo nombre de campo. */
+  claveValorResultado(examenId: number, p: ParametroExamen): string {
+    return `${examenId}::${this.parametroClave(p)}`;
+  }
+
   formatReferencia(p: ParametroExamen): string {
     if (p.valor_referencia?.trim()) return p.valor_referencia.trim();
     if (p.valor_min != null && p.valor_max != null) {
@@ -600,16 +605,17 @@ export class PanelOrdenesTabComponent implements OnInit {
       const examen = this.examenDeResultado(res);
       const params = this.parametrosDeExamen(examen, res);
       params.forEach(p => {
-        const key = this.parametroClave(p);
+        const formKey = this.claveValorResultado(res.examen_id, p);
+        const storageKey = this.parametroClave(p);
         if (res.valor_resultado) {
-          valores[key] =
-            res.valor_resultado[key]
+          valores[formKey] =
+            res.valor_resultado[storageKey]
             ?? (p.llave ? res.valor_resultado[p.llave] : undefined)
             ?? res.valor_resultado[p.nombre]
             ?? p.valor_defecto
             ?? '';
         } else {
-          valores[key] = p.valor_defecto ?? '';
+          valores[formKey] = p.valor_defecto ?? '';
         }
       });
     });
@@ -622,7 +628,7 @@ export class PanelOrdenesTabComponent implements OnInit {
       const examen = this.examenDeResultado(res);
       this.parametrosDeExamen(examen, res).forEach(p => {
         const ref = this.formatReferencia(p);
-        if (ref) refs[this.parametroClave(p)] = ref;
+        if (ref) refs[this.claveValorResultado(res.examen_id, p)] = ref;
       });
     });
     return refs;
@@ -664,8 +670,9 @@ export class PanelOrdenesTabComponent implements OnInit {
       const examen = this.examenDeResultado(res);
       const valor: Record<string, string> = {};
       this.parametrosDeExamen(examen, res).forEach(p => {
-        const key = this.parametroClave(p);
-        valor[key] = this.valoresResultados()[key] ?? '';
+        const formKey = this.claveValorResultado(res.examen_id, p);
+        const storageKey = this.parametroClave(p);
+        valor[storageKey] = this.valoresResultados()[formKey] ?? '';
       });
       return { examen_id: res.examen_id, valor_resultado: valor, pdf_url: null };
     });
@@ -759,7 +766,18 @@ export class PanelOrdenesTabComponent implements OnInit {
         const url = URL.createObjectURL(blob);
         window.open(url, '_blank');
       },
-      error: () => this.notify.mostrarToast('No se pudo descargar el informe PDF. Verifique que la orden esté firmada.', 'error')
+      error: (err) => this.notify.mostrarError(err, 'No se pudo descargar el informe PDF')
+    });
+  }
+
+  descargarComprobantePDF(orden: Orden, $event?: Event) {
+    $event?.stopPropagation();
+    this.api.getBlob(`/ordenes/comprobante/${orden.codigo_orden}/pdf`).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+      },
+      error: (err) => this.notify.mostrarError(err, 'No se pudo descargar el comprobante PDF')
     });
   }
 

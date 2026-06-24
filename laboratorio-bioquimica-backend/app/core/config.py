@@ -36,6 +36,8 @@ class Settings:
 
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:4200")
     API_PUBLIC_URL: str = os.getenv("API_PUBLIC_URL", "http://localhost:8000")
+    # Sitio público para QR/enlaces en PDF (dominio real aunque el API corra en local)
+    PUBLIC_SITE_URL: str = os.getenv("PUBLIC_SITE_URL", "").strip()
 
     CORS_ORIGINS: list[str] = _parse_cors_origins()
 
@@ -52,6 +54,17 @@ class Settings:
     @property
     def is_production(self) -> bool:
         return self.APP_ENV == "production"
+
+    @property
+    def public_site_url(self) -> str:
+        """URL del portal para QR y PDF. Nunca apunta a localhost si hay dominio configurado."""
+        if self.PUBLIC_SITE_URL:
+            return self.PUBLIC_SITE_URL.rstrip("/")
+        frontend = self.FRONTEND_URL.rstrip("/")
+        host = frontend.lower()
+        if "localhost" in host or "127.0.0.1" in host:
+            return "https://genotipia-lab.com"
+        return frontend
 
     def validate_production(self) -> None:
         if not self.is_production:

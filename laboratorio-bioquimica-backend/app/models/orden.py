@@ -21,11 +21,14 @@ class Orden(Base):
     requiere_factura = Column(Boolean, default=False)
     nit_factura = Column(String, nullable=True)
     razon_social_factura = Column(String, nullable=True)
+    numero_comprobante = Column(Integer, unique=True, index=True, nullable=True)
     bioquimico_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
+    recepcionista_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
 
     # Relaciones
     paciente = relationship("Paciente", back_populates="ordenes")
-    bioquimico = relationship("Usuario", back_populates="ordenes_asignadas")
+    bioquimico = relationship("Usuario", foreign_keys=[bioquimico_id], back_populates="ordenes_asignadas")
+    recepcionista = relationship("Usuario", foreign_keys=[recepcionista_id], back_populates="ordenes_recepcionadas")
     resultados = relationship("Resultado", back_populates="orden", cascade="all, delete-orphan")
 
     @property

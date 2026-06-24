@@ -5,6 +5,10 @@
     <h2>Portal de Resultados para Pacientes</h2>
     <p>Ingresa el código de tu comprobante y verifica tu identidad para consultar resultados de forma segura.</p>
 
+    @if (desdeQr() && paso() === 1) {
+      <p class="qr-detected-hint">Código detectado desde el QR de su informe impreso. Confirme y continúe.</p>
+    }
+
     @if (paso() === 1) {
       <form (submit)="$event.preventDefault(); continuarVerificacion()" class="search-form">
         <label>Código de orden</label>

@@ -110,6 +110,14 @@ export interface MesReporte {
   ingresos_completadas: number;
 }
 
+export interface PuntoSerie {
+  etiqueta: string;
+  ordenes_entradas: number;
+  ordenes_completadas: number;
+  ingresos_entradas: number;
+  ingresos_completadas: number;
+}
+
 export interface DashboardReporte {
   moneda: string;
   resumen_hoy: {
@@ -132,7 +140,12 @@ export interface DashboardReporte {
     variacion_ingresos_pct?: number | null;
   };
   pendientes_total: number;
+  total_examenes: number;
+  total_pacientes: number;
+  total_reactivos: number;
   meses: MesReporte[];
+  serie_diaria: PuntoSerie[];
+  serie_semanal: PuntoSerie[];
   top_examenes_mes: { examen_id: number; nombre: string; cantidad: number; ingresos: number }[];
   mejor_mes?: { etiqueta: string; anio: number; mes: number; ordenes: number; ingresos: number };
   peor_mes?: { etiqueta: string; anio: number; mes: number; ordenes: number; ingresos: number };
@@ -210,9 +223,28 @@ export interface Examen {
   parametros?: ParametroExamen[];
 }
 
+export interface ComprobanteResumen {
+  id: number;
+  numero_comprobante?: number | null;
+  codigo_orden: string;
+  fecha_creacion: string;
+  fecha_pago?: string | null;
+  estado_pago: string;
+  metodo_pago?: string | null;
+  precio_total: number;
+  requiere_factura?: boolean;
+  nit_factura?: string | null;
+  razon_social_factura?: string | null;
+  paciente_nombre: string;
+  paciente_apellido: string;
+  paciente_dni: string;
+  recepcionista_nombre?: string | null;
+}
+
 export interface Orden {
   id: number;
   codigo_orden: string;
+  numero_comprobante?: number | null;
   fecha_creacion: string;
   estado: string;
   estado_pago?: string;
@@ -247,6 +279,7 @@ export interface Orden {
 
 export type PanelTabId =
   | 'ordenes'
+  | 'ordenes-facturas'
   | 'inventario-insumos'
   | 'inventario-mermas'
   | 'compras-sugerencias'
@@ -262,6 +295,7 @@ export type PanelNavId =
   | 'ordenes-lista'
   | 'ordenes-nueva'
   | 'ordenes-cobros'
+  | 'ordenes-facturas'
   | 'inventario-insumos'
   | 'inventario-mermas'
   | 'compras-sugerencias'

@@ -361,14 +361,14 @@ export class PanelAnalisisTabComponent implements OnInit {
 
   private parametroVacio(): ParametroFormRow {
     return {
-      tipo: 'Numero',
+      tipo: 'Texto',
       grupo: '',
       seccion: '',
       nombre: '',
       llave: '',
       valor_defecto: '',
       unidad: '',
-      decimales: 2,
+      decimales: 0,
       metodo_prueba: '',
       valor_referencia: '',
       valor_min: null,
@@ -390,7 +390,7 @@ export class PanelAnalisisTabComponent implements OnInit {
     return [...parametros]
       .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
       .map(p => ({
-        tipo: p.tipo || 'Numero',
+        tipo: p.tipo || 'Texto',
         grupo: p.grupo ?? '',
         seccion: p.seccion ?? '',
         nombre: p.nombre,
@@ -410,7 +410,7 @@ export class PanelAnalisisTabComponent implements OnInit {
       .filter(p => p.nombre.trim() && esParametroResultadoVisible(p.nombre))
       .map((p, i) => ({
         nombre: p.nombre.trim(),
-        tipo: p.tipo || 'Numero',
+        tipo: p.tipo || 'Texto',
         grupo: p.grupo.trim() || null,
         seccion: p.seccion.trim() || null,
         llave: (p.llave.trim() || this.slugLlave(p.nombre)) || null,
@@ -450,18 +450,12 @@ export class PanelAnalisisTabComponent implements OnInit {
       return;
     }
     const fila: ParametroFormRow = {
-      ...this.parametroFormModel,
+      ...this.parametroVacio(),
       nombre,
       llave: this.slugLlave(nombre)
     };
     this.examenParametros.set([...this.examenParametros(), fila]);
-    this.parametroFormModel = {
-      ...this.parametroVacio(),
-      tipo: this.parametroFormModel.tipo,
-      grupo: this.parametroFormModel.grupo,
-      decimales: this.parametroFormModel.decimales,
-      unidad: this.parametroFormModel.unidad
-    };
+    this.parametroFormModel = this.parametroVacio();
     this.cerrarMiniAdicionar();
   }
 

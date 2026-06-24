@@ -3,8 +3,34 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../../core/services/api.service';
 import { MONEDA_CODIGO } from '../../../../../core/constants/moneda';
-import { DashboardReporte, ReporteDiario } from '../../panel.models';
-import { alturaBarra, formatearVariacion, labelMetodoPago } from '../../panel.utils';
+import { DashboardReporte, PuntoSerie, ReporteDiario } from '../../panel.models';
+import {
+  alturaBarra,
+  buildDualLineChart,
+  formatearVariacion,
+  labelMetodoPago
+} from '../../panel.utils';
+
+type VistaReporte = 'panel' | 'dia' | 'mes';
+type PeriodoGrafico = 'diario' | 'semanal' | 'mensual';
+
+interface StatCard {
+  id: string;
+  label: string;
+  value: string;
+  sub?: string;
+  icon: string;
+  color: string;
+  vista?: VistaReporte;
+}
+
+interface TopExamenRanking {
+  examen_id: number;
+  nombre: string;
+  cantidad: number;
+  ingresos: number;
+  pct: number;
+}
 
 @Component({
   selector: 'app-panel-reportes-tab',
@@ -30,7 +56,8 @@ export class PanelReportesTabComponent implements OnInit {
   reporteDia = signal<ReporteDiario | null>(null);
   reporteDiaCargando = signal(false);
   reporteDiaError = signal<string | null>(null);
-  vistaReporte = signal<'dia' | 'mes'>('dia');
+  vistaReporte = signal<VistaReporte>('panel');
+  periodoGrafico = signal<PeriodoGrafico>('mensual');
 
   maxOrdenesGrafico = computed(() => {
     const meses = this.reportes()?.meses ?? [];
@@ -45,6 +72,135 @@ export class PanelReportesTabComponent implements OnInit {
   mesesTablaDesc = computed(() => {
     const meses = this.reportes()?.meses ?? [];
     return [...meses].reverse();
+  });
+
+  serieActiva = computed((): PuntoSerie[] => {
+    const rep = this.reportes();
+    if (!rep) return [];
+    switch (this.periodoGrafico()) {
+      case 'diario':
+        return rep.serie_diaria ?? [];
+      case 'semanal':
+        return rep.serie_semanal ?? [];
+      default:
+        return rep.meses.slice(-7).map(m => ({
+          etiqueta: m.etiqueta_corta,
+          ordenes_entradas: m.ordenes_entradas,
+          ordenes_completadas: m.ordenes_completadas,
+          ingresos_entradas: m.ingresos_entradas,
+          ingresos_completadas: m.ingresos_completadas
+        }));
+    }
+  });
+
+  chartOrdenes = computed(() => {
+    const serie = this.serieActiva();
+    return buildDualLineChart(
+      serie.map(p => p.ordenes_entradas),
+      serie.map(p => p.ordenes_completadas),
+      serie.map(p => p.etiqueta)
+    );
+  });
+
+  chartIngresos = computed(() => {
+    const serie = this.serieActiva();
+    return buildDualLineChart(
+      serie.map(p => p.ingresos_entradas),
+      serie.map(p => p.ingresos_completadas),
+      serie.map(p => p.etiqueta)
+    );
+  });
+
+  totalOrdenesSerie = computed(() =>
+    this.serieActiva().reduce((sum, p) => sum + p.ordenes_entradas, 0)
+  );
+
+  totalesIngresosSerie = computed(() => {
+    const serie = this.serieActiva();
+    const entradas = serie.reduce((sum, p) => sum + p.ingresos_entradas, 0);
+    const completadas = serie.reduce((sum, p) => sum + p.ingresos_completadas, 0);
+    return { entradas, completadas, neto: entradas - completadas };
+  });
+
+  statCards = computed((): StatCard[] => {
+    const rep = this.reportes();
+    if (!rep) return [];
+    return [
+      {
+        id: 'ordenes_hoy',
+        label: 'Órdenes hoy',
+        value: String(rep.resumen_hoy.ordenes_entradas),
+        sub: `${rep.resumen_hoy.ingresos_entradas.toFixed(0)} ${rep.moneda}`,
+        icon: '📋',
+        color: 'blue',
+        vista: 'dia'
+      },
+      {
+        id: 'completadas_hoy',
+        label: 'Completadas hoy',
+        value: String(rep.resumen_hoy.ordenes_completadas),
+        sub: `${rep.resumen_hoy.ingresos_completadas.toFixed(0)} ${rep.moneda}`,
+        icon: '✅',
+        color: 'green',
+        vista: 'dia'
+      },
+      {
+        id: 'ordenes_mes',
+        label: 'Órdenes del mes',
+        value: String(rep.resumen_mes_actual.ordenes_entradas),
+        sub: rep.resumen_mes_actual.etiqueta,
+        icon: '📅',
+        color: 'yellow',
+        vista: 'mes'
+      },
+      {
+        id: 'ingresos_mes',
+        label: 'Ingresos del mes',
+        value: `${rep.resumen_mes_actual.ingresos_entradas.toFixed(0)}`,
+        sub: rep.moneda,
+        icon: '💰',
+        color: 'red',
+        vista: 'mes'
+      },
+      {
+        id: 'pendientes',
+        label: 'Órdenes pendientes',
+        value: String(rep.pendientes_total),
+        sub: `${rep.resumen_mes_actual.pendientes_del_mes} este mes`,
+        icon: '⏳',
+        color: 'navy',
+        vista: 'dia'
+      },
+      {
+        id: 'examenes',
+        label: 'Exámenes en catálogo',
+        value: String(rep.total_examenes ?? 0),
+        sub: `${rep.total_pacientes ?? 0} pacientes`,
+        icon: '🧪',
+        color: 'purple',
+        vista: 'mes'
+      }
+    ];
+  });
+
+  topExamenesRanking = computed((): TopExamenRanking[] => {
+    const lista = this.reportes()?.top_examenes_mes ?? [];
+    const max = Math.max(...lista.map(e => e.cantidad), 1);
+    return lista.map(ex => ({
+      ...ex,
+      pct: Math.round((ex.cantidad / max) * 100)
+    }));
+  });
+
+  etiquetaPeriodoGrafico = computed(() => {
+    switch (this.periodoGrafico()) {
+      case 'diario':
+        return 'últimos 7 días';
+      case 'semanal':
+        return 'últimas 8 semanas';
+      default:
+        return 'últimos 7 meses';
+    }
   });
 
   ngOnInit() {
@@ -101,7 +257,20 @@ export class PanelReportesTabComponent implements OnInit {
     this.cargarReporteDia();
   }
 
-  cambiarVistaReporte(vista: 'dia' | 'mes') {
+  cambiarVistaReporte(vista: VistaReporte) {
     this.vistaReporte.set(vista);
+    if (vista === 'dia') {
+      this.irAHoyReporte();
+    }
+  }
+
+  cambiarPeriodoGrafico(periodo: PeriodoGrafico) {
+    this.periodoGrafico.set(periodo);
+  }
+
+  irADetalleStat(card: StatCard) {
+    if (card.vista) {
+      this.cambiarVistaReporte(card.vista);
+    }
   }
 }
