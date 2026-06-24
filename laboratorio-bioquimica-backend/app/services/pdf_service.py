@@ -18,6 +18,7 @@ from reportlab.platypus import Image as RLImage
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from app.models.orden import Orden
+from app.core.config import settings
 from app.services import qr_service
 
 TZ_LAB = "America/La_Paz"
@@ -620,7 +621,8 @@ class _InformeDocTemplate(SimpleDocTemplate):
         self.pdf_meta = pdf_meta or {}
 
     def handle_pageEnd(self):
-        _draw_logo_watermark(self.canv)
+        if settings.PDF_WATERMARK:
+            _draw_logo_watermark(self.canv)
         _draw_page_footer(self.canv, self, self.pdf_meta)
         super().handle_pageEnd()
 

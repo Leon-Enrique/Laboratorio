@@ -111,6 +111,16 @@ def ruta_comprobante(codigo_orden: str) -> str:
     return os.path.join(_invoices_dir(), f"{codigo_orden}.pdf")
 
 
+def comprobante_existe(codigo_orden: str) -> bool:
+    return os.path.isfile(ruta_comprobante(codigo_orden.strip().upper()))
+
+
+def invalidar_comprobante(codigo_orden: str) -> None:
+    path = ruta_comprobante(codigo_orden.strip().upper())
+    if os.path.isfile(path):
+        os.remove(path)
+
+
 def _label_metodo(metodo: Optional[str]) -> str:
     labels = {
         "EFECTIVO": "Contado",

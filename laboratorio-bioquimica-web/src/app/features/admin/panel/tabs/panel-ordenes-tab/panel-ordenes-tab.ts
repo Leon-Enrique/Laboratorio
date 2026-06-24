@@ -101,6 +101,7 @@ export class PanelOrdenesTabComponent implements OnInit {
 
   ordenSeleccionadaResultados = signal<Orden | null>(null);
   firmandoResultados = signal(false);
+  descargandoPdf = signal(false);
   valoresResultados = signal<Record<string, string>>({});
   referenciasResultados = signal<Record<string, string>>({});
   camposResultadoForm = signal<CampoResultadoForm[]>([]);
@@ -211,8 +212,7 @@ export class PanelOrdenesTabComponent implements OnInit {
   });
 
   ngOnInit() {
-    this.refresh();
-    this.cargarExamenesCatalogo();
+    this.refreshCompleto();
   }
 
   /** Recarga la cola de órdenes (p. ej. al activar la pestaña desde el padre). */
@@ -222,6 +222,10 @@ export class PanelOrdenesTabComponent implements OnInit {
 
   refresh() {
     this.api.get<Orden[]>('/ordenes/').subscribe(data => this.ordenes.set(data));
+  }
+
+  refreshCompleto() {
+    this.refresh();
     this.cargarExamenesCatalogo();
   }
 
@@ -548,12 +552,17 @@ export class PanelOrdenesTabComponent implements OnInit {
   }
 
   abrirDialogoCargarResultados(orden: Orden) {
-    this.cargarExamenesCatalogo(() => {
+    const abrir = () => {
       this.ordenSeleccionadaResultados.set(orden);
       this.valoresResultados.set(this.construirCamposResultados(orden));
       this.referenciasResultados.set(this.construirReferenciasResultados(orden));
       this.camposResultadoForm.set(this.construirCamposResultadoForm(orden));
-    });
+    };
+    if (this.examenesCatalogo().length) {
+      abrir();
+      return;
+    }
+    this.cargarExamenesCatalogo(() => abrir());
   }
 
   construirCamposResultadoForm(orden: Orden): CampoResultadoForm[] {
@@ -701,11 +710,11 @@ export class PanelOrdenesTabComponent implements OnInit {
     const orden = this.ordenSeleccionadaResultados();
     if (!orden) return;
 
-    this.api.post(`/ordenes/${orden.id}/valores`, this.buildPayloadResultados(orden)).subscribe({
-      next: () => {
+    this.api.post<Orden>(`/ordenes/${orden.id}/valores`, this.buildPayloadResultados(orden)).subscribe({
+      next: (updated) => {
+        this.actualizarOrdenEnLista(updated);
         this.notify.mostrarToast('Borrador de resultados guardado correctamente.', 'success');
         this.ordenSeleccionadaResultados.set(null);
-        this.refresh();
       },
       error: (err) => this.notify.mostrarError(err, 'Error al guardar borrador')
     });
@@ -716,28 +725,21 @@ export class PanelOrdenesTabComponent implements OnInit {
     if (!orden || this.firmandoResultados()) return;
 
     this.firmandoResultados.set(true);
-    this.api.post(`/ordenes/${orden.id}/valores`, this.buildPayloadResultados(orden)).subscribe({
-      next: () => {
-        this.api.post<Orden>(`/ordenes/${orden.id}/aprobar`, {}).subscribe({
-          next: (updated) => {
-            this.firmandoResultados.set(false);
-            this.notify.mostrarToast('Resultados firmados e informe PDF generado correctamente.', 'success');
-            this.ordenSeleccionadaResultados.set(null);
-            this.ordenFirmadaWhatsapp.set(updated);
-            this.mostrarWhatsappResultadoModal.set(true);
-            this.actualizarOrdenEnLista(updated);
-            this.refresh();
-            this.inventarioChanged.emit();
-          },
-          error: (err) => {
-            this.firmandoResultados.set(false);
-            this.notify.mostrarError(err, 'Error al firmar');
-          }
-        });
+    this.api.post<Orden>(`/ordenes/${orden.id}/aprobar`, {
+      resultados: this.buildPayloadResultados(orden)
+    }).subscribe({
+      next: (updated) => {
+        this.firmandoResultados.set(false);
+        this.notify.mostrarToast('Resultados firmados e informe PDF generado correctamente.', 'success');
+        this.ordenSeleccionadaResultados.set(null);
+        this.ordenFirmadaWhatsapp.set(updated);
+        this.mostrarWhatsappResultadoModal.set(true);
+        this.actualizarOrdenEnLista(updated);
+        this.inventarioChanged.emit();
       },
       error: (err) => {
         this.firmandoResultados.set(false);
-        this.notify.mostrarError(err, 'Error al guardar valores preliminares');
+        this.notify.mostrarError(err, 'Error al firmar');
       }
     });
   }
@@ -770,23 +772,35 @@ export class PanelOrdenesTabComponent implements OnInit {
   }
 
   generarInformePDF(orden: Orden) {
+    if (this.descargandoPdf()) return;
+    this.descargandoPdf.set(true);
     this.api.getBlob(`/ordenes/informe/${orden.codigo_orden}/pdf`).subscribe({
       next: (blob) => {
+        this.descargandoPdf.set(false);
         const url = URL.createObjectURL(blob);
         window.open(url, '_blank');
       },
-      error: (err) => this.notify.mostrarError(err, 'No se pudo descargar el informe PDF')
+      error: (err) => {
+        this.descargandoPdf.set(false);
+        this.notify.mostrarError(err, 'No se pudo descargar el informe PDF');
+      }
     });
   }
 
   descargarComprobantePDF(orden: Orden, $event?: Event) {
     $event?.stopPropagation();
+    if (this.descargandoPdf()) return;
+    this.descargandoPdf.set(true);
     this.api.getBlob(`/ordenes/comprobante/${orden.codigo_orden}/pdf`).subscribe({
       next: (blob) => {
+        this.descargandoPdf.set(false);
         const url = URL.createObjectURL(blob);
         window.open(url, '_blank');
       },
-      error: (err) => this.notify.mostrarError(err, 'No se pudo descargar el comprobante PDF')
+      error: (err) => {
+        this.descargandoPdf.set(false);
+        this.notify.mostrarError(err, 'No se pudo descargar el comprobante PDF');
+      }
     });
   }
 

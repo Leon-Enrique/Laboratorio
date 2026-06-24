@@ -1,10 +1,11 @@
 import uuid
 import re
 import logging
+import os
 from datetime import datetime, timezone, date
 from typing import List, Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Query, Header
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Query, Header, Body
 from fastapi.responses import FileResponse, Response
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session, joinedload
@@ -26,12 +27,23 @@ from app.schemas.orden import (
     ConsultaPacienteRequest,
     CodigoVerificacionResponse,
     ComprobanteResumen,
+    AprobarOrdenRequest,
 )
 from app.api.v1.endpoints.auth import RoleChecker, get_current_user, oauth2_scheme
 from app.models.usuario import Usuario
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+def _orden_list_query(db: Session):
+    """Listado ligero: sin parámetros de examen (el catálogo los aporta en el panel)."""
+    return db.query(Orden).options(
+        joinedload(Orden.paciente),
+        joinedload(Orden.bioquimico),
+        joinedload(Orden.recepcionista),
+        joinedload(Orden.resultados).joinedload(Resultado.examen),
+    )
 
 
 def _orden_query(db: Session):
@@ -219,13 +231,36 @@ def crear_orden(
     return _orden_query(db).filter(Orden.id == nueva_orden.id).first()
 
 
+def _guardar_valores_orden(
+    db: Session,
+    orden: Orden,
+    resultados_in: List[ResultadoCreate],
+) -> None:
+    for res_in in resultados_in:
+        db_res = db.query(Resultado).filter(
+            Resultado.orden_id == orden.id,
+            Resultado.examen_id == res_in.examen_id,
+        ).first()
+        if db_res:
+            db_res.valor_resultado = res_in.valor_resultado
+            db.add(db_res)
+    _actualizar_estado_workflow(db, orden)
+    db.add(orden)
+
+
 # 2. Listar todas las órdenes (solo admin/bioquímico)
 @router.get("/", response_model=List[OrdenResponse])
 def listar_ordenes(
+    limit: int = Query(120, ge=1, le=300),
     db: Session = Depends(get_db),
-    current_user: Any = Depends(RoleChecker(["admin", "bioquimico"]))
+    current_user: Any = Depends(RoleChecker(["admin", "bioquimico"])),
 ) -> Any:
-    return _orden_query(db).order_by(Orden.fecha_creacion.desc()).all()
+    return (
+        _orden_list_query(db)
+        .order_by(Orden.fecha_creacion.desc())
+        .limit(limit)
+        .all()
+    )
 
 
 @router.get("/comprobantes", response_model=List[ComprobanteResumen])
@@ -269,11 +304,12 @@ def descargar_comprobante_pdf(
     current_user: Any = Depends(RoleChecker(["admin", "bioquimico"])),
 ) -> FileResponse:
     codigo = codigo_orden.strip().upper()
-    orden = _orden_query(db).filter(Orden.codigo_orden == codigo).first()
+    orden = _orden_list_query(db).filter(Orden.codigo_orden == codigo).first()
     if not orden:
         raise HTTPException(status_code=404, detail="Orden no encontrada")
 
-    comprobante_service.generar_comprobante_orden(orden, current_user.nombre)
+    if not comprobante_service.comprobante_existe(codigo):
+        comprobante_service.generar_comprobante_orden(orden, current_user.nombre)
     numero = orden.numero_comprobante or orden.id
     titulo = "factura" if orden.requiere_factura else "orden"
     return FileResponse(
@@ -411,16 +447,16 @@ def guardar_valores_borrador(
     _actualizar_estado_workflow(db, orden)
     db.add(orden)
     db.commit()
-    return _orden_query(db).filter(Orden.id == orden_id).first()
+    return _orden_list_query(db).filter(Orden.id == orden_id).first()
 
 
 # 6. Aprobar, Firmar Electrónicamente y Emitir Reporte Oficial (Solo Bioquímico Regente o Admin)
-# ¡Activa el descuento automático de inventario MRP y genera URL de descarga PDF!
 @router.post("/{orden_id}/aprobar", response_model=OrdenResponse)
 def aprobar_y_emitir_orden(
     orden_id: int,
+    body: AprobarOrdenRequest = Body(default_factory=AprobarOrdenRequest),
     db: Session = Depends(get_db),
-    current_user: Usuario = Depends(RoleChecker(["admin", "bioquimico"]))
+    current_user: Usuario = Depends(RoleChecker(["admin", "bioquimico"])),
 ) -> Any:
     orden = _orden_query(db).filter(Orden.id == orden_id).first()
     if not orden:
@@ -428,6 +464,10 @@ def aprobar_y_emitir_orden(
         
     if orden.estado == "COMPLETADO":
         raise HTTPException(status_code=400, detail="Esta orden ya se encuentra aprobada y completada")
+
+    if body.resultados:
+        _guardar_valores_orden(db, orden, body.resultados)
+        db.flush()
 
     for res in orden.resultados:
         if res.valor_resultado is None:
@@ -487,7 +527,7 @@ def aprobar_y_emitir_orden(
             detail=f"Error al firmar la orden: {exc}",
         ) from exc
 
-    return _orden_query(db).filter(Orden.id == orden_id).first()
+    return _orden_list_query(db).filter(Orden.id == orden_id).first()
 
 
 @router.post("/{orden_id}/reabrir-resultados", response_model=OrdenResponse)
@@ -513,9 +553,13 @@ def reabrir_resultados_orden(
         res.valor_resultado = {}
         db.add(res)
 
+    informe_path = pdf_service.ruta_informe(orden.codigo_orden)
+    if os.path.isfile(informe_path):
+        os.remove(informe_path)
+
     db.add(orden)
     db.commit()
-    return _orden_query(db).filter(Orden.id == orden_id).first()
+    return _orden_list_query(db).filter(Orden.id == orden_id).first()
 
 
 @router.patch("/{orden_id}/pago", response_model=OrdenResponse)
@@ -542,10 +586,8 @@ def actualizar_estado_pago(
 
     db.add(orden)
     db.commit()
-    return _orden_query(db).filter(Orden.id == orden_id).first()
-
-
-@router.patch("/{orden_id}/meta", response_model=OrdenResponse)
+    comprobante_service.invalidar_comprobante(orden.codigo_orden)
+    return _orden_list_query(db).filter(Orden.id == orden_id).first()
 def actualizar_meta_orden(
     orden_id: int,
     meta_in: OrdenMetaUpdate,
@@ -567,7 +609,7 @@ def actualizar_meta_orden(
 
     db.add(orden)
     db.commit()
-    return _orden_query(db).filter(Orden.id == orden_id).first()
+    return _orden_list_query(db).filter(Orden.id == orden_id).first()
 
 
 @router.get("/informe/{codigo_orden}/pdf")
@@ -595,7 +637,8 @@ def descargar_informe_pdf(
             raise HTTPException(status_code=401, detail="Datos de verificación incorrectos")
 
     firmante = orden.bioquimico.nombre if orden.bioquimico else "Bioquímico Regente"
-    pdf_service.generar_informe_orden(orden, firmante)
+    if not pdf_service.informe_existe(codigo):
+        pdf_service.generar_informe_orden(orden, firmante)
 
     return FileResponse(
         pdf_service.ruta_informe(codigo),

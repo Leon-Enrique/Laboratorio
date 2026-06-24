@@ -41,6 +41,11 @@ class ResultadoBase(BaseModel):
 class ResultadoCreate(ResultadoBase):
     pass
 
+
+class AprobarOrdenRequest(BaseModel):
+    """Opcional: guarda valores y firma en una sola petición."""
+    resultados: Optional[List[ResultadoCreate]] = None
+
 class ResultadoResponse(ResultadoBase):
     id: int
     fecha_registro: datetime

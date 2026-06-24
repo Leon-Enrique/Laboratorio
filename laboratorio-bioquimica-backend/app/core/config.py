@@ -40,6 +40,8 @@ class Settings:
     PUBLIC_SITE_URL: str = os.getenv("PUBLIC_SITE_URL", "").strip()
     # Demo/cloud: omitir descuento MRP al firmar si no hay inventario cargado
     SKIP_MRP_ON_APROBAR: bool = _env_bool("SKIP_MRP_ON_APROBAR", False)
+    # Marca de agua en PDF (desactivar en cloud mejora velocidad)
+    PDF_WATERMARK: bool = _env_bool("PDF_WATERMARK", True)
 
     CORS_ORIGINS: list[str] = _parse_cors_origins()
 

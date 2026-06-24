@@ -32,6 +32,8 @@ services:
         value: https://genotipia-lab.vercel.app
       - key: SKIP_MRP_ON_APROBAR
         value: "true"
+      - key: PDF_WATERMARK
+        value: "false"
       - key: DATABASE_URL
         sync: false
       - key: SECRET_KEY
