@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 import logging
 
@@ -52,6 +53,7 @@ def health_check():
         "project": settings.PROJECT_NAME,
         "version": "1.0.0",
         "environment": settings.APP_ENV,
+        "git_commit": (os.getenv("RENDER_GIT_COMMIT") or "local")[:12],
     }
 
 
