@@ -1,3 +1,5 @@
+@use 'sass:color';
+
 // Estilos para el Panel de Control Administrativo e Inventario LIS
 
 $primary-color: #0d6efd;
@@ -1504,7 +1506,7 @@ h3 {
   text-decoration: underline;
 
   &:hover {
-    color: darken($primary-color, 10%);
+    color: color.adjust($primary-color, $lightness: -10%);
   }
 
   &.btn-pago-cobrar {
@@ -1529,7 +1531,7 @@ h3 {
   transition: background 0.3s;
 
   &:hover {
-    background: darken($primary-color, 8%);
+    background: color.adjust($primary-color, $lightness: -8%);
   }
 }
 
@@ -1544,7 +1546,7 @@ h3 {
   transition: background 0.3s;
 
   &:hover {
-    background: darken($primary-color, 8%);
+    background: color.adjust($primary-color, $lightness: -8%);
   }
 }
 
@@ -2481,7 +2483,7 @@ h3 {
     transition: background 0.3s;
 
     &:hover {
-      background: darken($primary-color, 8%);
+      background: color.adjust($primary-color, $lightness: -8%);
     }
   }
 }
@@ -4373,7 +4375,7 @@ h3 {
     box-shadow: 0 2px 6px rgba(13, 110, 253, 0.25);
 
     &:hover {
-      background: darken($primary-color, 7%);
+      background: color.adjust($primary-color, $lightness: -7%);
     }
 
     &:active {

@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApiService } from '../../../../../core/services/api.service';
 import { MONEDA_CODIGO } from '../../../../../core/constants/moneda';
@@ -10,9 +10,7 @@ import { PanelNotifyService } from '../../panel-notify.service';
   selector: 'app-panel-historial-tab',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './panel-historial-tab.html',
-  styleUrl: '../../panel.scss',
-  encapsulation: ViewEncapsulation.None
+  templateUrl: './panel-historial-tab.html'
 })
 export class PanelHistorialTabComponent {
   private api = inject(ApiService);

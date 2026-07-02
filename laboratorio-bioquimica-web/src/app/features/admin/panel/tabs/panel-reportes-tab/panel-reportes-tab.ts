@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../../core/services/api.service';
@@ -36,9 +36,7 @@ interface TopExamenRanking {
   selector: 'app-panel-reportes-tab',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './panel-reportes-tab.html',
-  styleUrl: '../../panel.scss',
-  encapsulation: ViewEncapsulation.None
+  templateUrl: './panel-reportes-tab.html'
 })
 export class PanelReportesTabComponent {
   private api = inject(ApiService);

@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, inject, signal, Input } from '@angular/core';
+import { Component, inject, signal, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../../core/services/api.service';
@@ -10,9 +10,7 @@ import { PanelCacheService } from '../../panel-cache.service';
   selector: 'app-panel-proveedores-tab',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './panel-proveedores-tab.html',
-  styleUrl: '../../panel.scss',
-  encapsulation: ViewEncapsulation.None
+  templateUrl: './panel-proveedores-tab.html'
 })
 export class PanelProveedoresTabComponent {
   private api = inject(ApiService);

@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../../core/services/api.service';
@@ -41,9 +41,7 @@ type PanelAnalisis = 'prueba' | 'insumos' | 'resultados';
   selector: 'app-panel-analisis-tab',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './panel-analisis-tab.html',
-  styleUrl: '../../panel.scss',
-  encapsulation: ViewEncapsulation.None
+  templateUrl: './panel-analisis-tab.html'
 })
 export class PanelAnalisisTabComponent implements OnInit {
   private api = inject(ApiService);

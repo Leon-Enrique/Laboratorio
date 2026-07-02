@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../../core/services/api.service';
@@ -11,9 +11,7 @@ import { PanelNotifyService } from '../../panel-notify.service';
   selector: 'app-panel-facturas-tab',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './panel-facturas-tab.html',
-  styleUrl: '../../panel.scss',
-  encapsulation: ViewEncapsulation.None
+  templateUrl: './panel-facturas-tab.html'
 })
 export class PanelFacturasTabComponent {
   private api = inject(ApiService);

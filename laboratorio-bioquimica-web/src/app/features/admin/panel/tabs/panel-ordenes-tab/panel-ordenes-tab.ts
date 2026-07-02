@@ -40,9 +40,7 @@ type CampoResultadoForm = {
   selector: 'app-panel-ordenes-tab',
   standalone: true,
   imports: [CommonModule, FormsModule, BrandLogoComponent],
-  templateUrl: './panel-ordenes-tab.html',
-  styleUrl: '../../panel.scss',
-  encapsulation: ViewEncapsulation.None
+  templateUrl: './panel-ordenes-tab.html'
 })
 export class PanelOrdenesTabComponent {
   private api = inject(ApiService);

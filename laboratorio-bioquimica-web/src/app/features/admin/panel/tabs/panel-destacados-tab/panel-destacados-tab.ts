@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../../core/services/api.service';
@@ -35,9 +35,7 @@ interface MasBuscadoItem {
   selector: 'app-panel-destacados-tab',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './panel-destacados-tab.html',
-  styleUrl: '../../panel.scss',
-  encapsulation: ViewEncapsulation.None
+  templateUrl: './panel-destacados-tab.html'
 })
 export class PanelDestacadosTabComponent {
   private api = inject(ApiService);

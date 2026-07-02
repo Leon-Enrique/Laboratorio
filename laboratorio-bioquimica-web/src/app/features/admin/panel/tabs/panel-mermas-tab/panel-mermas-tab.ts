@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApiService } from '../../../../../core/services/api.service';
 import { MermaInventario } from '../../panel.models';
@@ -7,9 +7,7 @@ import { MermaInventario } from '../../panel.models';
   selector: 'app-panel-mermas-tab',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './panel-mermas-tab.html',
-  styleUrl: '../../panel.scss',
-  encapsulation: ViewEncapsulation.None
+  templateUrl: './panel-mermas-tab.html'
 })
 export class PanelMermasTabComponent {
   private api = inject(ApiService);

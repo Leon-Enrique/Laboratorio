@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../../core/services/api.service';
@@ -10,9 +10,7 @@ import { PanelCacheService } from '../../panel-cache.service';
   selector: 'app-panel-ordenes-pedido-tab',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './panel-ordenes-pedido-tab.html',
-  styleUrl: '../../panel.scss',
-  encapsulation: ViewEncapsulation.None
+  templateUrl: './panel-ordenes-pedido-tab.html'
 })
 export class PanelOrdenesPedidoTabComponent {
   private api = inject(ApiService);
