@@ -11,7 +11,7 @@ Write-Host "=== Genotipia: verificacion local pre-deploy ===" -ForegroundColor C
 Write-Host "Esto NO sube nada a internet. Solo comprueba tests y build." -ForegroundColor DarkGray
 Write-Host ""
 
-Write-Host "[1/2] Backend: pytest..." -ForegroundColor Yellow
+Write-Host "[1/3] Backend: pytest..." -ForegroundColor Yellow
 Push-Location $Backend
 $py = ".\venv\Scripts\python.exe"
 if (-not (Test-Path $py)) {
@@ -27,7 +27,17 @@ if ($LASTEXITCODE -ne 0) { throw "pytest fallo" }
 Write-Host "  OK" -ForegroundColor Green
 Pop-Location
 
-Write-Host "[2/2] Frontend: build produccion..." -ForegroundColor Yellow
+Write-Host "[2/3] Backend: validacion .env produccion (plantilla)..." -ForegroundColor Yellow
+$envExample = Join-Path $Backend ".env.production.example"
+if (Test-Path $envExample) {
+    & $py (Join-Path $Backend "scripts\validate_production_env.py") $envExample
+    if ($LASTEXITCODE -ne 0) { throw "La plantilla .env.production.example no pasa validacion — corrija antes de publicar" }
+    Write-Host "  OK (plantilla)" -ForegroundColor Green
+} else {
+    Write-Host "  Omitido (sin .env.production.example)" -ForegroundColor DarkGray
+}
+
+Write-Host "[3/3] Frontend: build produccion..." -ForegroundColor Yellow
 Push-Location $Frontend
 npm run build -- --configuration=production
 if ($LASTEXITCODE -ne 0) { throw "ng build fallo" }

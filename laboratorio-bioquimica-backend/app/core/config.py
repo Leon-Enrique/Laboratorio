@@ -45,6 +45,9 @@ class Settings:
 
     CORS_ORIGINS: list[str] = _parse_cors_origins()
 
+    # Documentación OpenAPI (/docs): solo desarrollo o si se habilita explícitamente
+    DOCS_ENABLED: bool = _env_bool("DOCS_ENABLED", False)
+
     # Alembic al arrancar (recomendado en dev; en prod usar CI/deploy + AUTO_MIGRATE=false)
     AUTO_MIGRATE: bool = _env_bool(
         "AUTO_MIGRATE",
@@ -71,16 +74,9 @@ class Settings:
         return frontend
 
     def validate_production(self) -> None:
-        if not self.is_production:
-            return
-        if self.SECRET_KEY == "SUPER_SECRET_KEY_BIOQUIMICA_2026":
-            raise RuntimeError(
-                "SECRET_KEY insegura en producción. Defina SECRET_KEY en el entorno."
-            )
-        if self.DATABASE_URL.startswith("sqlite"):
-            raise RuntimeError(
-                "SQLite no está soportado en producción. Use PostgreSQL (DATABASE_URL)."
-            )
+        from app.core.production_checks import validate_production_settings
+
+        validate_production_settings(self)
 
 
 settings = Settings()

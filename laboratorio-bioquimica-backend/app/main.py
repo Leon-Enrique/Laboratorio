@@ -19,11 +19,19 @@ async def lifespan(app: FastAPI):
     yield
 
 
+# En producción /docs queda cerrado salvo DOCS_ENABLED=true (mapa del API para atacantes).
+_docs_url = "/docs" if (not settings.is_production or settings.DOCS_ENABLED) else None
+_redoc_url = "/redoc" if (not settings.is_production or settings.DOCS_ENABLED) else None
+_openapi_url = "/openapi.json" if (not settings.is_production or settings.DOCS_ENABLED) else None
+
 app = FastAPI(
     title="Genotipia API",
     description="API REST para la gestión de pacientes, órdenes de exámenes y control de inventario MRP",
     version="1.0.0",
     lifespan=lifespan,
+    docs_url=_docs_url,
+    redoc_url=_redoc_url,
+    openapi_url=_openapi_url,
 )
 
 app.add_middleware(

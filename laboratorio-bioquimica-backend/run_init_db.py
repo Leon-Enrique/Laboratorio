@@ -2,6 +2,10 @@ from app.db.session import SessionLocal
 from app.db.init_db import init_db
 
 def main():
+    from app.core.config import settings
+
+    if settings.is_production:
+        print("Entorno: PRODUCCIÓN — se aplican reglas de seguridad estrictas.")
     print("Iniciando la base de datos y cargando datos semilla...")
     db = SessionLocal()
     try:

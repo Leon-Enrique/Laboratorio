@@ -31,9 +31,11 @@ npm start
 
 App: http://localhost:4200
 
-## Credenciales demo
+## Credenciales demo (solo desarrollo local)
 
-- Admin: `admin@laboratorio.com` / `admin123`
+- Admin: `admin@laboratorio.com` / `admin123` — **no usar en producción**
+- En producción: defina `ADMIN_INITIAL_PASSWORD` en `.env` antes de `python run_init_db.py`
+- Valide con: `python scripts/validate_production_env.py .env`
 
 ## Desarrollo vs publicar en internet
 

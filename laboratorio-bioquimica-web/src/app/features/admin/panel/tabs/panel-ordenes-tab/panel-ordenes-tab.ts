@@ -178,7 +178,6 @@ export class PanelOrdenesTabComponent {
         case 'estado':
           cmp = a.estado.localeCompare(b.estado);
           break;
-        case 'fecha':
         default:
           cmp = new Date(a.fecha_creacion).getTime() - new Date(b.fecha_creacion).getTime();
           break;

@@ -1,7 +1,11 @@
 from datetime import date
+import os
+
 from sqlalchemy.orm import Session
 from app.db.session import engine, Base
 from app.db.migrate_lims import migrate_lims_inventory
+from app.core.config import settings
+from app.core.production_checks import assert_strong_initial_password
 from app.models.usuario import Usuario, Paciente
 from app.models.examen import Examen, FormulaConsumo
 from app.models.parametro_examen import ParametroExamen
@@ -13,6 +17,88 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in ("1", "true", "yes", "on")
+
+
+def _password_admin_inicial() -> str:
+    if settings.is_production:
+        pwd = os.getenv("ADMIN_INITIAL_PASSWORD", "").strip()
+        if not pwd:
+            raise RuntimeError(
+                "En producción defina ADMIN_INITIAL_PASSWORD en .env antes de run_init_db.py"
+            )
+        assert_strong_initial_password(pwd, label="ADMIN_INITIAL_PASSWORD")
+        return pwd
+    return os.getenv("ADMIN_INITIAL_PASSWORD", "admin123").strip() or "admin123"
+
+
+def _seed_usuarios(db: Session) -> None:
+    """Usuarios iniciales. En producción: solo admin con contraseña fuerte; demo opcional."""
+    seed_demo = _env_bool("SEED_DEMO_USERS", default=not settings.is_production)
+
+    admin = db.query(Usuario).filter(Usuario.email == "admin@laboratorio.com").first()
+    if not admin:
+        admin_pwd = _password_admin_inicial()
+        admin = Usuario(
+            email="admin@laboratorio.com",
+            password_hash=get_password_hash(admin_pwd),
+            nombre="Administrador General",
+            rol="admin",
+            activo=True,
+        )
+        db.add(admin)
+
+    if not seed_demo:
+        db.commit()
+        return
+
+    bioq = db.query(Usuario).filter(Usuario.email == "bioquimico@laboratorio.com").first()
+    if not bioq:
+        bio_pwd = os.getenv("BIOQUIMICO_INITIAL_PASSWORD", "bio123").strip() or "bio123"
+        if settings.is_production:
+            assert_strong_initial_password(bio_pwd, label="BIOQUIMICO_INITIAL_PASSWORD")
+        bioq = Usuario(
+            email="bioquimico@laboratorio.com",
+            password_hash=get_password_hash(bio_pwd),
+            nombre="Dr. Carlos Mendoza (Bioquímico)",
+            rol="bioquimico",
+            activo=True,
+        )
+        db.add(bioq)
+
+    pac_user = db.query(Usuario).filter(Usuario.email == "juan.perez@email.com").first()
+    if not pac_user:
+        pac_user = Usuario(
+            email="juan.perez@email.com",
+            password_hash=get_password_hash("juan123"),
+            nombre="Juan Pérez",
+            rol="paciente",
+            activo=True,
+        )
+        db.add(pac_user)
+        db.commit()
+        db.refresh(pac_user)
+
+        paciente = Paciente(
+            usuario_id=pac_user.id,
+            dni="12345678-9",
+            nombre="Juan",
+            apellido="Pérez",
+            fecha_nacimiento=date(1990, 5, 15),
+            genero="M",
+            telefono="+59170000000",
+            direccion="Av. Siempre Viva 742",
+        )
+        db.add(paciente)
+
+    db.commit()
+
 
 def init_db(db: Session):
     # Crear tablas y migrar esquema LIMS (multi-lote)
@@ -43,56 +129,8 @@ def init_db(db: Session):
         db.commit()
         db.refresh(prov_roche)
 
-    # 2. Crear Usuarios (Admin, Bioquímico, Paciente de prueba)
-    admin = db.query(Usuario).filter(Usuario.email == "admin@laboratorio.com").first()
-    if not admin:
-        admin = Usuario(
-            email="admin@laboratorio.com",
-            password_hash=get_password_hash("admin123"),
-            nombre="Administrador General",
-            rol="admin",
-            activo=True
-        )
-        db.add(admin)
-
-    bioq = db.query(Usuario).filter(Usuario.email == "bioquimico@laboratorio.com").first()
-    if not bioq:
-        bioq = Usuario(
-            email="bioquimico@laboratorio.com",
-            password_hash=get_password_hash("bio123"),
-            nombre="Dr. Carlos Mendoza (Bioquímico)",
-            rol="bioquimico",
-            activo=True
-        )
-        db.add(bioq)
-
-    pac_user = db.query(Usuario).filter(Usuario.email == "juan.perez@email.com").first()
-    if not pac_user:
-        pac_user = Usuario(
-            email="juan.perez@email.com",
-            password_hash=get_password_hash("juan123"),
-            nombre="Juan Pérez",
-            rol="paciente",
-            activo=True
-        )
-        db.add(pac_user)
-        db.commit()
-        db.refresh(pac_user)
-
-        # Crear perfil del paciente
-        paciente = Paciente(
-            usuario_id=pac_user.id,
-            dni="12345678-9",
-            nombre="Juan",
-            apellido="Pérez",
-            fecha_nacimiento=date(1990, 5, 15),
-            genero="M",
-            telefono="+59170000000",
-            direccion="Av. Siempre Viva 742"
-        )
-        db.add(paciente)
-
-    db.commit()
+    # 2. Usuarios iniciales (admin obligatorio en prod con ADMIN_INITIAL_PASSWORD)
+    _seed_usuarios(db)
 
     # 3. Crear Reactivos (Insumos) en Inventario
     reactivos_data = [

@@ -14,6 +14,8 @@ import {
   normalizarTipoResultado,
   stepDecimales,
   esParametroResultadoVisible,
+  esCampoFijoResultado,
+  CAMPOS_FIJOS_RESULTADO,
   examenFaltaCrearResultados,
   TipoResultado
 } from '../../catalogo-examen.options';
@@ -83,12 +85,7 @@ export class PanelAnalisisTabComponent implements OnInit {
   examenParametros = signal<ParametroFormRow[]>([]);
   camposFijosResultado = signal<ParametroFormRow[]>([]);
 
-  readonly nombresCamposFijos = [
-    'Grupo',
-    'Método de prueba',
-    'Valor de referencia',
-    'Material de prueba'
-  ] as const;
+  readonly nombresCamposFijos = CAMPOS_FIJOS_RESULTADO;
 
   parametroFormModel: ParametroFormRow = this.parametroVacio();
 
@@ -106,14 +103,17 @@ export class PanelAnalisisTabComponent implements OnInit {
   }
 
   cargarExamenes(onLoaded?: (data: Examen[]) => void) {
-    this.api.get<Examen[]>('/examenes/admin-lista').subscribe(data => {
-      this.examenes.set(data);
-      const id = this.examenSeleccionadoId();
-      if (id && !data.some(e => e.id === id)) {
-        this.examenSeleccionadoId.set(null);
-        this.panelAbierto.set(null);
-      }
-      onLoaded?.(data);
+    this.api.get<Examen[]>('/examenes/admin-lista').subscribe({
+      next: data => {
+        this.examenes.set(data);
+        const id = this.examenSeleccionadoId();
+        if (id && !data.some(e => e.id === id)) {
+          this.examenSeleccionadoId.set(null);
+          this.panelAbierto.set(null);
+        }
+        onLoaded?.(data);
+      },
+      error: err => this.notify.mostrarError(err, 'No se pudo cargar la lista de pruebas')
     });
   }
 
@@ -203,8 +203,7 @@ export class PanelAnalisisTabComponent implements OnInit {
   }
 
   esCampoFijo(nombre: string): boolean {
-    const n = nombre.trim().toLowerCase();
-    return this.nombresCamposFijos.some(f => f.toLowerCase() === n);
+    return esCampoFijoResultado(nombre);
   }
 
   private definicionCamposFijos(): ParametroFormRow[] {
@@ -272,7 +271,10 @@ export class PanelAnalisisTabComponent implements OnInit {
 
     this.api.post<Examen>('/examenes/', payload).subscribe({
       next: (creado) => {
-        this.notify.mostrarToast(`"${creado.nombre}" registrado. Ya aparece en el catálogo público.`, 'success');
+        this.notify.mostrarToast(
+          `"${creado.nombre}" registrada. Actívala en Catálogo de pruebas para publicarla en la web.`,
+          'success'
+        );
         this.mostrarRegistroRapido.set(false);
         this.cargarExamenes();
         this.examenSeleccionadoId.set(creado.id);
@@ -291,8 +293,8 @@ export class PanelAnalisisTabComponent implements OnInit {
       return;
     }
 
-    if (this.panelAbierto() === 'resultados' && !this.todosParametrosResultado().length) {
-      this.notify.mostrarToast('Agrega al menos un campo con Adicionar.', 'error');
+    if (this.panelAbierto() === 'resultados' && !this.examenParametros().length) {
+      this.notify.mostrarToast('Agrega al menos un campo analítico con Adicionar.', 'error');
       return;
     }
 
@@ -408,6 +410,10 @@ export class PanelAnalisisTabComponent implements OnInit {
   private buildParametrosPayload(rows: ParametroFormRow[]) {
     return rows
       .filter(p => p.nombre.trim() && esParametroResultadoVisible(p.nombre))
+      .filter(p => {
+        if (!this.esCampoFijo(p.nombre)) return true;
+        return Boolean(p.valor_referencia.trim() || p.valor_defecto.trim());
+      })
       .map((p, i) => ({
         nombre: p.nombre.trim(),
         tipo: p.tipo || 'Texto',
@@ -449,10 +455,21 @@ export class PanelAnalisisTabComponent implements OnInit {
       this.notify.mostrarToast('Ya existe un campo con ese nombre.', 'error');
       return;
     }
+    const modelo = this.parametroFormModel;
     const fila: ParametroFormRow = {
       ...this.parametroVacio(),
+      tipo: modelo.tipo,
+      grupo: modelo.grupo,
+      seccion: modelo.seccion,
       nombre,
-      llave: this.slugLlave(nombre)
+      llave: this.slugLlave(nombre),
+      valor_defecto: modelo.valor_defecto,
+      unidad: modelo.unidad,
+      decimales: modelo.decimales,
+      metodo_prueba: modelo.metodo_prueba,
+      valor_referencia: modelo.valor_referencia,
+      valor_min: modelo.valor_min,
+      valor_max: modelo.valor_max
     };
     this.examenParametros.set([...this.examenParametros(), fila]);
     this.parametroFormModel = this.parametroVacio();

@@ -61,16 +61,31 @@ export type TipoResultado = (typeof TIPOS_RESULTADO)[number];
 /** El nombre de la prueba ya aparece como título del bloque; no se pide en el formulario. */
 export const PARAMETROS_RESULTADO_OCULTOS = ['Nombre'] as const;
 
+/** Metadatos del informe; no cuentan como formulario analítico configurado. */
+export const CAMPOS_FIJOS_RESULTADO = [
+  'Grupo',
+  'Método de prueba',
+  'Valor de referencia',
+  'Material de prueba'
+] as const;
+
 export function esParametroResultadoVisible(nombre: string): boolean {
   const n = nombre.trim().toLowerCase();
   return !PARAMETROS_RESULTADO_OCULTOS.some(p => p.toLowerCase() === n);
+}
+
+export function esCampoFijoResultado(nombre: string): boolean {
+  const n = nombre.trim().toLowerCase();
+  return CAMPOS_FIJOS_RESULTADO.some(f => f.toLowerCase() === n);
 }
 
 export function examenTieneFormularioResultados(
   parametros?: readonly { nombre: string }[] | null
 ): boolean {
   if (!parametros?.length) return false;
-  return parametros.some(p => esParametroResultadoVisible(p.nombre));
+  return parametros.some(
+    p => esParametroResultadoVisible(p.nombre) && !esCampoFijoResultado(p.nombre)
+  );
 }
 
 export function examenFaltaCrearResultados(

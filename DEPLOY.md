@@ -78,14 +78,38 @@ cd /opt/Laboratorio
 
 Eso baja código nuevo, migra BD si hay cambios, recompila la web y reinicia la API.
 
-### Antes de publicar — checklist mental
+### Antes de publicar — checklist de seguridad (obligatorio)
+
+El backend **no arrancará** en `APP_ENV=production` si falta algo de esta lista. Valide su `.env` con:
+
+```powershell
+cd laboratorio-bioquimica-backend
+copy .env.production.example .env
+# Editar .env con valores reales
+python scripts/validate_production_env.py .env
+```
+
+| Item | Qué hacer |
+|------|-----------|
+| **SECRET_KEY** | Clave única ≥32 caracteres (`python -c "import secrets; print(secrets.token_urlsafe(48))"`) |
+| **ADMIN_INITIAL_PASSWORD** | Contraseña fuerte (≥12 caracteres) para el admin; **nunca** `admin123` |
+| **DATABASE_URL** | PostgreSQL; la BD **no** debe ser accesible desde internet |
+| **HTTPS** | `FRONTEND_URL`, `API_PUBLIC_URL`, `CORS_ORIGINS` con `https://` |
+| **CORS_ORIGINS** | Solo su dominio real (sin `localhost`) |
+| **AUTO_MIGRATE** | `false`; migrar con `alembic upgrade head` en el deploy |
+| **SEED_DEMO_USERS** | `false` en producción real (no crear bioquímico/paciente demo) |
+| **DOCS_ENABLED** | `false` — `/docs` del API cerrado al público |
+| **Contraseña admin existente** | Si ya corrió `init_db` con `admin123`, cámbiela en el panel o en BD |
+| **Firewall VPS** | Puertos abiertos: 80/443. PostgreSQL solo `127.0.0.1` |
+| **SSL** | Certificado Let's Encrypt (nginx) o HTTPS del proveedor (Render/Vercel) |
+| **Backup** | Programar `scripts/backup_db.ps1` o cron diario |
+
+Checklist funcional:
 
 - [ ] Precios y textos del sitio público revisados
-- [ ] `environment.production.ts` con tu dominio real de API
-- [ ] `SECRET_KEY` nueva y larga en `.env` del servidor
-- [ ] Cambiar contraseña del admin demo (`admin123`)
+- [ ] `environment.production.ts` con la URL HTTPS real de la API
+- [ ] `python scripts/validate_production_env.py` → OK
 - [ ] Probar flujo: orden → resultados → PDF → portal paciente
-- [ ] Programar backup (`scripts/backup_db.ps1` o cron en el servidor)
 
 ---
 

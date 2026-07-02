@@ -7,7 +7,7 @@
   </div>
   <p class="subtitle">
     Lista de pruebas del laboratorio. Selecciona una y abre <strong>Prueba</strong>, <strong>Insumos</strong> o <strong>Crear Resultados</strong> para configurarla.
-    Al registrar uno nuevo, su nombre aparece automáticamente en el catálogo público.
+    Al registrar una nueva, aparece en esta lista. Publícala en la web desde <strong>Catálogo de pruebas</strong>.
   </p>
 
   @if (mostrarRegistroRapido()) {
@@ -312,7 +312,12 @@
                 @for (p of camposFijosResultado(); track p.nombre) {
                   <div class="form-group">
                     <label>{{ p.nombre }}</label>
-                    <input type="text" />
+                    <input
+                      type="text"
+                      [(ngModel)]="p.valor_referencia"
+                      [name]="'fijo_' + p.nombre"
+                      [placeholder]="'Valor para ' + p.nombre"
+                    />
                   </div>
                 }
                 @for (p of examenParametros(); track $index) {
@@ -328,25 +333,59 @@
                     </div>
                     @switch (tipoParametro(p)) {
                       @case ('Numero') {
-                        <input type="number" [step]="stepDecimales(p.decimales)" />
+                        <input
+                          type="number"
+                          [(ngModel)]="p.valor_defecto"
+                          [name]="'num_' + $index"
+                          [step]="stepDecimales(p.decimales)"
+                          placeholder="Vista previa"
+                        />
+                        @if (p.unidad) {
+                          <small class="campo-descripcion">{{ p.unidad }}</small>
+                        }
+                        @if (p.valor_referencia) {
+                          <small class="campo-descripcion">Ref: {{ p.valor_referencia }}</small>
+                        }
                       }
                       @case ('Texto') {
-                        <input type="text" />
+                        <input
+                          type="text"
+                          [(ngModel)]="p.valor_defecto"
+                          [name]="'txt_' + $index"
+                          placeholder="Vista previa"
+                        />
                         @if (p.valor_referencia) {
                           <small class="campo-descripcion">{{ p.valor_referencia }}</small>
                         }
                       }
                       @case ('Texto Area') {
-                        <textarea rows="2"></textarea>
+                        <textarea
+                          rows="2"
+                          [(ngModel)]="p.valor_defecto"
+                          [name]="'area_' + $index"
+                          placeholder="Vista previa"
+                        ></textarea>
                       }
                       @case ('Fecha') {
-                        <input type="date" />
+                        <input
+                          type="date"
+                          [(ngModel)]="p.valor_defecto"
+                          [name]="'fecha_' + $index"
+                        />
                       }
                       @case ('Hora') {
-                        <input type="time" />
+                        <input
+                          type="time"
+                          [(ngModel)]="p.valor_defecto"
+                          [name]="'hora_' + $index"
+                        />
                       }
                       @default {
-                        <input type="text" />
+                        <input
+                          type="text"
+                          [(ngModel)]="p.valor_defecto"
+                          [name]="'def_' + $index"
+                        />
                       }
                     }
                   </div>

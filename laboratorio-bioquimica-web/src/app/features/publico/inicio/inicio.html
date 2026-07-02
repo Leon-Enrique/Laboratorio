@@ -20,10 +20,10 @@
         Genotipia · Laboratorio Clínico · Santa Cruz
       </span>
       <h1 aria-label="Precisión y Cuidado en Cada Análisis: Su Salud, Nuestra Prioridad.">
-        <span class="hero-line-reveal hero-title-accent" [style.--hero-delay]="heroReveal.line1 + 'ms'">
+        <span class="hero-line-reveal" [style.--hero-delay]="heroReveal.line1 + 'ms'">
           <span class="hero-line-reveal__inner">Precisión y Cuidado en Cada Análisis:</span>
         </span>
-        <span class="hero-line-reveal hero-title-main" [style.--hero-delay]="heroReveal.line2 + 'ms'">
+        <span class="hero-line-reveal" [style.--hero-delay]="heroReveal.line2 + 'ms'">
           <span class="hero-line-reveal__inner">Su Salud, Nuestra Prioridad.</span>
         </span>
       </h1>
@@ -71,18 +71,6 @@
   </div>
 </section>
 
-<!-- Ticker de servicios -->
-<div class="ticker-strip" aria-hidden="true">
-  <div class="ticker-track">
-    @for (item of tickerItems; track item) {
-      <span class="ticker-item">{{ item }}</span>
-    }
-    @for (item of tickerItems; track item + '-dup') {
-      <span class="ticker-item">{{ item }}</span>
-    }
-  </div>
-</div>
-
 <!-- Exámenes destacados -->
 <section id="catalogo" class="catalogo-section catalogo-section--destacados">
   <div class="section-intro">
@@ -111,7 +99,9 @@
           [queryParams]="{ examen: ex.id }"
           class="exam-card exam-card--compact exam-card--destacado"
         >
-          <span class="exam-badge">Destacado</span>
+          <span class="exam-badge" aria-label="Examen destacado">
+            <span class="exam-badge-stars" aria-hidden="true">★★★★★</span>
+          </span>
           <div class="exam-header exam-header--destacado">
             @if (subtituloDestacado(ex); as subtitulo) {
               <span class="destacado-eyebrow">{{ subtitulo }}</span>
@@ -154,46 +144,37 @@
   </div>
 
   <div class="servicios-grid">
-    <article class="servicio-card">
-      <div class="servicio-visual servicio-visual--pacientes">
-        <span class="servicio-tag">Pacientes</span>
-      </div>
-      <div class="servicio-body">
-        <h3>Servicios para Pacientes</h3>
-        <p>
-          Amplia variedad de análisis clínicos y bioquímicos con indicaciones claras de preparación
-          y acceso a resultados online de forma segura.
-        </p>
-        <a href="#catalogo" class="servicio-link">Ver exámenes →</a>
-      </div>
+    <article class="servicio-card servicio-card--pacientes">
+      <h3>Servicios para Pacientes</h3>
+      <p>
+        Amplia variedad de análisis clínicos y bioquímicos con indicaciones claras de preparación
+        y acceso a resultados online de forma segura.
+      </p>
+      <footer class="servicio-card__foot">
+        <a href="#catalogo" class="servicio-card__link">Ver exámenes →</a>
+      </footer>
     </article>
 
-    <article class="servicio-card">
-      <div class="servicio-visual servicio-visual--medicos">
-        <span class="servicio-tag">Médicos</span>
-      </div>
-      <div class="servicio-body">
-        <h3>Servicios para Médicos</h3>
-        <p>
-          Gestión de órdenes, resultados validados y firmados por bioquímico regente.
-          Informes listos para apoyar decisiones clínicas.
-        </p>
-        <a [routerLink]="['/login']" class="servicio-link">Acceso profesional →</a>
-      </div>
+    <article class="servicio-card servicio-card--medicos">
+      <h3>Servicios para Médicos</h3>
+      <p>
+        Gestión de órdenes, resultados validados y firmados por bioquímico regente.
+        Informes listos para apoyar decisiones clínicas.
+      </p>
+      <footer class="servicio-card__foot">
+        <a [routerLink]="['/login']" class="servicio-card__link">Acceso profesional →</a>
+      </footer>
     </article>
 
-    <article class="servicio-card">
-      <div class="servicio-visual servicio-visual--empresas">
-        <span class="servicio-tag">Empresas</span>
-      </div>
-      <div class="servicio-body">
-        <h3>Servicios Corporativos</h3>
-        <p>
-          Programas de salud ocupacional, exámenes de ingreso y periódicos con facturación
-          adaptada a las necesidades de tu organización.
-        </p>
-        <a [href]="whatsappUrl" target="_blank" rel="noopener" class="servicio-link">Consultar convenio →</a>
-      </div>
+    <article class="servicio-card servicio-card--empresas">
+      <h3>Servicios Corporativos</h3>
+      <p>
+        Programas de salud ocupacional, exámenes de ingreso y periódicos con facturación
+        adaptada a las necesidades de tu organización.
+      </p>
+      <footer class="servicio-card__foot">
+        <a [href]="whatsappUrl" target="_blank" rel="noopener" class="servicio-card__link">Consultar convenio →</a>
+      </footer>
     </article>
   </div>
 </section>
